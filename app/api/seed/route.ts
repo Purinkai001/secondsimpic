@@ -1,187 +1,232 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
 
+// New question format: 4 questions per turn (MCQ, MTF, SAQ, Spot)
 const MEDICAL_QUESTIONS = [
-    // Round 1 - 5 MCQ questions
+    // ===== ROUND 1 (Turn 1) =====
+    // MCQ - Easy
     {
         roundId: "round-1",
         text: "What is the medical term for the 'voice box'?",
         type: "mcq",
+        difficulty: "easy",
         choices: [{ text: "Pharynx" }, { text: "Larynx" }, { text: "Trachea" }, { text: "Esophagus" }],
         correctChoiceIndex: 1,
         order: 1
     },
+    // MTF - Medium
     {
         roundId: "round-1",
-        text: "Which vitamin is synthesized by the skin upon exposure to sunlight?",
-        type: "mcq",
-        choices: [{ text: "Vitamin A" }, { text: "Vitamin C" }, { text: "Vitamin D" }, { text: "Vitamin K" }],
-        correctChoiceIndex: 2,
+        text: "Evaluate the following statements about the cardiovascular system:",
+        type: "mtf",
+        difficulty: "medium",
+        statements: [
+            { text: "The heart has four chambers", isTrue: true },
+            { text: "Veins carry oxygenated blood to the heart", isTrue: false },
+            { text: "The aorta is the largest artery in the body", isTrue: true },
+            { text: "Blood pressure is measured in milliliters", isTrue: false }
+        ],
         order: 2
     },
+    // SAQ - Medium
     {
         roundId: "round-1",
-        text: "What is the normal resting heart rate for adults?",
-        type: "mcq",
-        choices: [{ text: "40-60 bpm" }, { text: "60-100 bpm" }, { text: "100-120 bpm" }, { text: "120-140 bpm" }],
-        correctChoiceIndex: 1,
+        text: "What is the name of the largest bone in the human body?",
+        type: "saq",
+        difficulty: "medium",
+        correctAnswer: "femur",
         order: 3
     },
+    // Spot Diagnosis - Difficult
     {
         roundId: "round-1",
-        text: "Which blood type is known as the universal donor?",
-        type: "mcq",
-        choices: [{ text: "A" }, { text: "B" }, { text: "AB" }, { text: "O" }],
-        correctChoiceIndex: 3,
+        text: "Identify the structure indicated by the arrow in this anatomical image (hint: it's in the respiratory system):",
+        type: "spot",
+        difficulty: "difficult",
+        correctAnswer: "trachea",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Gray622.png/220px-Gray622.png",
         order: 4
     },
-    {
-        roundId: "round-1",
-        text: "The pancreas produces which hormone to regulate blood sugar?",
-        type: "mcq",
-        choices: [{ text: "Glucagon only" }, { text: "Insulin only" }, { text: "Both Insulin and Glucagon" }, { text: "Cortisol" }],
-        correctChoiceIndex: 2,
-        order: 5
-    },
 
-    // Round 2 - 5 MCQ questions
+    // ===== ROUND 2 (Turn 2) =====
+    // MCQ - Easy
     {
         roundId: "round-2",
         text: "Which organ is primarily responsible for detoxifying chemicals in the body?",
         type: "mcq",
+        difficulty: "easy",
         choices: [{ text: "Kidney" }, { text: "Liver" }, { text: "Pancreas" }, { text: "Spleen" }],
         correctChoiceIndex: 1,
         order: 1
     },
+    // MTF - Medium
     {
         roundId: "round-2",
-        text: "What is the largest bone in the human body?",
-        type: "mcq",
-        choices: [{ text: "Tibia" }, { text: "Humerus" }, { text: "Femur" }, { text: "Pelvis" }],
-        correctChoiceIndex: 2,
+        text: "Evaluate the following statements about blood types:",
+        type: "mtf",
+        difficulty: "medium",
+        statements: [
+            { text: "Type O blood is the universal donor", isTrue: true },
+            { text: "Type AB blood can only receive from AB donors", isTrue: false },
+            { text: "Rh factor determines if blood is positive or negative", isTrue: true },
+            { text: "Type A blood has B antibodies", isTrue: true }
+        ],
         order: 2
     },
+    // SAQ - Medium
     {
         roundId: "round-2",
-        text: "Which part of the brain controls balance and coordination?",
-        type: "mcq",
-        choices: [{ text: "Cerebrum" }, { text: "Cerebellum" }, { text: "Medulla" }, { text: "Hypothalamus" }],
-        correctChoiceIndex: 1,
+        text: "What vitamin is synthesized by the skin upon exposure to sunlight?",
+        type: "saq",
+        difficulty: "medium",
+        correctAnswer: "vitamin d",
         order: 3
     },
+    // Spot Diagnosis - Difficult
     {
         roundId: "round-2",
-        text: "What is the medical term for high blood pressure?",
-        type: "mcq",
-        choices: [{ text: "Hypotension" }, { text: "Hypertension" }, { text: "Tachycardia" }, { text: "Bradycardia" }],
-        correctChoiceIndex: 1,
+        text: "Identify the organ shown in this cross-sectional image:",
+        type: "spot",
+        difficulty: "difficult",
+        correctAnswer: "kidney",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Kidney_Cross_Section.png/220px-Kidney_Cross_Section.png",
         order: 4
     },
-    {
-        roundId: "round-2",
-        text: "Which type of white blood cell is most abundant?",
-        type: "mcq",
-        choices: [{ text: "Lymphocytes" }, { text: "Monocytes" }, { text: "Neutrophils" }, { text: "Eosinophils" }],
-        correctChoiceIndex: 2,
-        order: 5
-    },
 
-    // Round 3 - Essay + MCQ (Elimination starts)
-    {
-        roundId: "round-3",
-        text: "Explain the primary difference between Type 1 and Type 2 Diabetes.",
-        type: "essay",
-        order: 1
-    },
-    {
-        roundId: "round-3",
-        text: "What is the heaviest internal organ in the human body?",
-        type: "mcq",
-        choices: [{ text: "Brain" }, { text: "Liver" }, { text: "Lungs" }, { text: "Heart" }],
-        correctChoiceIndex: 1,
-        order: 2
-    },
+    // ===== ROUND 3 (Turn 3) - After scores reset =====
+    // MCQ - Medium
     {
         roundId: "round-3",
         text: "Which hormone is known as the 'stress hormone'?",
         type: "mcq",
+        difficulty: "medium",
         choices: [{ text: "Adrenaline" }, { text: "Cortisol" }, { text: "Testosterone" }, { text: "Melatonin" }],
         correctChoiceIndex: 1,
+        order: 1
+    },
+    // MTF - Difficult
+    {
+        roundId: "round-3",
+        text: "Evaluate the following statements about diabetes:",
+        type: "mtf",
+        difficulty: "difficult",
+        statements: [
+            { text: "Type 1 diabetes is an autoimmune disease", isTrue: true },
+            { text: "Type 2 diabetes is always caused by obesity", isTrue: false },
+            { text: "Insulin is produced by the pancreas", isTrue: true },
+            { text: "HbA1c measures average blood sugar over 3 months", isTrue: true }
+        ],
+        order: 2
+    },
+    // SAQ - Medium
+    {
+        roundId: "round-3",
+        text: "What is the medical term for high blood pressure?",
+        type: "saq",
+        difficulty: "medium",
+        correctAnswer: "hypertension",
         order: 3
     },
+    // Spot Diagnosis - Difficult
+    {
+        roundId: "round-3",
+        text: "Identify the bone structure shown:",
+        type: "spot",
+        difficulty: "difficult",
+        correctAnswer: "vertebra",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Lumbar_vertebra.gif/220px-Lumbar_vertebra.gif",
+        order: 4
+    },
 
-    // Round 4
+    // ===== ROUND 4 (Turn 4) =====
+    // MCQ - Medium
     {
         roundId: "round-4",
         text: "What is the largest organ of the human body?",
         type: "mcq",
+        difficulty: "medium",
         choices: [{ text: "Brain" }, { text: "Liver" }, { text: "Skin" }, { text: "Heart" }],
         correctChoiceIndex: 2,
         order: 1
     },
+    // MTF - Difficult
     {
         roundId: "round-4",
-        text: "Which antibody is most abundant in human blood?",
-        type: "mcq",
-        choices: [{ text: "IgA" }, { text: "IgE" }, { text: "IgG" }, { text: "IgM" }],
-        correctChoiceIndex: 2,
+        text: "Evaluate the following statements about the nervous system:",
+        type: "mtf",
+        difficulty: "difficult",
+        statements: [
+            { text: "Neurons can regenerate after injury", isTrue: false },
+            { text: "The blood-brain barrier protects the brain from pathogens", isTrue: true },
+            { text: "Dopamine is associated with reward and pleasure", isTrue: true },
+            { text: "The spinal cord ends at the base of the skull", isTrue: false }
+        ],
         order: 2
     },
+    // SAQ - Difficult
     {
         roundId: "round-4",
-        text: "Describe the function of the blood-brain barrier.",
-        type: "essay",
+        text: "What is the normal pH range of human blood?",
+        type: "saq",
+        difficulty: "difficult",
+        correctAnswer: "7.35-7.45",
         order: 3
     },
+    // Spot Diagnosis - Difficult
+    {
+        roundId: "round-4",
+        text: "Identify the brain structure highlighted:",
+        type: "spot",
+        difficulty: "difficult",
+        correctAnswer: "cerebellum",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Cerebellum_animation_small.gif/220px-Cerebellum_animation_small.gif",
+        order: 4
+    },
 
-    // Round 5
+    // ===== ROUND 5 (Turn 5) - Final before elimination =====
+    // MCQ - Difficult
     {
         roundId: "round-5",
-        text: "What is the normal pH range of human blood?",
-        type: "mcq",
-        choices: [{ text: "6.8 - 7.0" }, { text: "7.35 - 7.45" }, { text: "7.5 - 7.8" }, { text: "8.0 - 8.5" }],
-        correctChoiceIndex: 1,
-        order: 1
-    },
-    {
-        roundId: "round-5",
-        text: "Which part of the nephron is primarily responsible for filtration?",
-        type: "mcq",
-        choices: [{ text: "Loop of Henle" }, { text: "Glomerulus" }, { text: "Collecting duct" }, { text: "Distal tubule" }],
-        correctChoiceIndex: 1,
-        order: 2
-    },
-
-    // Round 6
-    {
-        roundId: "round-6",
-        text: "What is the primary function of hemoglobin?",
-        type: "mcq",
-        choices: [{ text: "Blood clotting" }, { text: "Oxygen transport" }, { text: "Immune response" }, { text: "Hormone regulation" }],
-        correctChoiceIndex: 1,
-        order: 1
-    },
-    {
-        roundId: "round-6",
-        text: "Explain the mechanism of action of beta-blockers.",
-        type: "essay",
-        order: 2
-    },
-
-    // Round 7 (Final)
-    {
-        roundId: "round-7",
         text: "Which cranial nerve is responsible for the gag reflex?",
         type: "mcq",
+        difficulty: "difficult",
         choices: [{ text: "Trigeminal (V)" }, { text: "Facial (VII)" }, { text: "Glossopharyngeal (IX)" }, { text: "Vagus (X)" }],
         correctChoiceIndex: 2,
         order: 1
     },
+    // MTF - Difficult
     {
-        roundId: "round-7",
-        text: "Discuss the potential implications of CRISPR-Cas9 technology in treating genetic disorders.",
-        type: "essay",
+        roundId: "round-5",
+        text: "Evaluate the following statements about antibodies:",
+        type: "mtf",
+        difficulty: "difficult",
+        statements: [
+            { text: "IgG is the most abundant antibody in blood", isTrue: true },
+            { text: "IgE is involved in allergic reactions", isTrue: true },
+            { text: "IgM is the first antibody produced in an immune response", isTrue: true },
+            { text: "IgA is primarily found in the bloodstream", isTrue: false }
+        ],
         order: 2
+    },
+    // SAQ - Difficult
+    {
+        roundId: "round-5",
+        text: "What part of the nephron is primarily responsible for filtration?",
+        type: "saq",
+        difficulty: "difficult",
+        correctAnswer: "glomerulus",
+        order: 3
+    },
+    // Spot Diagnosis - Difficult
+    {
+        roundId: "round-5",
+        text: "Identify the heart structure indicated:",
+        type: "spot",
+        difficulty: "difficult",
+        correctAnswer: "mitral valve",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Heart_labelled_large.png/220px-Heart_labelled_large.png",
+        order: 4
     }
 ];
 
@@ -207,15 +252,15 @@ export async function GET(request: Request) {
         if (action === "seed") {
             const batch = adminDb.batch();
 
-            // 1. Create Rounds with timer settings
-            for (let i = 1; i <= 7; i++) {
+            // 1. Create Rounds with timer settings (5 turns)
+            for (let i = 1; i <= 5; i++) {
                 const rRef = adminDb.collection("rounds").doc(`round-${i}`);
                 batch.set(rRef, {
                     id: `round-${i}`,
                     status: "waiting",
                     startTime: null,
                     currentQuestionIndex: 0,
-                    questionTimer: 10 // 10 seconds per question
+                    questionTimer: DEFAULT_QUESTION_TIMER // 100 seconds per question
                 }, { merge: true });
             }
 
@@ -230,7 +275,7 @@ export async function GET(request: Request) {
 
             return NextResponse.json({
                 success: true,
-                message: `Seeded ${MEDICAL_QUESTIONS.length} questions across 7 rounds.`
+                message: `Seeded ${MEDICAL_QUESTIONS.length} questions across 5 rounds (4 per turn: MCQ, MTF, SAQ, Spot).`
             });
         }
 
@@ -255,6 +300,8 @@ export async function GET(request: Request) {
                         score: 0,
                         status: "active",
                         isBot: true,
+                        challengesRemaining: 2,
+                        streak: 0,
                         createdAt: new Date()
                     });
                     botsAdded++;

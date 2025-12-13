@@ -1,6 +1,7 @@
-import { Play, Calendar } from "lucide-react";
+import { Play, Calendar, Clock, CheckCircle, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Round } from "@/lib/types";
+import { motion } from "framer-motion";
 
 interface RoundControlProps {
     rounds: Round[];
@@ -24,30 +25,46 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Play className="w-5 h-5 text-blue-500" /> Round Control
+        <div>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <Play className="w-4 h-4 text-blue-400" />
+                </div>
+                Round Control
             </h2>
-            <div className="space-y-4">
-                {rounds.map((r) => {
+            <div className="space-y-3">
+                {rounds.map((r, idx) => {
                     const startTime = r.startTime ? new Date(r.startTime).toLocaleTimeString() : null;
                     const isScheduled = r.startTime && r.startTime > Date.now();
+                    const isActive = r.status === "active";
+                    const isCompleted = r.status === "completed";
 
                     return (
-                        <div
+                        <motion.div
                             key={r.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
                             className={cn(
-                                "p-4 rounded-lg border flex flex-col gap-2",
-                                r.status === "active" ? "bg-blue-50 border-blue-200" : "bg-gray-50"
+                                "p-4 rounded-xl border transition-all",
+                                isActive
+                                    ? "bg-green-500/10 border-green-500/30"
+                                    : isCompleted
+                                        ? "bg-white/5 border-white/5 opacity-60"
+                                        : "bg-white/5 border-white/10 hover:bg-white/10"
                             )}
                         >
                             <div className="flex justify-between items-center">
-                                <div>
-                                    <span className="font-bold uppercase text-sm">{r.id}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold uppercase text-sm text-white">{r.id.replace("-", " ")}</span>
                                     <span
                                         className={cn(
-                                            "ml-2 text-xs px-2 py-0.5 rounded-full",
-                                            r.status === "active" ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-600"
+                                            "text-xs px-2 py-0.5 rounded-full font-semibold",
+                                            isActive
+                                                ? "bg-green-500/20 text-green-400"
+                                                : isCompleted
+                                                    ? "bg-blue-500/20 text-blue-400"
+                                                    : "bg-white/10 text-white/50"
                                         )}
                                     >
                                         {r.status}
@@ -56,49 +73,60 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                 <div className="flex gap-2">
                                     {r.status === "waiting" && (
                                         <>
-                                            <button
+                                            <motion.button
                                                 onClick={() => scheduleRound(r.id)}
-                                                className="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 transition-colors flex items-center gap-1"
+                                                className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-lg shadow-amber-500/20"
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
                                             >
                                                 <Calendar className="w-3 h-3" /> Schedule
-                                            </button>
-                                            <button
+                                            </motion.button>
+                                            <motion.button
                                                 onClick={() => onActivate(r.id)}
-                                                className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-colors"
+                                                className="text-xs bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-green-500/20"
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
                                             >
                                                 Start Now
-                                            </button>
+                                            </motion.button>
                                         </>
                                     )}
                                     {r.status === "active" && (
-                                        <button
+                                        <motion.button
                                             onClick={() => onEnd(r.id)}
-                                            className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                                            className="text-xs bg-gradient-to-r from-red-500 to-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-red-500/20"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
                                         >
-                                            End
-                                        </button>
+                                            End Round
+                                        </motion.button>
                                     )}
-                                    <button
+                                    <motion.button
                                         onClick={() => onSelect(r.id)}
                                         className={cn(
-                                            "text-xs px-2 py-1 rounded border transition-colors",
-                                            selectedRoundId === r.id ? "bg-slate-800 text-white" : "bg-white hover:bg-gray-100"
+                                            "text-xs px-3 py-1.5 rounded-lg font-semibold border transition-all",
+                                            selectedRoundId === r.id
+                                                ? "bg-blue-500 text-white border-blue-500"
+                                                : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10"
                                         )}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
                                     >
                                         Details
-                                    </button>
+                                    </motion.button>
                                 </div>
                             </div>
                             {startTime && (
-                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                <div className="text-xs text-white/40 flex items-center gap-1 mt-2">
                                     <Calendar className="w-3 h-3" />
                                     {isScheduled ? `Starts at ${startTime}` : `Started at ${startTime}`}
                                 </div>
                             )}
-                            <div className="text-xs text-gray-400">
-                                Timer: {r.questionTimer || 10}s per question | Q Index: {r.currentQuestionIndex || 0}
+                            <div className="text-xs text-white/30 mt-1 flex items-center gap-2">
+                                <Clock className="w-3 h-3" />
+                                Timer: {r.questionTimer || 100}s per question | Q Index: {r.currentQuestionIndex || 0}
                             </div>
-                        </div>
+                        </motion.div>
                     );
                 })}
             </div>

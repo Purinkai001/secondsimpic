@@ -1,4 +1,5 @@
-import { Square } from "lucide-react";
+import { Skull, AlertTriangle, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface EliminationPanelProps {
     onRunElimination: (round: number) => void;
@@ -6,20 +7,63 @@ interface EliminationPanelProps {
 
 export function EliminationPanel({ onRunElimination }: EliminationPanelProps) {
     return (
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-red-100">
-            <h2 className="text-xl font-bold mb-4 text-red-600 flex items-center gap-2">
-                <Square className="w-5 h-5" /> Elimination
+        <div>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                <div className="p-2 bg-red-500/20 rounded-lg">
+                    <Skull className="w-4 h-4 text-red-400" />
+                </div>
+                Elimination
             </h2>
-            <div className="grid grid-cols-5 gap-2">
-                {[3, 4, 5, 6, 7].map((r) => (
-                    <button
-                        key={r}
-                        onClick={() => onRunElimination(r)}
-                        className="bg-red-50 text-red-600 border border-red-200 p-2 rounded text-sm hover:bg-red-100 transition-colors"
-                    >
-                        End R{r}
-                    </button>
-                ))}
+
+            <div className="space-y-3">
+                {/* Round 3 Elimination */}
+                <motion.div
+                    className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
+                    whileHover={{ scale: 1.01 }}
+                >
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <span className="font-bold text-red-300">End of Round 3</span>
+                            <p className="text-xs text-red-400/70 mt-0.5">Eliminate 3 per division (15 total)</p>
+                        </div>
+                        <motion.button
+                            onClick={() => onRunElimination(3)}
+                            className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <AlertTriangle className="w-4 h-4" /> Execute
+                        </motion.button>
+                    </div>
+                </motion.div>
+
+                {/* Round 5 Elimination */}
+                <motion.div
+                    className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
+                    whileHover={{ scale: 1.01 }}
+                >
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <span className="font-bold text-red-300">End of Round 5</span>
+                            <p className="text-xs text-red-400/70 mt-0.5">Eliminate 2 per division (10 total)</p>
+                        </div>
+                        <motion.button
+                            onClick={() => onRunElimination(5)}
+                            className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <AlertTriangle className="w-4 h-4" /> Execute
+                        </motion.button>
+                    </div>
+                </motion.div>
+            </div>
+
+            <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <Zap className="w-3 h-3" />
+                    <span>After Round 5: 5 winners (1 per division) proceed to Final</span>
+                </div>
             </div>
         </div>
     );
