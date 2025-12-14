@@ -55,17 +55,31 @@ export async function POST(request: Request) {
         const existingQs = await adminDb.collection("questions")
             .where("roundId", "==", question.roundId)
             .get();
-        const nextOrder = existingQs.size + 1;
+        const nextOrder = question.order || existingQs.size + 1;
 
-        // Create the question
-        const questionRef = adminDb.collection("questions").doc();
+        // Extract round number from roundId (e.g., "round-1" -> "1")
+        const roundNumber = question.roundId.replace("round-", "");
+
+        // Generate predictable ID: q-round-{roundNum}-{order}
+        const questionId = `q-round-${roundNumber}-${nextOrder}`;
+
+        // Check if this ID already exists
+        const existingDoc = await adminDb.collection("questions").doc(questionId).get();
+        if (existingDoc.exists) {
+            return NextResponse.json({
+                error: `Question ${questionId} already exists. Delete it first or use a different order.`
+            }, { status: 400 });
+        }
+
+        // Create the question with predictable ID
+        const questionRef = adminDb.collection("questions").doc(questionId);
         const questionData = {
-            id: questionRef.id,
+            id: questionId,
             roundId: question.roundId,
             text: question.text || "",
             type: question.type,
             difficulty: question.difficulty,
-            order: question.order || nextOrder,
+            order: nextOrder,
             imageUrl: question.imageUrl || null,
             // For MCQ
             choices: question.choices || null,
@@ -81,7 +95,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             question: questionData,
-            message: "Question created successfully"
+            message: `Question ${questionId} created successfully`
         });
     } catch (error) {
         console.error("Error creating question:", error);

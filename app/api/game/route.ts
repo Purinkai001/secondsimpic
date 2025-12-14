@@ -273,6 +273,80 @@ export async function POST(request: Request) {
             });
         }
 
+        // ===== PAUSE FOR GRADING =====
+        // Pause the round timer while waiting for SAQ/Spot grading
+        if (action === "pauseForGrading") {
+            const { roundId } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            const roundRef = adminDb.collection("rounds").doc(roundId);
+            const roundDoc = await roundRef.get();
+
+            if (!roundDoc.exists) {
+                return NextResponse.json({ error: "Round not found" }, { status: 404 });
+            }
+
+            const roundData = roundDoc.data()!;
+            if (roundData.pausedAt) {
+                return NextResponse.json({
+                    success: true,
+                    message: "Already paused",
+                    alreadyPaused: true
+                });
+            }
+
+            await roundRef.update({
+                pausedAt: Date.now(),
+            });
+
+            return NextResponse.json({
+                success: true,
+                message: "Round paused for grading"
+            });
+        }
+
+        // ===== RESUME FROM GRADING =====
+        // Resume the round timer after SAQ/Spot grading is complete
+        if (action === "resumeFromGrading") {
+            const { roundId } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            const roundRef = adminDb.collection("rounds").doc(roundId);
+            const roundDoc = await roundRef.get();
+
+            if (!roundDoc.exists) {
+                return NextResponse.json({ error: "Round not found" }, { status: 404 });
+            }
+
+            const roundData = roundDoc.data()!;
+            if (!roundData.pausedAt) {
+                return NextResponse.json({
+                    success: true,
+                    message: "Not paused",
+                    wasNotPaused: true
+                });
+            }
+
+            // Calculate how long we were paused
+            const pauseDuration = Date.now() - roundData.pausedAt;
+            const existingPauseDuration = roundData.totalPauseDuration || 0;
+
+            await roundRef.update({
+                pausedAt: null,
+                totalPauseDuration: existingPauseDuration + pauseDuration,
+            });
+
+            return NextResponse.json({
+                success: true,
+                message: `Round resumed. Pause duration: ${Math.round(pauseDuration / 1000)}s`,
+                pauseDuration
+            });
+        }
+
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     } catch (error) {
         console.error("Error in game action:", error);

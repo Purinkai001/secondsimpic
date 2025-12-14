@@ -3,7 +3,7 @@ export type Team = {
     name: string;
     group: number;
     score: number;
-    status: "active" | "eliminated";
+    status: "active" | "eliminated" | "winner";
     isBot?: boolean;
     challengesRemaining: number; // 2 challenges per team across 5 turns
     streak: number; // consecutive correct answers (0-4+)
@@ -15,6 +15,9 @@ export type Round = {
     startTime: number | null; // Unix timestamp (ms) when round starts
     currentQuestionIndex: number; // 0-indexed
     questionTimer: number; // seconds per question (default 100)
+    // For SAQ/Spot grading pauses
+    pausedAt?: number | null; // timestamp when paused for grading
+    totalPauseDuration?: number; // accumulated pause time in ms
 };
 
 export type QuestionType = "mcq" | "mtf" | "saq" | "spot";

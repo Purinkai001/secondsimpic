@@ -336,7 +336,10 @@ export default function AdminPage() {
         await updateDoc(doc(db, "rounds", roundId), {
             status: "active",
             startTime: Date.now(),
-            currentQuestionIndex: 0
+            currentQuestionIndex: 0,
+            // Reset pause fields to prevent stale pause data
+            pausedAt: null,
+            totalPauseDuration: 0,
         });
         fetchData();
     };
@@ -354,20 +357,24 @@ export default function AdminPage() {
     };
 
     const gradeAnswer = async (answer: Answer, correct: boolean) => {
-        const POINTS = 10;
-        const batch = writeBatch(db);
-        const ansRef = doc(db, "answers", answer.id);
-        batch.update(ansRef, { isCorrect: correct, points: correct ? POINTS : 0 });
-
-        if (correct) {
-            const tRef = doc(db, "teams", answer.teamId);
-            const tSnap = await getDoc(tRef);
-            if (tSnap.exists()) {
-                batch.update(tRef, { score: (tSnap.data().score || 0) + POINTS });
-            }
+        try {
+            const res = await fetch("/api/grade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    answerId: answer.id,
+                    isCorrect: correct,
+                    key: "admin123"
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            // Show result message
+            alert(data.message);
+            fetchData();
+        } catch (e: any) {
+            alert(e.message || "Failed to grade answer");
         }
-        await batch.commit();
-        fetchData();
     };
 
     const runElimination = async (roundNum: number) => {
@@ -403,6 +410,27 @@ export default function AdminPage() {
             fetchData();
         } catch (e: any) {
             alert(e.message || "Failed to dismiss challenge");
+        }
+    };
+
+    const resumeRound = async () => {
+        if (!activeRound) return;
+        try {
+            const res = await fetch("/api/game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "resumeFromGrading",
+                    roundId: activeRound.id,
+                    key: "admin123"
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            alert(data.message || "Round resumed!");
+            fetchData();
+        } catch (e: any) {
+            alert(e.message || "Failed to resume round");
         }
     };
 
@@ -552,8 +580,43 @@ export default function AdminPage() {
                         {botCount > 0 && (
                             <ActionButton onClick={simulateBotScores} icon={Bot} label="Simulate Bot Scores" />
                         )}
+                        {activeRound?.pausedAt && (
+                            <ActionButton
+                                onClick={resumeRound}
+                                icon={Play}
+                                label={`Resume ${activeRound.id} (Paused)`}
+                                variant="success"
+                            />
+                        )}
                     </div>
                 </motion.div>
+
+                {/* Paused for Grading Alert */}
+                {activeRound?.pausedAt && (
+                    <motion.div
+                        className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Pause className="w-6 h-6 text-yellow-400" />
+                                <div>
+                                    <p className="text-yellow-400 font-bold">Round Paused for Grading</p>
+                                    <p className="text-yellow-400/60 text-sm">
+                                        {pendingAnswers.length} answers pending | Grade all SAQ/Spot answers, then click Resume
+                                    </p>
+                                </div>
+                            </div>
+                            <ActionButton
+                                onClick={resumeRound}
+                                icon={Play}
+                                label="Resume Round"
+                                variant="success"
+                            />
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-12 gap-6">

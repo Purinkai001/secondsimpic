@@ -5,27 +5,31 @@ import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Send, CheckCircle2, Clock, Activity, Timer, XCircle, LogOut, Settings, X, Edit2, RefreshCw, Flame, Flag } from "lucide-react";
+import { Loader2, Send, CheckCircle2, Clock, Activity, Timer, XCircle, LogOut, Settings, RefreshCw, Flame, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Team, Round, Question, DEFAULT_QUESTION_TIMER, GROUPS, QuestionType } from "@/lib/types";
+import { Team, Round, Question, DEFAULT_QUESTION_TIMER, QuestionType } from "@/lib/types";
 
-// Answer reveal duration in seconds
-const ANSWER_REVEAL_DURATION = 5;
+// Import components
+import {
+    MCQInput,
+    MTFInput,
+    TextInput,
+    AnswerReveal,
+    WaitingScreen,
+    WaitingGradingScreen,
+    SettingsModal,
+    WinnerCelebration
+} from "./components";
 
-// Question type labels with colors
-const QUESTION_TYPE_LABELS: Record<QuestionType, { label: string; color: string }> = {
-    mcq: { label: "Multiple Choice", color: "bg-blue-500/20 text-blue-300" },
-    mtf: { label: "Multiple True/False", color: "bg-purple-500/20 text-purple-300" },
-    saq: { label: "Short Answer", color: "bg-green-500/20 text-green-300" },
-    spot: { label: "Spot Diagnosis", color: "bg-orange-500/20 text-orange-300" },
-};
-
-// Difficulty labels with colors
-const DIFFICULTY_LABELS = {
-    easy: { label: "Easy", color: "bg-green-600", points: 1 },
-    medium: { label: "Medium", color: "bg-yellow-600", points: 2 },
-    difficult: { label: "Difficult", color: "bg-red-600", points: 3 },
-};
+// Import types and constants
+import {
+    ANSWER_REVEAL_DURATION,
+    QUESTION_TYPE_LABELS,
+    DIFFICULTY_LABELS,
+    SubmissionResult,
+    GameState,
+    requiresManualGrading
+} from "./types";
 
 export default function GamePage() {
     const router = useRouter();
@@ -43,12 +47,10 @@ export default function GamePage() {
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
-    const [gameState, setGameState] = useState<"waiting" | "countdown" | "playing" | "answer_reveal">("waiting");
+    const [gameState, setGameState] = useState<GameState>("waiting");
     const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
     const [answerRevealCountdown, setAnswerRevealCountdown] = useState<number>(0);
     const [showSettings, setShowSettings] = useState(false);
-    const [newTeamName, setNewTeamName] = useState("");
-    const [renaming, setRenaming] = useState(false);
     const [allTeams, setAllTeams] = useState<Team[]>([]);
 
     // Time tracking for scoring
@@ -58,14 +60,16 @@ export default function GamePage() {
     // Track current question index to detect changes
     const currentQuestionIndex = useRef<number>(-1);
 
+    // Ref to track gameState without triggering useCallback dependency changes
+    const gameStateRef = useRef<GameState>("waiting");
+
+    // Keep the ref synced with the state
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
+
     // Last submission result for answer reveal
-    const [lastResult, setLastResult] = useState<{
-        isCorrect: boolean | null;
-        points: number;
-        streak: number;
-        message: string;
-        correctAnswer?: string;
-    } | null>(null);
+    const [lastResult, setLastResult] = useState<SubmissionResult | null>(null);
 
     // Check if ingame from localStorage
     const isInGame = () => {
@@ -112,159 +116,328 @@ export default function GamePage() {
         }
     }, [router]);
 
+    // Check if all SAQ/Spot answers for current question have been graded
+    const checkAllGradingComplete = useCallback(async (questionId: string): Promise<boolean> => {
+        try {
+            const answersSnap = await getDocs(
+                query(
+                    collection(db, "answers"),
+                    where("questionId", "==", questionId)
+                )
+            );
+
+            for (const doc of answersSnap.docs) {
+                const data = doc.data();
+                if (data.isCorrect === null) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (err) {
+            console.error("Error checking grading status:", err);
+            return false;
+        }
+    }, []);
+
+    // Check answer grading status (for SAQ/Spot)
+    const checkMyAnswerStatus = useCallback(async (questionId: string) => {
+        const teamId = localStorage.getItem("medical_quiz_team_id");
+        if (!teamId || !questionId) return null;
+
+        try {
+            const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${questionId}`));
+            if (answerDoc.exists()) {
+                return answerDoc.data();
+            }
+        } catch (err) {
+            console.error("Error checking answer status:", err);
+        }
+        return null;
+    }, []);
+
     // Fetch active round and questions
     const fetchRoundData = useCallback(async (skipRevealCheck = false) => {
-        // Don't interrupt answer reveal phase unless forced
-        if (gameState === "answer_reveal" && !skipRevealCheck) {
+        // Don't interrupt answer reveal or waiting_grading phases unless forced
+        // Use ref to avoid triggering dependency changes
+        if ((gameStateRef.current === "answer_reveal" || gameStateRef.current === "waiting_grading") && !skipRevealCheck) {
             return;
         }
 
-        // Also fetch all teams for leaderboard during waiting
-        const teamsSnap = await getDocs(query(collection(db, "teams"), orderBy("score", "desc")));
-        setAllTeams(teamsSnap.docs.map(d => ({ ...d.data(), id: d.id } as Team)));
+        // Fetch round data via API (bypasses client-side security rules)
+        try {
+            const res = await fetch("/api/round");
+            const data = await res.json();
 
-        // Get active round
-        const roundsQuery = query(collection(db, "rounds"), where("status", "==", "active"));
-        const roundsSnap = await getDocs(roundsQuery);
-
-        if (roundsSnap.empty) {
-            setCurrentRound(null);
-            setCurrentQuestion(null);
-            setRoundQuestions([]);
-            setGameState("waiting");
-            setInGame(false);
-            resetAnswerState();
-            currentQuestionIndex.current = -1;
-            return;
-        }
-
-        const roundDoc = roundsSnap.docs[0];
-        const round = { ...roundDoc.data(), id: roundDoc.id } as Round;
-
-        // Check if round changed - reset state
-        const prevRoundId = currentRound?.id;
-        if (prevRoundId !== round.id) {
-            resetAnswerState();
-            currentQuestionIndex.current = -1;
-        }
-
-        setCurrentRound(round);
-
-        // Fetch questions for this round
-        const questionsQuery = query(
-            collection(db, "questions"),
-            where("roundId", "==", round.id)
-        );
-        const questionsSnap = await getDocs(questionsQuery);
-        const questions = questionsSnap.docs
-            .map(d => ({ ...d.data(), id: d.id } as Question))
-            .sort((a, b) => a.order - b.order);
-        setRoundQuestions(questions);
-
-        // Determine game state based on time
-        const now = Date.now();
-        const startTime = round.startTime;
-        const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
-        // Total time per question = question time + reveal time
-        const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
-
-        if (!startTime) {
-            setGameState("waiting");
-            setInGame(false);
-            return;
-        }
-
-        if (now < startTime) {
-            // Countdown to start
-            setGameState("countdown");
-            setCountdownSeconds(Math.ceil((startTime - now) / 1000));
-            setInGame(true);
-            return;
-        }
-
-        // Game has started - calculate current question with reveal phases
-        const elapsedSeconds = Math.floor((now - startTime) / 1000);
-        const currentQIdx = Math.floor(elapsedSeconds / totalTimePerQuestion);
-        const timeIntoSlot = elapsedSeconds % totalTimePerQuestion;
-
-        // Are we in question phase or reveal phase?
-        const isInQuestionPhase = timeIntoSlot < questionTimer;
-        const timeRemainingQuestion = questionTimer - timeIntoSlot;
-        const timeRemainingReveal = totalTimePerQuestion - timeIntoSlot;
-
-        if (currentQIdx >= questions.length) {
-            // Round is over
-            setGameState("waiting");
-            setCurrentQuestion(null);
-            setInGame(false);
-            currentQuestionIndex.current = -1;
-            return;
-        }
-
-        const question = questions[currentQIdx];
-
-        // Check if question changed
-        if (currentQuestionIndex.current !== currentQIdx) {
-            currentQuestionIndex.current = currentQIdx;
-            resetAnswerState(question);
-        }
-
-        setCurrentQuestion(question);
-        setInGame(true);
-
-        if (isInQuestionPhase) {
-            // In question answering phase
-            setTimeLeft(timeRemainingQuestion);
-            setGameState("playing");
-        } else {
-            // In answer reveal phase
-            setAnswerRevealCountdown(timeRemainingReveal);
-            setGameState("answer_reveal");
-
-            // Check if already answered this question
-            const teamId = localStorage.getItem("medical_quiz_team_id");
-            if (teamId && question && !lastResult) {
-                const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${question.id}`));
-                if (answerDoc.exists()) {
-                    const ansData = answerDoc.data();
-                    setSubmitted(true);
-                    setLastResult({
-                        isCorrect: ansData.isCorrect,
-                        points: ansData.points || 0,
-                        streak: ansData.streak || 0,
-                        message: ansData.isCorrect ? "Correct!" : "Incorrect. Streak reset.",
-                    });
-                }
+            if (!data.success) {
+                console.error("Failed to fetch round data:", data.error);
+                return;
             }
-        }
 
-        // If in question phase, check if we already answered
-        if (isInQuestionPhase) {
-            const teamId = localStorage.getItem("medical_quiz_team_id");
-            if (teamId && question) {
-                const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${question.id}`));
-                if (answerDoc.exists()) {
-                    setSubmitted(true);
-                    const ansData = answerDoc.data();
-                    if (question.type === "mcq" && typeof ansData.answer === "number") {
-                        setMcqAnswer(ansData.answer);
-                    } else if (question.type === "mtf" && Array.isArray(ansData.answer)) {
-                        setMtfAnswers(ansData.answer);
-                    } else if ((question.type === "saq" || question.type === "spot") && typeof ansData.answer === "string") {
-                        setTextAnswer(ansData.answer);
+            // Check if there's an active round
+            if (!data.hasActiveRound || !data.round) {
+                setCurrentRound(null);
+                setCurrentQuestion(null);
+                setRoundQuestions([]);
+                setGameState("waiting");
+                setInGame(false);
+                resetAnswerState();
+                currentQuestionIndex.current = -1;
+                return;
+            }
+
+            const round = data.round as Round;
+            const questions = (data.questions || []) as Question[];
+
+            // Check if round changed - reset state
+            const prevRoundId = currentRound?.id;
+            if (prevRoundId !== round.id) {
+                resetAnswerState();
+                currentQuestionIndex.current = -1;
+            }
+
+            setCurrentRound(round);
+            setRoundQuestions(questions);
+
+            console.log("Fetched round data:", { round: round.id, questionsCount: questions.length });
+
+
+            // Check if round is paused for grading
+            if (round.pausedAt) {
+                // Round is paused - stay on waiting_grading state
+                setGameState("waiting_grading");
+                setInGame(true);
+
+                // Find the current question based on time before pause
+                const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
+                const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
+                const pauseDuration = round.totalPauseDuration || 0;
+                const effectiveElapsed = Math.floor(((round.pausedAt - (round.startTime || round.pausedAt)) - pauseDuration) / 1000);
+                const currentQIdx = Math.floor(effectiveElapsed / totalTimePerQuestion);
+
+                if (currentQIdx >= 0 && currentQIdx < questions.length) {
+                    const question = questions[currentQIdx];
+                    setCurrentQuestion(question);
+
+                    // Get our answer status
+                    const myAnswer = await checkMyAnswerStatus(question.id);
+                    if (myAnswer) {
+                        setSubmitted(true);
+                        if ((question.type === "saq" || question.type === "spot") && typeof myAnswer.answer === "string") {
+                            setTextAnswer(myAnswer.answer);
+                        }
+                        setLastResult({
+                            isCorrect: myAnswer.isCorrect,
+                            points: myAnswer.points || 0,
+                            streak: myAnswer.streak || team?.streak || 0,
+                            message: myAnswer.isCorrect === null
+                                ? "Waiting for grading..."
+                                : myAnswer.isCorrect ? "Correct!" : "Incorrect.",
+                            pendingGrading: myAnswer.isCorrect === null,
+                        });
                     }
-                    setLastResult({
-                        isCorrect: ansData.isCorrect,
-                        points: ansData.points || 0,
-                        streak: ansData.streak || 0,
-                        message: ansData.isCorrect ? "Correct!" : "Incorrect. Streak reset.",
-                    });
+                }
+                return;
+            }
+
+            // Determine game state based on time
+            const now = Date.now();
+            const startTime = round.startTime;
+            const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
+            const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
+            const pauseDuration = round.totalPauseDuration || 0;
+
+            if (!startTime) {
+                setGameState("waiting");
+                setInGame(false);
+                return;
+            }
+
+            if (now < startTime) {
+                setGameState("countdown");
+                setCountdownSeconds(Math.ceil((startTime - now) / 1000));
+                setInGame(true);
+                return;
+            }
+
+            // Calculate effective elapsed time (subtract pause duration)
+            // Ensure pause duration doesn't exceed actual elapsed time
+            const actualElapsedMs = now - startTime;
+            const safePauseDuration = Math.min(pauseDuration, actualElapsedMs);
+            const effectiveElapsedMs = Math.max(0, actualElapsedMs - safePauseDuration);
+            const elapsedSeconds = Math.floor(effectiveElapsedMs / 1000);
+            const currentQIdx = Math.floor(elapsedSeconds / totalTimePerQuestion);
+            const timeIntoSlot = elapsedSeconds % totalTimePerQuestion;
+
+            const isInQuestionPhase = timeIntoSlot < questionTimer;
+            const timeRemainingQuestion = questionTimer - timeIntoSlot;
+            const timeRemainingReveal = totalTimePerQuestion - timeIntoSlot;
+
+            // Debug logging
+            console.log("Game state calculation:", {
+                round: round.id,
+                questionsCount: questions.length,
+                currentQIdx,
+                elapsedSeconds,
+                totalTimePerQuestion,
+                isInQuestionPhase,
+                pauseDuration: safePauseDuration,
+                actualElapsedMs,
+            });
+
+            // Handle case when no questions are loaded yet or round is complete
+            if (questions.length === 0) {
+                console.log("No questions loaded for round:", round.id);
+                // Stay in playing state but show loading
+                setGameState("playing");
+                setCurrentQuestion(null);
+                setInGame(true);
+                return;
+            }
+
+            if (currentQIdx >= questions.length) {
+                console.log("Round complete - all questions answered");
+                setGameState("waiting");
+                setCurrentQuestion(null);
+                setInGame(false);
+                currentQuestionIndex.current = -1;
+                return;
+            }
+
+            const question = questions[currentQIdx];
+
+            // Check if question changed
+            if (currentQuestionIndex.current !== currentQIdx) {
+                currentQuestionIndex.current = currentQIdx;
+                resetAnswerState(question);
+            }
+
+            setCurrentQuestion(question);
+            setInGame(true);
+
+            if (isInQuestionPhase) {
+                setTimeLeft(timeRemainingQuestion);
+                setGameState("playing");
+
+                // Check if already answered
+                const teamId = localStorage.getItem("medical_quiz_team_id");
+                if (teamId && question) {
+                    const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${question.id}`));
+                    if (answerDoc.exists()) {
+                        setSubmitted(true);
+                        const ansData = answerDoc.data();
+                        if (question.type === "mcq" && typeof ansData.answer === "number") {
+                            setMcqAnswer(ansData.answer);
+                        } else if (question.type === "mtf" && Array.isArray(ansData.answer)) {
+                            setMtfAnswers(ansData.answer);
+                        } else if ((question.type === "saq" || question.type === "spot") && typeof ansData.answer === "string") {
+                            setTextAnswer(ansData.answer);
+                        }
+
+                        setLastResult({
+                            isCorrect: ansData.isCorrect,
+                            points: ansData.points || 0,
+                            streak: ansData.streak || team?.streak || 0,
+                            message: ansData.isCorrect === true ? "Correct!" :
+                                ansData.isCorrect === false ? "Incorrect." :
+                                    "Waiting for grading...",
+                            pendingGrading: ansData.isCorrect === null,
+                            mtfCorrectCount: ansData.mtfCorrectCount,
+                            mtfTotalCount: ansData.mtfTotalCount,
+                        });
+
+                        // If SAQ/Spot and pending, show waiting screen
+                        if (requiresManualGrading(question.type) && ansData.isCorrect === null) {
+                            setGameState("waiting_grading");
+                        }
+                    }
+                }
+            } else {
+                // In answer reveal phase
+                setAnswerRevealCountdown(timeRemainingReveal);
+                setGameState("answer_reveal");
+
+                // Get result data
+                const teamId = localStorage.getItem("medical_quiz_team_id");
+                if (teamId && question && !lastResult) {
+                    const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${question.id}`));
+                    if (answerDoc.exists()) {
+                        const ansData = answerDoc.data();
+                        setSubmitted(true);
+
+                        let correctAnswerData: any = undefined;
+                        if (question.type === "mcq") {
+                            correctAnswerData = {
+                                type: "mcq",
+                                correctChoiceIndex: question.correctChoiceIndex,
+                                choices: question.choices,
+                            };
+                        } else if (question.type === "mtf") {
+                            correctAnswerData = {
+                                type: "mtf",
+                                statements: question.statements,
+                            };
+                        }
+
+                        setLastResult({
+                            isCorrect: ansData.isCorrect,
+                            points: ansData.points || 0,
+                            streak: ansData.streak || team?.streak || 0,
+                            message: ansData.isCorrect === true ? "Correct!" :
+                                ansData.isCorrect === false ? "Incorrect." :
+                                    "Waiting for grading...",
+                            correctAnswer: correctAnswerData,
+                            pendingGrading: ansData.isCorrect === null,
+                            mtfCorrectCount: ansData.mtfCorrectCount,
+                            mtfTotalCount: ansData.mtfTotalCount,
+                        });
+                    }
                 }
             }
+        } catch (err) {
+            console.error("Error fetching round data:", err);
         }
-    }, [currentRound?.id, gameState, resetAnswerState, lastResult]);
+        // Note: gameState removed from deps since we use gameStateRef
+    }, [currentRound?.id, resetAnswerState, lastResult, team?.streak, checkMyAnswerStatus]);
 
-    // Initial load
+    // Poll for grading updates when round is paused
+    useEffect(() => {
+        if (gameState !== "waiting_grading" || !currentRound) return;
+
+        const pollInterval = setInterval(async () => {
+            // Re-fetch round to check if still paused
+            const roundDoc = await getDoc(doc(db, "rounds", currentRound.id));
+            if (roundDoc.exists()) {
+                const roundData = roundDoc.data();
+                if (!roundData.pausedAt) {
+                    // Round resumed! Refresh everything
+                    await fetchRoundData(true);
+                } else if (currentQuestion) {
+                    // Still paused - check if my answer was graded
+                    const myAnswer = await checkMyAnswerStatus(currentQuestion.id);
+                    if (myAnswer && myAnswer.isCorrect !== null) {
+                        setLastResult({
+                            isCorrect: myAnswer.isCorrect,
+                            points: myAnswer.points || 0,
+                            streak: myAnswer.streak || team?.streak || 0,
+                            message: myAnswer.isCorrect ? "Correct!" : "Incorrect.",
+                            pendingGrading: false,
+                        });
+
+                        if (myAnswer.isCorrect && myAnswer.points > 0) {
+                            setTeam(prev => prev ? {
+                                ...prev,
+                                score: (prev.score || 0) + myAnswer.points,
+                            } : null);
+                        }
+                    }
+                }
+            }
+        }, 5000); // Poll every 5s during grading wait
+
+        return () => clearInterval(pollInterval);
+    }, [gameState, currentRound, currentQuestion, fetchRoundData, checkMyAnswerStatus, team?.streak]);
+
+    // Initial load - run ONLY on mount to prevent infinite loop
     useEffect(() => {
         const init = async () => {
             await fetchTeam();
@@ -272,29 +445,49 @@ export default function GamePage() {
             setLoading(false);
         };
         init();
-    }, [fetchTeam, fetchRoundData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    // Polling logic - runs every second when in game
+    // Fetch teams for leaderboard (separate, less frequent)
+    useEffect(() => {
+        if (gameState !== "waiting") return;
+
+        const fetchTeams = async () => {
+            try {
+                const teamsSnap = await getDocs(query(collection(db, "teams"), orderBy("score", "desc")));
+                setAllTeams(teamsSnap.docs.map(d => ({ ...d.data(), id: d.id } as Team)));
+            } catch (err) {
+                console.error("Error fetching teams:", err);
+            }
+        };
+
+        fetchTeams(); // Initial fetch
+        const teamsInterval = setInterval(fetchTeams, 5000); // Every 5s during waiting
+
+        return () => clearInterval(teamsInterval);
+    }, [gameState]);
+
+    // Polling logic - round data only
     useEffect(() => {
         if (loading) return;
 
+        // Poll less frequently - every 3s when in game, every 5s when waiting
+        const interval = isInGame() ? 3000 : 5000;
+
         const pollInterval = setInterval(async () => {
-            // Always poll when not in game
-            // When in game, poll but respect answer reveal phase
             if (!isInGame()) {
                 await fetchRoundData(true);
-            } else if (gameState !== "answer_reveal") {
-                // Refresh the timer calculation
+            } else if (gameState !== "answer_reveal" && gameState !== "waiting_grading") {
                 await fetchRoundData(false);
             }
-        }, 1000);
+        }, interval);
 
         return () => clearInterval(pollInterval);
     }, [loading, fetchRoundData, gameState]);
 
     // Countdown timer for round start
     useEffect(() => {
-        if (gameState === "countdown" && countdownSeconds > 0) {
+        if (gameState === "countdown") {
             const timer = setInterval(() => {
                 setCountdownSeconds(prev => {
                     if (prev <= 1) {
@@ -306,15 +499,14 @@ export default function GamePage() {
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [gameState, countdownSeconds, fetchRoundData]);
+    }, [gameState, fetchRoundData]);
 
     // Answer reveal countdown
     useEffect(() => {
-        if (gameState === "answer_reveal" && answerRevealCountdown > 0) {
+        if (gameState === "answer_reveal") {
             const timer = setInterval(() => {
                 setAnswerRevealCountdown(prev => {
                     if (prev <= 1) {
-                        // Move to next question
                         fetchRoundData(true);
                         return 0;
                     }
@@ -323,17 +515,16 @@ export default function GamePage() {
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [gameState, answerRevealCountdown, fetchRoundData]);
+    }, [gameState, fetchRoundData]);
 
-    // Question timer - when it hits 0, auto-submit
+    // Question timer
     useEffect(() => {
         if (gameState === "playing" && timeLeft !== null && timeLeft > 0) {
             const timer = setInterval(() => {
                 setTimeLeft(prev => {
                     if (prev === null || prev <= 1) {
-                        // Time's up
                         if (!submitted) {
-                            handleSubmit();
+                            handleSubmit(true); // Force submit on timeout (even empty answers)
                         }
                         return 0;
                     }
@@ -364,21 +555,11 @@ export default function GamePage() {
         }
     };
 
-    const handleRename = async () => {
-        if (!team || !newTeamName.trim()) return;
-        setRenaming(true);
-        try {
-            await updateDoc(doc(db, "teams", team.id), { name: newTeamName.trim() });
-            localStorage.setItem("medical_quiz_team_name", newTeamName.trim());
-            setTeam({ ...team, name: newTeamName.trim() });
-            setShowSettings(false);
-            setNewTeamName("");
-        } catch (err) {
-            console.error("Error renaming team:", err);
-            alert("Failed to rename. Try again.");
-        } finally {
-            setRenaming(false);
-        }
+    const handleRename = async (newName: string) => {
+        if (!team) return;
+        await updateDoc(doc(db, "teams", team.id), { name: newName });
+        localStorage.setItem("medical_quiz_team_name", newName);
+        setTeam({ ...team, name: newName });
     };
 
     const handleRefresh = async () => {
@@ -388,58 +569,47 @@ export default function GamePage() {
         setLoading(false);
     };
 
-    // Get current answer based on question type
     const getCurrentAnswer = (): string | number | boolean[] | null => {
         if (!currentQuestion) return null;
-
         switch (currentQuestion.type) {
-            case "mcq":
-                return mcqAnswer;
-            case "mtf":
-                return mtfAnswers;
+            case "mcq": return mcqAnswer;
+            case "mtf": return mtfAnswers;
             case "saq":
-            case "spot":
-                return textAnswer;
-            default:
-                return null;
+            case "spot": return textAnswer;
+            default: return null;
         }
     };
 
-    // Check if answer is valid for submission
     const isAnswerValid = (): boolean => {
         if (!currentQuestion) return false;
-
         switch (currentQuestion.type) {
-            case "mcq":
-                return mcqAnswer !== null;
-            case "mtf":
-                return mtfAnswers.length > 0;
+            case "mcq": return mcqAnswer !== null;
+            case "mtf": return mtfAnswers.length > 0;
             case "saq":
-            case "spot":
-                return textAnswer.trim().length > 0;
-            default:
-                return false;
+            case "spot": return textAnswer.trim().length > 0;
+            default: return false;
         }
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (forceEmpty = false) => {
         if (!currentQuestion || !team || !currentRound) return;
-        if (submitted) return; // Prevent double submit
+        if (submitted) return;
 
-        const answer = getCurrentAnswer();
-        if (answer === null && !submitted) {
-            // Auto-submit with empty answer (time ran out)
-            return;
+        let answer = getCurrentAnswer();
+
+        // For SAQ/Spot, allow empty answer on force (timeout auto-submit)
+        if (answer === null && !forceEmpty) return;
+        if (answer === null && forceEmpty && (currentQuestion.type === "saq" || currentQuestion.type === "spot")) {
+            answer = ""; // Submit empty string
         }
+        if (answer === null) return;
 
-        // Calculate time spent
         const finalTimeSpent = questionStartTime.current
             ? (Date.now() - questionStartTime.current) / 1000
             : 100;
 
         setSubmitting(true);
         try {
-            // Submit via API
             const response = await fetch("/api/answer", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -460,18 +630,40 @@ export default function GamePage() {
             }
 
             // Update local score and streak
-            if (result.points > 0) {
+            if (result.isCorrect !== null || result.points > 0) {
                 setTeam({
                     ...team,
-                    score: (team.score || 0) + result.points,
+                    score: (team.score || 0) + (result.points || 0),
                     streak: result.streak
                 });
-            } else if (result.isCorrect === false) {
-                setTeam({ ...team, streak: 0 });
             }
 
-            setLastResult(result);
+            setLastResult({
+                isCorrect: result.isCorrect,
+                points: result.points,
+                streak: result.streak,
+                message: result.message,
+                correctAnswer: result.correctAnswer,
+                pendingGrading: result.pendingGrading,
+                mtfCorrectCount: result.mtfCorrectCount,
+                mtfTotalCount: result.mtfTotalCount,
+            });
             setSubmitted(true);
+
+            // If SAQ/Spot, pause the round and switch to waiting state
+            if (result.pendingGrading && requiresManualGrading(currentQuestion.type)) {
+                // Call API to pause the round
+                await fetch("/api/game", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "pauseForGrading",
+                        roundId: currentRound.id,
+                        key: "admin123",
+                    }),
+                });
+                setGameState("waiting_grading");
+            }
         } catch (err) {
             console.error("Error submitting answer:", err);
             alert("Failed to submit. Try again.");
@@ -480,7 +672,6 @@ export default function GamePage() {
         }
     };
 
-    // Handle challenge submission
     const handleChallenge = async () => {
         if (!currentQuestion || !team || !currentRound) return;
         if ((team.challengesRemaining || 0) <= 0) {
@@ -488,7 +679,7 @@ export default function GamePage() {
             return;
         }
 
-        if (!confirm(`Are you sure you want to challenge this question? You have ${team.challengesRemaining} challenge(s) remaining.`)) {
+        if (!confirm(`Challenge this question? You have ${team.challengesRemaining} remaining.`)) {
             return;
         }
 
@@ -514,126 +705,21 @@ export default function GamePage() {
             setTeam({ ...team, challengesRemaining: result.challengesRemaining });
             alert(result.message);
         } catch (err: any) {
-            console.error("Error submitting challenge:", err);
             alert(err.message || "Failed to submit challenge.");
         }
     };
 
-    // Render answer input based on question type
     const renderAnswerInput = () => {
         if (!currentQuestion) return null;
 
         switch (currentQuestion.type) {
             case "mcq":
-                return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {currentQuestion.choices?.map((choice, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setMcqAnswer(idx)}
-                                disabled={submitted}
-                                className={cn(
-                                    "p-6 rounded-xl text-left transition-all border-2 text-lg font-medium",
-                                    mcqAnswer === idx
-                                        ? "border-blue-500 bg-blue-500/10 text-white shadow-lg shadow-blue-500/20"
-                                        : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-white/20",
-                                    submitted && "opacity-60 cursor-not-allowed"
-                                )}
-                            >
-                                <span className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 float-left transition-colors",
-                                    mcqAnswer === idx ? "bg-blue-500 text-white" : "bg-white/10 text-slate-400"
-                                )}>
-                                    {String.fromCharCode(65 + idx)}
-                                </span>
-                                {choice.text}
-                            </button>
-                        ))}
-                    </div>
-                );
-
+                return <MCQInput question={currentQuestion} answer={mcqAnswer} setAnswer={setMcqAnswer} submitted={submitted} />;
             case "mtf":
-                return (
-                    <div className="space-y-3">
-                        {currentQuestion.statements?.map((statement, idx) => (
-                            <div
-                                key={idx}
-                                className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10"
-                            >
-                                <span className="flex-1 text-lg">{statement.text}</span>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            const newAnswers = [...mtfAnswers];
-                                            newAnswers[idx] = true;
-                                            setMtfAnswers(newAnswers);
-                                        }}
-                                        disabled={submitted}
-                                        className={cn(
-                                            "px-4 py-2 rounded-lg font-bold transition-all",
-                                            mtfAnswers[idx] === true
-                                                ? "bg-green-500 text-white"
-                                                : "bg-white/10 text-slate-400 hover:bg-white/20",
-                                            submitted && "opacity-60 cursor-not-allowed"
-                                        )}
-                                    >
-                                        TRUE
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const newAnswers = [...mtfAnswers];
-                                            newAnswers[idx] = false;
-                                            setMtfAnswers(newAnswers);
-                                        }}
-                                        disabled={submitted}
-                                        className={cn(
-                                            "px-4 py-2 rounded-lg font-bold transition-all",
-                                            mtfAnswers[idx] === false && mtfAnswers.length > idx
-                                                ? "bg-red-500 text-white"
-                                                : "bg-white/10 text-slate-400 hover:bg-white/20",
-                                            submitted && "opacity-60 cursor-not-allowed"
-                                        )}
-                                    >
-                                        FALSE
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                );
-
+                return <MTFInput question={currentQuestion} answers={mtfAnswers} setAnswers={setMtfAnswers} submitted={submitted} />;
             case "saq":
-                return (
-                    <input
-                        type="text"
-                        value={textAnswer}
-                        onChange={(e) => setTextAnswer(e.target.value)}
-                        placeholder="Type your answer here (must be spelled correctly)..."
-                        disabled={submitted}
-                        className={cn(
-                            "w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg",
-                            submitted && "opacity-60 cursor-not-allowed"
-                        )}
-                        autoComplete="off"
-                    />
-                );
-
             case "spot":
-                return (
-                    <input
-                        type="text"
-                        value={textAnswer}
-                        onChange={(e) => setTextAnswer(e.target.value)}
-                        placeholder="Identify the diagnosis (must be spelled correctly)..."
-                        disabled={submitted}
-                        className={cn(
-                            "w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-orange-500 text-lg",
-                            submitted && "opacity-60 cursor-not-allowed"
-                        )}
-                        autoComplete="off"
-                    />
-                );
-
+                return <TextInput type={currentQuestion.type} value={textAnswer} setValue={setTextAnswer} submitted={submitted} />;
             default:
                 return null;
         }
@@ -652,16 +738,21 @@ export default function GamePage() {
             <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
                 <div className="bg-red-900/20 border border-red-500/50 p-8 rounded-2xl max-w-lg text-center">
                     <h1 className="text-3xl font-bold text-red-500 mb-4">Eliminated</h1>
-                    <p className="text-gray-300">
-                        Thank you for participating, <strong>{team.name}</strong>.
-                        Unfortunately, your journey ends here.
-                    </p>
+                    <p className="text-gray-300">Thank you for participating, <strong>{team.name}</strong>.</p>
                     <button onClick={() => router.push("/")} className="mt-6 text-sm text-white/50 hover:text-white underline">
                         Back to Login
                     </button>
                 </div>
             </div>
         );
+    }
+
+    // Check if team is a winner (top 5 remaining teams after all eliminations)
+    if (team?.status === "winner") {
+        // Calculate rank based on score among winners
+        const winners = allTeams.filter(t => t.status === "winner").sort((a, b) => (b.score || 0) - (a.score || 0));
+        const rank = winners.findIndex(t => t.id === team.id) + 1;
+        return <WinnerCelebration team={team} rank={rank || 1} />;
     }
 
     return (
@@ -673,7 +764,6 @@ export default function GamePage() {
                     <span className="font-bold text-lg">{team?.name}</span>
                     <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-mono">Group {team?.group}</span>
                     {team?.isBot && <span className="text-xs bg-gray-600 px-2 py-1 rounded">BOT</span>}
-                    {/* Streak indicator */}
                     {(team?.streak || 0) > 0 && (
                         <span className="text-xs bg-orange-500 px-2 py-1 rounded flex items-center gap-1">
                             <Flame className="w-3 h-3" /> {team?.streak}
@@ -681,9 +771,13 @@ export default function GamePage() {
                     )}
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-400">
-                    {currentRound && <div className="flex items-center gap-1"><Clock className="w-4 h-4" /> {currentRound.id}</div>}
+                    {currentRound && (
+                        <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" /> {currentRound.id}
+                            {currentRound.pausedAt && <span className="text-yellow-400 text-xs">(Paused)</span>}
+                        </div>
+                    )}
                     <div>Score: <span className="text-white font-bold text-lg">{team?.score || 0}</span></div>
-                    {/* Challenges remaining */}
                     <div className="flex items-center gap-1 text-yellow-400">
                         <Flag className="w-4 h-4" />
                         <span>{team?.challengesRemaining ?? 2}</span>
@@ -691,7 +785,7 @@ export default function GamePage() {
                     <button onClick={handleRefresh} className="p-2 hover:bg-white/10 rounded transition-colors" title="Refresh">
                         <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button onClick={() => { setNewTeamName(team?.name || ""); setShowSettings(true); }} className="p-2 hover:bg-white/10 rounded transition-colors" title="Settings">
+                    <button onClick={() => setShowSettings(true)} className="p-2 hover:bg-white/10 rounded transition-colors" title="Settings">
                         <Settings className="w-4 h-4" />
                     </button>
                     <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 text-red-400 rounded transition-colors" title="Leave Game">
@@ -700,122 +794,14 @@ export default function GamePage() {
                 </div>
             </header>
 
-            {/* Settings Modal */}
-            {showSettings && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
-                    <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/10">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Settings className="w-5 h-5" /> Settings</h2>
-                            <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
-                        </div>
+            <SettingsModal team={team} isOpen={showSettings} onClose={() => setShowSettings(false)} onRename={handleRename} onLogout={handleLogout} />
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-2">Team Name</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={newTeamName}
-                                        onChange={(e) => setNewTeamName(e.target.value)}
-                                        className="flex-1 bg-slate-900 border border-white/10 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Enter new team name"
-                                    />
-                                    <button
-                                        onClick={handleRename}
-                                        disabled={renaming || !newTeamName.trim()}
-                                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                                    >
-                                        {renaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit2 className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-white/10">
-                                <p className="text-xs text-gray-500 mb-2">Team ID: {team?.id}</p>
-                                <p className="text-xs text-gray-500 mb-2">Group: {team?.group}</p>
-                                <p className="text-xs text-gray-500 mb-2">Streak: {team?.streak || 0}</p>
-                                <p className="text-xs text-gray-500">Challenges Remaining: {team?.challengesRemaining ?? 2}</p>
-                            </div>
-
-                            <button
-                                onClick={handleLogout}
-                                className="w-full mt-4 bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-lg hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <LogOut className="w-4 h-4" /> Leave Game
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Main Content */}
             <main className="flex-1 flex flex-col items-center justify-center p-4 w-full max-w-4xl mx-auto">
                 <AnimatePresence mode="wait">
-                    {gameState === "waiting" && (
-                        <motion.div
-                            key="waiting"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="w-full space-y-6"
-                        >
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                                    <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-blue-100">Waiting for round to start...</h2>
-                                <p className="text-slate-400 text-sm mt-1">Keep your eyes on the screen!</p>
-                            </div>
-
-                            {/* Division Leaderboards */}
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                                {GROUPS.map(g => {
-                                    const groupTeams = allTeams
-                                        .filter(t => t.group === g)
-                                        .sort((a, b) => b.score - a.score);
-
-                                    return (
-                                        <div key={g} className="bg-white/5 border border-white/10 rounded-xl p-3">
-                                            <h3 className="text-center text-xs uppercase font-bold text-blue-400 mb-2">
-                                                Group {g}
-                                            </h3>
-                                            <div className="space-y-1">
-                                                {groupTeams.map((t, idx) => (
-                                                    <div
-                                                        key={t.id}
-                                                        className={cn(
-                                                            "flex justify-between items-center text-xs py-1 px-2 rounded",
-                                                            t.id === team?.id ? "bg-blue-500/20 text-blue-300" :
-                                                                t.status === "eliminated" ? "text-red-400/50 line-through" :
-                                                                    "text-white/70"
-                                                        )}
-                                                    >
-                                                        <span className="flex items-center gap-1 truncate max-w-[80px]">
-                                                            {idx === 0 && t.status === "active" && <span className="text-yellow-400">👑</span>}
-                                                            {t.name}
-                                                        </span>
-                                                        <span className="font-bold">{t.score}</span>
-                                                    </div>
-                                                ))}
-                                                {groupTeams.length === 0 && (
-                                                    <p className="text-white/30 text-[10px] text-center">No teams</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </motion.div>
-                    )}
+                    {gameState === "waiting" && <WaitingScreen team={team} allTeams={allTeams} />}
 
                     {gameState === "countdown" && (
-                        <motion.div
-                            key="countdown"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="text-center space-y-4"
-                        >
+                        <motion.div key="countdown" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="text-center space-y-4">
                             <div className="w-32 h-32 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-yellow-500">
                                 <span className="text-6xl font-black text-yellow-400">{countdownSeconds}</span>
                             </div>
@@ -824,195 +810,105 @@ export default function GamePage() {
                         </motion.div>
                     )}
 
+                    {gameState === "waiting_grading" && currentQuestion && (
+                        <WaitingGradingScreen
+                            questionText={currentQuestion.text || "(Image question)"}
+                            userAnswer={textAnswer}
+                        />
+                    )}
+
                     {gameState === "answer_reveal" && currentQuestion && (
-                        <motion.div
-                            key={`reveal-${currentQuestion.id}`}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="w-full bg-slate-800 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
-                        >
-                            {/* Header showing next question countdown */}
+                        <motion.div key={`reveal-${currentQuestion.id}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full bg-slate-800 rounded-3xl overflow-hidden shadow-2xl border border-white/10">
                             <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 flex justify-between items-center">
                                 <span className="text-white font-bold text-lg">Answer Reveal</span>
                                 <div className="flex items-center gap-2 text-white">
                                     <Timer className="w-5 h-5" />
-                                    <span className="font-mono font-bold">Next question in {answerRevealCountdown}s</span>
+                                    <span className="font-mono font-bold">Next in {answerRevealCountdown}s</span>
                                 </div>
                             </div>
+                            <AnswerReveal question={currentQuestion} result={lastResult} countdown={answerRevealCountdown} team={team} userMcqAnswer={mcqAnswer} userMtfAnswers={mtfAnswers} onChallenge={handleChallenge} />
+                        </motion.div>
+                    )}
 
-                            <div className="p-8">
-                                {/* Question recap */}
-                                <p className="text-gray-400 text-sm mb-2">Question:</p>
-                                <h2 className="text-xl md:text-2xl font-bold mb-8 text-white/80">
-                                    {currentQuestion.text || "(Image question)"}
-                                </h2>
-
-                                {/* Result display */}
-                                <div className={cn(
-                                    "rounded-xl p-8 text-center border-2",
-                                    lastResult?.isCorrect === true
-                                        ? "bg-green-500/10 border-green-500"
-                                        : "bg-red-500/10 border-red-500"
-                                )}>
-                                    <div className={cn(
-                                        "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4",
-                                        lastResult?.isCorrect === true
-                                            ? "bg-green-500"
-                                            : "bg-red-500"
-                                    )}>
-                                        {lastResult?.isCorrect === true
-                                            ? <CheckCircle2 className="w-10 h-10 text-white" />
-                                            : <XCircle className="w-10 h-10 text-white" />
-                                        }
-                                    </div>
-
-                                    <h3 className={cn(
-                                        "text-3xl font-bold mb-2",
-                                        lastResult?.isCorrect === true ? "text-green-400" : "text-red-400"
-                                    )}>
-                                        {lastResult?.isCorrect === true ? "Correct!" : "Incorrect"}
-                                    </h3>
-
-                                    {lastResult?.points ? (
-                                        <p className="text-green-300 font-bold text-3xl mb-2">+{lastResult.points} points</p>
-                                    ) : null}
-
-                                    {/* Streak display */}
-                                    <div className="flex items-center justify-center gap-2 mt-4">
-                                        <Flame className={cn(
-                                            "w-6 h-6",
-                                            (lastResult?.streak || 0) > 0 ? "text-orange-400" : "text-gray-500"
-                                        )} />
-                                        <span className={cn(
-                                            "text-lg font-bold",
-                                            (lastResult?.streak || 0) > 0 ? "text-orange-400" : "text-gray-500"
-                                        )}>
-                                            Streak: {lastResult?.streak || 0}
-                                        </span>
-                                    </div>
-
-                                    {lastResult?.message && (
-                                        <p className="text-white/60 text-sm mt-4">{lastResult.message}</p>
-                                    )}
-
-                                    {/* Challenge button for incorrect answers */}
-                                    {lastResult?.isCorrect === false && (team?.challengesRemaining ?? 0) > 0 && (
-                                        <button
-                                            onClick={handleChallenge}
-                                            className="mt-6 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-6 py-3 rounded-lg hover:bg-yellow-500/30 transition-colors flex items-center gap-2 mx-auto"
-                                        >
-                                            <Flag className="w-5 h-5" /> Challenge ({team?.challengesRemaining} left)
-                                        </button>
-                                    )}
-                                </div>
+                    {/* Loading state when playing but questions not loaded */}
+                    {gameState === "playing" && !currentQuestion && (
+                        <motion.div
+                            key="loading-question"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="text-center space-y-4"
+                        >
+                            <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
                             </div>
+                            <h2 className="text-2xl font-bold text-blue-100">Loading Question...</h2>
+                            <p className="text-slate-400 text-sm">Round: {currentRound?.id}</p>
                         </motion.div>
                     )}
 
                     {gameState === "playing" && currentQuestion && (
-                        <motion.div
-                            key={currentQuestion.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="w-full bg-slate-800 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
-                        >
-                            {/* Timer Bar */}
+                        <motion.div key={currentQuestion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full bg-slate-800 rounded-3xl overflow-hidden shadow-2xl border border-white/10">
                             <div className="bg-slate-700 p-3 flex justify-between items-center flex-wrap gap-2">
                                 <div className="flex items-center gap-2">
-                                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                                        QUESTION_TYPE_LABELS[currentQuestion.type]?.color || "bg-gray-500/20 text-gray-300"
-                                    )}>
-                                        {QUESTION_TYPE_LABELS[currentQuestion.type]?.label || currentQuestion.type}
+                                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider", QUESTION_TYPE_LABELS[currentQuestion.type]?.color || "bg-gray-500/20 text-gray-300")}>
+                                        {QUESTION_TYPE_LABELS[currentQuestion.type]?.label}
                                     </span>
                                     {currentQuestion.difficulty && (
-                                        <span className={cn("px-2 py-1 rounded text-xs font-bold text-white",
-                                            DIFFICULTY_LABELS[currentQuestion.difficulty]?.color || "bg-gray-600"
-                                        )}>
+                                        <span className={cn("px-2 py-1 rounded text-xs font-bold text-white", DIFFICULTY_LABELS[currentQuestion.difficulty]?.color)}>
                                             {DIFFICULTY_LABELS[currentQuestion.difficulty]?.label} ({DIFFICULTY_LABELS[currentQuestion.difficulty]?.points}x)
                                         </span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Timer className={cn("w-5 h-5", timeLeft && timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-green-400")} />
-                                    <span className={cn("font-mono font-bold text-xl", timeLeft && timeLeft <= 10 ? "text-red-500" : "text-green-400")}>
-                                        {timeLeft}s
-                                    </span>
+                                    <span className={cn("font-mono font-bold text-xl", timeLeft && timeLeft <= 10 ? "text-red-500" : "text-green-400")}>{timeLeft}s</span>
                                 </div>
                             </div>
 
-                            {/* Question Image */}
                             {currentQuestion.imageUrl && (
-                                <div className="w-full h-64 md:h-80 bg-black/50 overflow-hidden relative">
+                                <div className="w-full h-64 md:h-80 bg-black/50 overflow-hidden">
                                     <img src={currentQuestion.imageUrl} alt="Question" className="w-full h-full object-contain" />
                                 </div>
                             )}
 
-                            {/* Question Content */}
                             <div className="p-8">
-                                {currentQuestion.text && (
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-relaxed">
-                                        {currentQuestion.text}
-                                    </h2>
-                                )}
+                                {currentQuestion.text && <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-relaxed">{currentQuestion.text}</h2>}
 
-                                {/* Answers Section */}
                                 {submitted ? (
-                                    <div className={cn(
-                                        "rounded-xl p-8 text-center border",
-                                        lastResult?.isCorrect === true
-                                            ? "bg-green-500/10 border-green-500/20"
-                                            : lastResult?.isCorrect === false
-                                                ? "bg-red-500/10 border-red-500/20"
-                                                : "bg-blue-500/10 border-blue-500/20"
+                                    <div className={cn("rounded-xl p-8 text-center border",
+                                        lastResult?.pendingGrading ? "bg-yellow-500/10 border-yellow-500/20" :
+                                            currentQuestion.type === "mtf" ? "bg-purple-500/10 border-purple-500/20" :
+                                                lastResult?.isCorrect === true ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
                                     )}>
-                                        <div className={cn(
-                                            "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg",
-                                            lastResult?.isCorrect === true
-                                                ? "bg-green-500 shadow-green-500/20"
-                                                : lastResult?.isCorrect === false
-                                                    ? "bg-red-500 shadow-red-500/20"
-                                                    : "bg-blue-500 shadow-blue-500/20"
+                                        <div className={cn("w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg",
+                                            lastResult?.pendingGrading ? "bg-yellow-500" :
+                                                currentQuestion.type === "mtf" ? "bg-purple-500" :
+                                                    lastResult?.isCorrect === true ? "bg-green-500" : "bg-red-500"
                                         )}>
-                                            {lastResult?.isCorrect === true
-                                                ? <CheckCircle2 className="w-8 h-8 text-white" />
-                                                : lastResult?.isCorrect === false
-                                                    ? <XCircle className="w-8 h-8 text-white" />
-                                                    : <CheckCircle2 className="w-8 h-8 text-white" />
-                                            }
+                                            {lastResult?.pendingGrading ? <Loader2 className="w-8 h-8 text-white animate-spin" /> :
+                                                currentQuestion.type === "mtf" ? <span className="text-sm font-bold text-white">{lastResult?.mtfCorrectCount}/{lastResult?.mtfTotalCount}</span> :
+                                                    lastResult?.isCorrect === true ? <CheckCircle2 className="w-8 h-8 text-white" /> : <XCircle className="w-8 h-8 text-white" />}
                                         </div>
-                                        <h3 className={cn(
-                                            "text-xl font-bold mb-2",
-                                            lastResult?.isCorrect === true ? "text-green-400" :
-                                                lastResult?.isCorrect === false ? "text-red-400" : "text-blue-400"
+                                        <h3 className={cn("text-xl font-bold mb-2",
+                                            lastResult?.pendingGrading ? "text-yellow-400" :
+                                                currentQuestion.type === "mtf" ? "text-purple-400" :
+                                                    lastResult?.isCorrect === true ? "text-green-400" : "text-red-400"
                                         )}>
-                                            {lastResult?.isCorrect === true ? "Correct!" :
-                                                lastResult?.isCorrect === false ? "Incorrect" : "Submitted"}
+                                            {lastResult?.pendingGrading ? "Waiting for Admin" :
+                                                currentQuestion.type === "mtf" ? `${lastResult?.mtfCorrectCount}/${lastResult?.mtfTotalCount} Correct` :
+                                                    lastResult?.isCorrect === true ? "Correct!" : "Incorrect"}
                                         </h3>
-                                        {lastResult?.points ? (
-                                            <p className="text-green-300 font-bold text-2xl">+{lastResult.points} points</p>
-                                        ) : null}
-                                        <p className="text-white/40 text-sm mt-4">
-                                            Waiting for answer reveal phase...
-                                        </p>
+                                        {lastResult?.points ? <p className="text-green-300 font-bold text-2xl">+{lastResult.points} points</p> : null}
+                                        <p className="text-white/40 text-sm mt-4">{lastResult?.pendingGrading ? "Timer paused. Waiting for admin grading..." : "Waiting for reveal..."}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
                                         {renderAnswerInput()}
-
-                                        <button
-                                            onClick={handleSubmit}
-                                            disabled={submitting || !isAnswerValid()}
-                                            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-                                        >
-                                            {submitting ? <Loader2 className="animate-spin" /> : <><Send className="w-5 h-5" /> Submit All and Finish</>}
+                                        <button onClick={() => handleSubmit()} disabled={submitting || !isAnswerValid()} className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed mt-4">
+                                            {submitting ? <Loader2 className="animate-spin" /> : <><Send className="w-5 h-5" /> Submit Answer</>}
                                         </button>
-
-                                        {/* Time spent indicator */}
-                                        <p className="text-center text-xs text-white/40">
-                                            Time spent: {timeSpent.toFixed(1)}s
-                                        </p>
+                                        <p className="text-center text-xs text-white/40">Time spent: {timeSpent.toFixed(1)}s</p>
                                     </div>
                                 )}
                             </div>
