@@ -747,11 +747,19 @@ export default function GamePage() {
         );
     }
 
-    // Check if team is a winner (top 5 remaining teams after all eliminations)
-    if (team?.status === "winner") {
-        // Calculate rank based on score among winners
-        const winners = allTeams.filter(t => t.status === "winner").sort((a, b) => (b.score || 0) - (a.score || 0));
-        const rank = winners.findIndex(t => t.id === team.id) + 1;
+    // Check if team is a winner
+    // Trigger if: team.status === "winner" OR (no active round AND exactly 5 active teams remaining)
+    const activeTeams = allTeams.filter(t => t.status === "active");
+    const isWinner = team?.status === "winner" ||
+        (!currentRound && activeTeams.length === 5 && team?.status === "active");
+
+    if (isWinner && team) {
+        // Calculate rank based on score among winners/finalists
+        const finalists = team.status === "winner"
+            ? allTeams.filter(t => t.status === "winner")
+            : activeTeams;
+        const rankedFinalists = finalists.sort((a, b) => (b.score || 0) - (a.score || 0));
+        const rank = rankedFinalists.findIndex(t => t.id === team.id) + 1;
         return <WinnerCelebration team={team} rank={rank || 1} />;
     }
 
