@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
 // GET: Minimal round data for game clients
-// Only fetches active round and its questions
 export async function GET() {
     try {
-        // Get active round
         const roundsSnap = await adminDb.collection("rounds")
             .where("status", "==", "active")
             .limit(1)
@@ -24,12 +22,10 @@ export async function GET() {
             ...roundDoc.data()
         };
 
-        // Get questions for this round
         const questionsSnap = await adminDb.collection("questions")
             .where("roundId", "==", round.id)
             .get();
 
-        // Only send essential question fields
         const questions = questionsSnap.docs
             .map(d => {
                 const data = d.data();
@@ -47,7 +43,7 @@ export async function GET() {
                     roundId: data.roundId,
                 };
             })
-            .sort((a, b) => a.order - b.order);
+            .sort((a, b) => (a.order as number) - (b.order as number));
 
         return NextResponse.json({
             success: true,

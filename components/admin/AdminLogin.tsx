@@ -18,7 +18,7 @@ export function AdminLogin() {
         setLoading(true);
         try {
             await signInWithEmailAndPassword(auth, email, password);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             setError("Invalid credentials.");
         } finally {
@@ -32,7 +32,7 @@ export function AdminLogin() {
         try {
             const provider = new GoogleAuthProvider();
             await signInWithPopup(auth, provider);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Google Auth Error:", err);
             setError("Google Sign-In failed.");
         } finally {

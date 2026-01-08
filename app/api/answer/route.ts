@@ -3,7 +3,6 @@ import { adminDb } from "@/lib/firebase-admin";
 import { calculateScore } from "@/lib/scoring";
 import { Difficulty, QuestionType } from "@/lib/types";
 
-// Helper to check MTF and return partial score info
 function checkMTFPartial(userAnswers: boolean[], correctAnswers: boolean[]): {
     correctCount: number;
     totalCount: number;
@@ -36,7 +35,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // Get question to check correct answer
         const questionDoc = await adminDb.collection("questions").doc(questionId).get();
         if (!questionDoc.exists) {
             return NextResponse.json({ error: "Question not found" }, { status: 404 });
@@ -44,7 +42,6 @@ export async function POST(request: Request) {
         const question = questionDoc.data()!;
         const difficulty: Difficulty = question.difficulty || "easy";
 
-        // Get team to get current streak
         const teamRef = adminDb.collection("teams").doc(teamId);
         const teamDoc = await teamRef.get();
         if (!teamDoc.exists) {
@@ -53,14 +50,10 @@ export async function POST(request: Request) {
         const teamData = teamDoc.data()!;
         const currentStreak = teamData.streak || 0;
 
-        // Determine if answer is correct based on question type
         let isCorrect: boolean | null = null;
         const questionType = type as QuestionType;
 
-        // Prepare correct answer data to return to client
-        let correctAnswerData: any = null;
-
-        // MTF partial scoring info
+        let correctAnswerData: Record<string, unknown> | null = null;
         let mtfCorrectCount = 0;
         let mtfTotalCount = 0;
 
@@ -82,19 +75,16 @@ export async function POST(request: Request) {
                     const mtfResult = checkMTFPartial(answer, correctAnswers);
                     mtfCorrectCount = mtfResult.correctCount;
                     mtfTotalCount = mtfResult.totalCount;
-                    // For streak purposes, only all correct counts as "correct"
                     isCorrect = mtfResult.allCorrect;
                     correctAnswerData = {
                         type: "mtf",
-                        statements: question.statements, // includes isTrue for each
+                        statements: question.statements,
                     };
                 }
                 break;
 
             case "saq":
             case "spot":
-                // SAQ and Spot require manual grading by admin
-                // Do NOT auto-grade - leave isCorrect as null
                 isCorrect = null;
                 correctAnswerData = {
                     type: questionType,
@@ -103,38 +93,30 @@ export async function POST(request: Request) {
                 break;
 
             default:
-                isCorrect = null; // Unknown type, manual grading needed
+                isCorrect = null;
         }
 
-        // Calculate score using new formula
         let earnedPoints = 0;
         let newStreak = currentStreak;
 
         if (questionType === "mtf") {
-            // MTF: Partial scoring based on correct statements
-            // Each correct statement earns proportional points
             if (mtfTotalCount > 0) {
                 const baseScore = calculateScore(difficulty, timeSpent, currentStreak, true);
                 earnedPoints = Math.round(baseScore * (mtfCorrectCount / mtfTotalCount));
 
-                // Streak only increases if ALL correct
                 if (isCorrect) {
                     newStreak = Math.min(currentStreak + 1, 4);
                 } else if (mtfCorrectCount === 0) {
-                    // Reset streak only if ALL wrong
                     newStreak = 0;
                 }
-                // If partial correct, keep streak as is
             }
         } else if (isCorrect === true) {
             earnedPoints = calculateScore(difficulty, timeSpent, currentStreak, true);
             newStreak = Math.min(currentStreak + 1, 4);
         } else if (isCorrect === false) {
-            newStreak = 0; // Reset streak on incorrect answer
+            newStreak = 0;
         }
-        // If isCorrect is null (SAQ/Spot), don't modify streak yet
 
-        // Save answer
         const answerId = `${teamId}_${questionId}`;
         await adminDb.collection("answers").doc(answerId).set({
             teamId,
@@ -146,12 +128,11 @@ export async function POST(request: Request) {
             timeSpent,
             isCorrect,
             points: earnedPoints,
-            difficulty, // Store difficulty for later grading calculations
+            difficulty,
             mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : null,
             mtfTotalCount: questionType === "mtf" ? mtfTotalCount : null,
         });
 
-        // Update team score and streak (only for auto-graded types)
         if (isCorrect !== null || (questionType === "mtf" && earnedPoints > 0)) {
             const currentScore = teamData.score || 0;
             await teamRef.update({
@@ -160,7 +141,6 @@ export async function POST(request: Request) {
             });
         }
 
-        // Prepare response message with scoring breakdown
         let message = "";
         if (questionType === "mtf") {
             message = `${mtfCorrectCount}/${mtfTotalCount} correct! +${earnedPoints} points`;
@@ -181,9 +161,8 @@ export async function POST(request: Request) {
             points: earnedPoints,
             streak: newStreak,
             message,
-            correctAnswer: correctAnswerData, // Send correct answer data for reveal
+            correctAnswer: correctAnswerData,
             pendingGrading: isCorrect === null && questionType !== "mtf",
-            // MTF specific
             mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : undefined,
             mtfTotalCount: questionType === "mtf" ? mtfTotalCount : undefined,
         });

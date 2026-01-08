@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
+const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+
 // POST: Create a new challenge (from team)
 export async function POST(request: Request) {
     try {
@@ -11,7 +13,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // Check if team has challenges remaining
         const teamRef = adminDb.collection("teams").doc(teamId);
         const teamDoc = await teamRef.get();
 
@@ -24,11 +25,10 @@ export async function POST(request: Request) {
 
         if (challengesRemaining <= 0) {
             return NextResponse.json({
-                error: "No challenges remaining. Each team only gets 2 challenges across 5 turns."
+                error: "No challenges remaining."
             }, { status: 400 });
         }
 
-        // Create challenge alert
         const challengeRef = adminDb.collection("challenges").doc();
         await challengeRef.set({
             id: challengeRef.id,
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
             dismissed: false
         });
 
-        // Decrement team's challenges remaining
         await teamRef.update({
             challengesRemaining: challengesRemaining - 1
         });
@@ -50,7 +49,7 @@ export async function POST(request: Request) {
             success: true,
             challengeId: challengeRef.id,
             challengesRemaining: challengesRemaining - 1,
-            message: `Challenge submitted! You have ${challengesRemaining - 1} challenge(s) remaining.`
+            message: `Challenge submitted! You have ${challengesRemaining - 1} remains.`
         });
     } catch (error) {
         console.error("Error creating challenge:", error);
@@ -87,7 +86,7 @@ export async function PATCH(request: Request) {
         const body = await request.json();
         const { challengeId, key } = body;
 
-        if (key !== "admin123") {
+        if (key !== ADMIN_KEY) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 

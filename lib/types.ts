@@ -74,4 +74,4 @@ export type Challenge = {
 export const GROUPS = [1, 2, 3, 4, 5];
 export const MAX_TEAMS_PER_GROUP = 6;
 export const TOTAL_TEAMS = 30;
-export const DEFAULT_QUESTION_TIMER = 5; // seconds (set to 5 for testing, change to 100 for production)
+export const DEFAULT_QUESTION_TIMER = 90; // seconds

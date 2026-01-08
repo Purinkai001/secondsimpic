@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
 
-// New question format: 4 questions per turn (MCQ, MTF, SAQ, Spot)
+const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+
 const MEDICAL_QUESTIONS = [
     // ===== ROUND 1 (Turn 1) =====
-    // MCQ - Easy
     {
         roundId: "round-1",
         text: "What is the medical term for the 'voice box'?",
@@ -15,7 +15,6 @@ const MEDICAL_QUESTIONS = [
         correctChoiceIndex: 1,
         order: 1
     },
-    // MTF - Medium
     {
         roundId: "round-1",
         text: "Evaluate the following statements about the cardiovascular system:",
@@ -29,7 +28,6 @@ const MEDICAL_QUESTIONS = [
         ],
         order: 2
     },
-    // SAQ - Medium
     {
         roundId: "round-1",
         text: "What is the name of the largest bone in the human body?",
@@ -38,7 +36,6 @@ const MEDICAL_QUESTIONS = [
         correctAnswer: "femur",
         order: 3
     },
-    // Spot Diagnosis - Difficult
     {
         roundId: "round-1",
         text: "Identify the structure indicated by the arrow in this anatomical image (hint: it's in the respiratory system):",
@@ -48,9 +45,7 @@ const MEDICAL_QUESTIONS = [
         imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Gray622.png/220px-Gray622.png",
         order: 4
     },
-
     // ===== ROUND 2 (Turn 2) =====
-    // MCQ - Easy
     {
         roundId: "round-2",
         text: "Which organ is primarily responsible for detoxifying chemicals in the body?",
@@ -60,7 +55,6 @@ const MEDICAL_QUESTIONS = [
         correctChoiceIndex: 1,
         order: 1
     },
-    // MTF - Medium
     {
         roundId: "round-2",
         text: "Evaluate the following statements about blood types:",
@@ -74,7 +68,6 @@ const MEDICAL_QUESTIONS = [
         ],
         order: 2
     },
-    // SAQ - Medium
     {
         roundId: "round-2",
         text: "What vitamin is synthesized by the skin upon exposure to sunlight?",
@@ -83,7 +76,6 @@ const MEDICAL_QUESTIONS = [
         correctAnswer: "vitamin d",
         order: 3
     },
-    // Spot Diagnosis - Difficult
     {
         roundId: "round-2",
         text: "Identify the organ shown in this cross-sectional image:",
@@ -93,9 +85,7 @@ const MEDICAL_QUESTIONS = [
         imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Kidney_Cross_Section.png/220px-Kidney_Cross_Section.png",
         order: 4
     },
-
-    // ===== ROUND 3 (Turn 3) - After scores reset =====
-    // MCQ - Medium
+    // ===== ROUND 3 (Turn 3) =====
     {
         roundId: "round-3",
         text: "Which hormone is known as the 'stress hormone'?",
@@ -105,7 +95,6 @@ const MEDICAL_QUESTIONS = [
         correctChoiceIndex: 1,
         order: 1
     },
-    // MTF - Difficult
     {
         roundId: "round-3",
         text: "Evaluate the following statements about diabetes:",
@@ -119,7 +108,6 @@ const MEDICAL_QUESTIONS = [
         ],
         order: 2
     },
-    // SAQ - Medium
     {
         roundId: "round-3",
         text: "What is the medical term for high blood pressure?",
@@ -128,7 +116,6 @@ const MEDICAL_QUESTIONS = [
         correctAnswer: "hypertension",
         order: 3
     },
-    // Spot Diagnosis - Difficult
     {
         roundId: "round-3",
         text: "Identify the bone structure shown:",
@@ -138,9 +125,7 @@ const MEDICAL_QUESTIONS = [
         imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Lumbar_vertebra.gif/220px-Lumbar_vertebra.gif",
         order: 4
     },
-
     // ===== ROUND 4 (Turn 4) =====
-    // MCQ - Medium
     {
         roundId: "round-4",
         text: "What is the largest organ of the human body?",
@@ -150,7 +135,6 @@ const MEDICAL_QUESTIONS = [
         correctChoiceIndex: 2,
         order: 1
     },
-    // MTF - Difficult
     {
         roundId: "round-4",
         text: "Evaluate the following statements about the nervous system:",
@@ -164,7 +148,6 @@ const MEDICAL_QUESTIONS = [
         ],
         order: 2
     },
-    // SAQ - Difficult
     {
         roundId: "round-4",
         text: "What is the normal pH range of human blood?",
@@ -173,7 +156,6 @@ const MEDICAL_QUESTIONS = [
         correctAnswer: "7.35-7.45",
         order: 3
     },
-    // Spot Diagnosis - Difficult
     {
         roundId: "round-4",
         text: "Identify the brain structure highlighted:",
@@ -183,9 +165,7 @@ const MEDICAL_QUESTIONS = [
         imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Cerebellum_animation_small.gif/220px-Cerebellum_animation_small.gif",
         order: 4
     },
-
-    // ===== ROUND 5 (Turn 5) - Final before elimination =====
-    // MCQ - Difficult
+    // ===== ROUND 5 (Turn 5) =====
     {
         roundId: "round-5",
         text: "Which cranial nerve is responsible for the gag reflex?",
@@ -195,7 +175,6 @@ const MEDICAL_QUESTIONS = [
         correctChoiceIndex: 2,
         order: 1
     },
-    // MTF - Difficult
     {
         roundId: "round-5",
         text: "Evaluate the following statements about antibodies:",
@@ -209,7 +188,6 @@ const MEDICAL_QUESTIONS = [
         ],
         order: 2
     },
-    // SAQ - Difficult
     {
         roundId: "round-5",
         text: "What part of the nephron is primarily responsible for filtration?",
@@ -218,7 +196,6 @@ const MEDICAL_QUESTIONS = [
         correctAnswer: "glomerulus",
         order: 3
     },
-    // Spot Diagnosis - Difficult
     {
         roundId: "round-5",
         text: "Identify the heart structure indicated:",
@@ -244,7 +221,7 @@ export async function GET(request: Request) {
     const key = searchParams.get("key");
     const action = searchParams.get("action") || "seed";
 
-    if (key !== "admin123") {
+    if (key !== ADMIN_KEY) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -252,7 +229,6 @@ export async function GET(request: Request) {
         if (action === "seed") {
             const batch = adminDb.batch();
 
-            // 1. Create Rounds with timer settings (5 turns)
             for (let i = 1; i <= 5; i++) {
                 const rRef = adminDb.collection("rounds").doc(`round-${i}`);
                 batch.set(rRef, {
@@ -260,12 +236,11 @@ export async function GET(request: Request) {
                     status: "waiting",
                     startTime: null,
                     currentQuestionIndex: 0,
-                    questionTimer: DEFAULT_QUESTION_TIMER // 100 seconds per question
+                    questionTimer: DEFAULT_QUESTION_TIMER
                 }, { merge: true });
             }
 
-            // 2. Add Questions
-            MEDICAL_QUESTIONS.forEach((q, idx) => {
+            MEDICAL_QUESTIONS.forEach((q) => {
                 const qId = `q-${q.roundId}-${q.order}`;
                 const qRef = adminDb.collection("questions").doc(qId);
                 batch.set(qRef, { ...q, id: qId });
@@ -275,12 +250,11 @@ export async function GET(request: Request) {
 
             return NextResponse.json({
                 success: true,
-                message: `Seeded ${MEDICAL_QUESTIONS.length} questions across 5 rounds (4 per turn: MCQ, MTF, SAQ, Spot).`
+                message: `Seeded ${MEDICAL_QUESTIONS.length} questions across 5 rounds.`
             });
         }
 
         if (action === "fillbots") {
-            // Get current team count per group
             const teamsSnap = await adminDb.collection("teams").get();
             const existingTeams = teamsSnap.docs.map(d => d.data());
 
@@ -317,7 +291,6 @@ export async function GET(request: Request) {
         }
 
         if (action === "removebots") {
-            // Remove all bot teams
             const teamsSnap = await adminDb.collection("teams").where("isBot", "==", true).get();
 
             const batch = adminDb.batch();

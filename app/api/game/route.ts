@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
 
-// Shuffle array randomly (Fisher-Yates)
+const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+
 function shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -17,13 +18,44 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { action, key, roundNum } = body;
 
-        if (key !== "admin123") {
+        if (key !== ADMIN_KEY) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         // ===== INIT GAME =====
+        if (action === "simulateTies") {
+            const teamsSnap = await adminDb.collection("teams").where("status", "==", "active").orderBy("score", "desc").limit(3).get();
+            if (teamsSnap.size < 2) return NextResponse.json({ error: "Not enough active teams" }, { status: 400 });
+
+            const highestScore = teamsSnap.docs[0].data().score;
+            const batch = adminDb.batch();
+            teamsSnap.docs.forEach(doc => {
+                batch.update(doc.ref, { score: highestScore });
+            });
+            await batch.commit();
+            return NextResponse.json({ success: true, message: "Top teams tied." });
+        }
+
+        if (action === "triggerSuddenDeath") {
+            const configSnap = await adminDb.collection("config").doc("gameConfig").get();
+            const configTimer = configSnap.exists ? configSnap.data()?.questionTimer : DEFAULT_QUESTION_TIMER;
+
+            const sdRoundRef = adminDb.collection("rounds").doc("round-sd");
+            await sdRoundRef.set({
+                id: "round-sd",
+                status: "active",
+                startTime: Date.now(),
+                currentQuestionIndex: 0,
+                questionTimer: configTimer || DEFAULT_QUESTION_TIMER,
+                isSuddenDeath: true
+            }, { merge: true });
+
+            return NextResponse.json({ success: true, message: "Sudden Death Activated." });
+        }
+
         if (action === "initGame") {
-            // Reset all rounds (5 rounds total)
+            const configSnap = await adminDb.collection("config").doc("gameConfig").get();
+            const configTimer = configSnap.exists ? configSnap.data()?.questionTimer : DEFAULT_QUESTION_TIMER;
             const batch = adminDb.batch();
 
             for (let i = 1; i <= 5; i++) {
@@ -33,13 +65,12 @@ export async function POST(request: Request) {
                     status: "waiting",
                     startTime: null,
                     currentQuestionIndex: 0,
-                    questionTimer: DEFAULT_QUESTION_TIMER // 100 seconds
+                    questionTimer: configTimer || DEFAULT_QUESTION_TIMER
                 }, { merge: true });
             }
 
             await batch.commit();
 
-            // Delete all answers
             const answersSnap = await adminDb.collection("answers").get();
             const deleteBatch = adminDb.batch();
             answersSnap.docs.forEach(doc => {
@@ -47,7 +78,6 @@ export async function POST(request: Request) {
             });
             await deleteBatch.commit();
 
-            // Delete all challenges
             const challengesSnap = await adminDb.collection("challenges").get();
             const challengeDeleteBatch = adminDb.batch();
             challengesSnap.docs.forEach(doc => {
@@ -55,14 +85,13 @@ export async function POST(request: Request) {
             });
             await challengeDeleteBatch.commit();
 
-            // Reset all team scores, status, challenges, and streak
             const teamsSnap = await adminDb.collection("teams").get();
             const teamBatch = adminDb.batch();
             teamsSnap.docs.forEach(doc => {
                 teamBatch.update(doc.ref, {
                     score: 0,
                     status: "active",
-                    challengesRemaining: 2, // 2 challenges per team
+                    challengesRemaining: 2,
                     streak: 0
                 });
             });
@@ -75,7 +104,6 @@ export async function POST(request: Request) {
         }
 
         // ===== SHUFFLE TEAMS =====
-        // Randomly assign all teams to divisions (1-5), 6 teams per division
         if (action === "shuffleTeams") {
             const teamsSnap = await adminDb.collection("teams").get();
             const teams = teamsSnap.docs;
@@ -86,12 +114,11 @@ export async function POST(request: Request) {
                 }, { status: 400 });
             }
 
-            // Shuffle and assign to divisions
             const shuffled = shuffleArray(teams);
             const batch = adminDb.batch();
 
             shuffled.forEach((doc, index) => {
-                const division = (index % 5) + 1; // 1, 2, 3, 4, 5, 1, 2, 3, 4, 5...
+                const division = (index % 5) + 1;
                 batch.update(doc.ref, {
                     group: division,
                     score: 0,
@@ -130,13 +157,12 @@ export async function POST(request: Request) {
         }
 
         // ===== REARRANGE DIVISIONS BY SCORE =====
-        // After Turn 3 elimination, rearrange remaining teams into divisions by score ranking
         if (action === "rearrangeDivisions") {
             const teamsSnap = await adminDb.collection("teams").get();
             const activeTeams = teamsSnap.docs
                 .filter(d => d.data().status === "active")
                 .map(d => ({ id: d.id, ref: d.ref, ...d.data() }))
-                .sort((a: any, b: any) => b.score - a.score); // Highest score first
+                .sort((a: any, b: any) => b.score - a.score);
 
             const batch = adminDb.batch();
             const teamsPerDivision = Math.ceil(activeTeams.length / 5);
@@ -155,8 +181,6 @@ export async function POST(request: Request) {
         }
 
         // ===== ELIMINATION =====
-        // Round 3: Eliminate bottom 3 per division (keep top 3)
-        // Round 5: Eliminate bottom 2 per division (keep top 1)
         if (action === "runElimination") {
             if (!roundNum) {
                 return NextResponse.json({ error: "roundNum required" }, { status: 400 });
@@ -164,9 +188,9 @@ export async function POST(request: Request) {
 
             let eliminateCount = 0;
             if (roundNum === 3) {
-                eliminateCount = 3; // Eliminate 3, keep 3
+                eliminateCount = 3;
             } else if (roundNum === 5) {
-                eliminateCount = 2; // Eliminate 2, keep 1
+                eliminateCount = 2;
             } else {
                 return NextResponse.json({
                     error: `Elimination only at Round 3 or 5. Got Round ${roundNum}.`
@@ -178,18 +202,16 @@ export async function POST(request: Request) {
                 id: d.id,
                 ref: d.ref,
                 ...d.data()
-            } as { id: string; ref: FirebaseFirestore.DocumentReference; group: number; status: string; score: number }));
+            } as any));
 
             const batch = adminDb.batch();
             let totalEliminated = 0;
 
-            // Process each division
             for (let division = 1; division <= 5; division++) {
                 const divisionTeams = teams
-                    .filter(t => t.group === division && t.status === "active")
-                    .sort((a, b) => a.score - b.score); // Lowest first
+                    .filter((t: any) => t.group === division && t.status === "active")
+                    .sort((a: any, b: any) => a.score - b.score);
 
-                // Eliminate bottom N teams
                 const toEliminate = divisionTeams.slice(0, eliminateCount);
                 toEliminate.forEach((t: any) => {
                     batch.update(t.ref, { status: "eliminated" });
@@ -206,26 +228,24 @@ export async function POST(request: Request) {
             });
         }
 
-        // ===== CHECK FOR TIES (Sudden Death trigger) =====
+        // ===== CHECK FOR TIES =====
         if (action === "checkTies") {
             const teamsSnap = await adminDb.collection("teams").get();
             const teams = teamsSnap.docs
                 .filter(d => d.data().status === "active")
-                .map(d => ({ id: d.id, ...d.data() } as { id: string; group: number; score: number; name: string }));
+                .map(d => ({ id: d.id, ...d.data() } as any));
 
-            const ties: { division: number; teams: { id: string; name: string; score: number }[] }[] = [];
+            const ties: any[] = [];
 
-            // Check each division for ties
             for (let division = 1; division <= 5; division++) {
-                const divisionTeams = teams.filter(t => t.group === division);
-                const scoreGroups: { [score: number]: typeof divisionTeams } = {};
+                const divisionTeams = teams.filter((t: any) => t.group === division);
+                const scoreGroups: Record<number, any[]> = {};
 
-                divisionTeams.forEach(t => {
+                divisionTeams.forEach((t: any) => {
                     if (!scoreGroups[t.score]) scoreGroups[t.score] = [];
                     scoreGroups[t.score].push(t);
                 });
 
-                // Find scores with multiple teams
                 Object.entries(scoreGroups).forEach(([score, teamsWithScore]) => {
                     if (teamsWithScore.length > 1) {
                         ties.push({
@@ -244,7 +264,6 @@ export async function POST(request: Request) {
         }
 
         // ===== SIMULATE BOT SCORES =====
-        // Give bots random scores for testing purposes
         if (action === "simulateBotScores") {
             const teamsSnap = await adminDb.collection("teams").get();
             const batch = adminDb.batch();
@@ -253,9 +272,7 @@ export async function POST(request: Request) {
             teamsSnap.docs.forEach(doc => {
                 const data = doc.data();
                 if (data.isBot && data.status === "active") {
-                    // Generate random score between 500 and 5000
                     const randomScore = Math.floor(Math.random() * 4500) + 500;
-                    // Random streak between 0 and 4
                     const randomStreak = Math.floor(Math.random() * 5);
                     batch.update(doc.ref, {
                         score: randomScore,
@@ -274,7 +291,6 @@ export async function POST(request: Request) {
         }
 
         // ===== PAUSE FOR GRADING =====
-        // Pause the round timer while waiting for SAQ/Spot grading
         if (action === "pauseForGrading") {
             const { roundId } = body;
             if (!roundId) {
@@ -308,7 +324,6 @@ export async function POST(request: Request) {
         }
 
         // ===== RESUME FROM GRADING =====
-        // Resume the round timer after SAQ/Spot grading is complete
         if (action === "resumeFromGrading") {
             const { roundId } = body;
             if (!roundId) {
@@ -331,7 +346,6 @@ export async function POST(request: Request) {
                 });
             }
 
-            // Calculate how long we were paused
             const pauseDuration = Date.now() - roundData.pausedAt;
             const existingPauseDuration = roundData.totalPauseDuration || 0;
 
@@ -353,4 +367,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Failed to execute action" }, { status: 500 });
     }
 }
-
