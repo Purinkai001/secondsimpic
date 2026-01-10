@@ -5,8 +5,8 @@ import { Question } from "@/lib/types";
 
 interface MTFInputProps {
     question: Question;
-    answers: boolean[];
-    setAnswers: (answers: boolean[]) => void;
+    answers: (boolean | null)[];
+    setAnswers: (answers: (boolean | null)[]) => void;
     submitted: boolean;
 }
 

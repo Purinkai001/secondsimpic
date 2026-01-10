@@ -71,7 +71,7 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                     </span>
                                 </div>
                                 <div className="flex gap-2">
-                                    {r.status === "waiting" && (
+                                    {(r.status === "waiting" || r.status === "completed") && (
                                         <>
                                             <motion.button
                                                 onClick={() => scheduleRound(r.id)}
@@ -87,7 +87,7 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                             >
-                                                Start Now
+                                                {r.status === "completed" ? "Restart" : "Start Now"}
                                             </motion.button>
                                         </>
                                     )}

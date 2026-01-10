@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
-import { GameState, ANSWER_REVEAL_DURATION } from "@/app/game/types";
-import { api } from "@/lib/api";
+import { useState, useEffect, useRef } from "react";
+import { collection, query, onSnapshot, orderBy, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
+import { GameState } from "@/app/game/types";
 
 export function useStandingsSync() {
     const [loading, setLoading] = useState(true);
@@ -18,156 +17,117 @@ export function useStandingsSync() {
     const [allTeams, setAllTeams] = useState<Team[]>([]);
 
     const currentQuestionIndex = useRef<number>(-1);
-    const gameStateRef = useRef<GameState>("waiting");
 
+    // 1. Listen for Teams
     useEffect(() => {
-        gameStateRef.current = gameState;
-    }, [gameState]);
-
-    const fetchTeams = useCallback(async () => {
-        try {
-            const teamsSnap = await getDocs(query(collection(db, "teams"), orderBy("score", "desc")));
-            setAllTeams(teamsSnap.docs.map(d => ({ ...d.data(), id: d.id } as Team)));
-        } catch (err) { console.error("Error fetching teams for standings:", err); }
+        const q = query(collection(db, "teams"), orderBy("score", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const teams = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Team));
+            setAllTeams(teams);
+        });
+        return () => unsubscribe();
     }, []);
 
-    const fetchRoundData = useCallback(async (skipRevealCheck = false) => {
-        if (gameStateRef.current === "answer_reveal" && !skipRevealCheck) {
-            return;
-        }
+    // 2. Listen for Active Round and Questions
+    useEffect(() => {
+        const q = query(collection(db, "rounds"), where("status", "==", "active"), limit(1));
+        let unsubQuestions: (() => void) | null = null;
 
-        try {
-            const data = await api.getRound();
-            if (!data.success) return;
-
-            if (!data.hasActiveRound || !data.round) {
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
                 setCurrentRound(null);
                 setCurrentQuestion(null);
                 setGameState("waiting");
-                currentQuestionIndex.current = -1;
+                setLoading(false);
                 return;
             }
 
-            const round = data.round as Round;
-            const questions = (data.questions || []) as Question[];
-
+            const round = { ...snapshot.docs[0].data(), id: snapshot.docs[0].id } as Round;
             setCurrentRound(round);
 
-            if (round.pausedAt) {
-                setGameState("waiting_grading");
-                const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
-                const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
-                const pauseDuration = round.totalPauseDuration || 0;
-                const effectiveElapsed = Math.floor(((round.pausedAt - (round.startTime || round.pausedAt)) - pauseDuration) / 1000);
-                const currentQIdx = Math.floor(effectiveElapsed / totalTimePerQuestion);
+            // If round changed or first time, sync questions
+            if (unsubQuestions) unsubQuestions();
 
-                if (currentQIdx >= 0 && currentQIdx < questions.length) {
-                    setCurrentQuestion(questions[currentQIdx]);
-                }
-                return;
-            }
+            const q2 = query(collection(db, "questions"), where("roundId", "==", round.id), orderBy("order", "asc"));
+            unsubQuestions = onSnapshot(q2, (qSnapshot) => {
+                const questions = qSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Question));
+                processState(round, questions);
+                setLoading(false);
+            });
+        });
 
-            const now = Date.now();
-            const startTime = round.startTime;
-            const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
-            const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
-            const pauseDuration = round.totalPauseDuration || 0;
-
-            if (!startTime) {
-                setGameState("waiting");
-                return;
-            }
-
-            if (now < startTime) {
-                setGameState("countdown");
-                setCountdownSeconds(Math.ceil((startTime - now) / 1000));
-                return;
-            }
-
-            const actualElapsedMs = now - startTime;
-            const safePauseDuration = Math.min(pauseDuration, actualElapsedMs);
-            const effectiveElapsedMs = Math.max(0, actualElapsedMs - safePauseDuration);
-            const elapsedSeconds = Math.floor(effectiveElapsedMs / 1000);
-            const currentQIdx = Math.floor(elapsedSeconds / totalTimePerQuestion);
-            const timeIntoSlot = elapsedSeconds % totalTimePerQuestion;
-
-            const isInQuestionPhase = timeIntoSlot < questionTimer;
-            const timeRemainingQuestion = questionTimer - timeIntoSlot;
-            const timeRemainingReveal = totalTimePerQuestion - timeIntoSlot;
-
-            if (currentQIdx >= questions.length) {
-                setGameState("waiting");
-                setCurrentQuestion(null);
-                currentQuestionIndex.current = -1;
-                return;
-            }
-
-            const question = questions[currentQIdx];
-            setCurrentQuestion(question);
-
-            if (isInQuestionPhase) {
-                setTimeLeft(timeRemainingQuestion);
-                setGameState("playing");
-            } else {
-                setAnswerRevealCountdown(timeRemainingReveal);
-                setGameState("answer_reveal");
-            }
-        } catch (err) {
-            console.error("Error fetching round data for standings:", err);
-        }
-    }, [currentRound?.id, currentRound?.startTime]);
-
-    useEffect(() => {
-        const init = async () => {
-            await Promise.all([fetchTeams(), fetchRoundData(true)]);
-            setLoading(false);
+        return () => {
+            unsubscribe();
+            if (unsubQuestions) unsubQuestions();
         };
-        init();
-    }, [fetchRoundData, fetchTeams]);
+    }, []);
 
-    useEffect(() => {
-        const pollInterval = setInterval(() => {
-            fetchTeams();
-            fetchRoundData(false);
-        }, 5000);
-        return () => clearInterval(pollInterval);
-    }, [fetchRoundData, fetchTeams, gameState]);
+    const processState = (round: Round, questions: Question[]) => {
+        const now = Date.now();
+        const startTime = round.startTime;
+        const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
+        const pauseDuration = round.totalPauseDuration || 0;
 
-    useEffect(() => {
-        if (gameState === "countdown") {
-            const timer = setInterval(() => {
-                setCountdownSeconds(prev => {
-                    if (prev <= 1) { fetchRoundData(true); return 0; }
-                    return prev - 1;
-                });
-            }, 1000);
-            return () => clearInterval(timer);
+        if (!startTime) {
+            setGameState("waiting");
+            return;
         }
-    }, [gameState, fetchRoundData]);
 
-    useEffect(() => {
-        if (gameState === "answer_reveal") {
-            const timer = setInterval(() => {
-                setAnswerRevealCountdown(prev => {
-                    if (prev <= 1) { fetchRoundData(true); return 0; }
-                    return prev - 1;
-                });
-            }, 1000);
-            return () => clearInterval(timer);
+        if (now < startTime) {
+            setGameState("countdown");
+            setCountdownSeconds(Math.ceil((startTime - now) / 1000));
+            return;
         }
-    }, [gameState, fetchRoundData]);
 
-    useEffect(() => {
-        if (gameState === "playing" && timeLeft !== null && timeLeft > 0) {
-            const timer = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev === null || prev <= 1) return 0;
-                    return prev - 1;
-                });
-            }, 1000);
-            return () => clearInterval(timer);
+        // Manual flow logic
+        const qIdx = round.currentQuestionIndex || 0;
+        if (qIdx >= questions.length) {
+            setGameState("waiting");
+            setCurrentQuestion(null);
+            return;
         }
-    }, [gameState, timeLeft]);
+
+        const question = questions[qIdx];
+        setCurrentQuestion(question);
+
+        if (round.showResults) {
+            setGameState("answer_reveal");
+            return;
+        }
+
+        if (round.pausedAt) {
+            setGameState("waiting_grading");
+            return;
+        }
+
+        // Timer logic
+        const actualElapsedMs = now - startTime;
+        const safePauseDuration = Math.min(pauseDuration, actualElapsedMs);
+        const effectiveElapsedMs = Math.max(0, actualElapsedMs - safePauseDuration);
+        const elapsedSeconds = Math.floor(effectiveElapsedMs / 1000);
+
+        // In the new flow, we don't calculate index from time, we use the admin's index.
+        // We only care if we are in the "playing" time window.
+        // But for standings/observer, we just follow the admin's lead.
+        // If it's not paused and not revealing, it's playing.
+        setGameState("playing");
+        const timeRemaining = questionTimer - elapsedSeconds;
+        setTimeLeft(timeRemaining > 0 ? timeRemaining : 0);
+    };
+
+    // UI Timers
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (currentRound && gameState === "playing") {
+                // Approximate local decrement for smooth UI
+                setTimeLeft(prev => (prev != null && prev > 0 ? prev - 1 : 0));
+            }
+            if (currentRound && gameState === "countdown") {
+                setCountdownSeconds(prev => (prev > 0 ? prev - 1 : 0));
+            }
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [gameState, currentRound]);
 
     return {
         loading,
@@ -177,7 +137,6 @@ export function useStandingsSync() {
         timeLeft,
         countdownSeconds,
         answerRevealCountdown,
-        fetchRoundData,
         allTeams
     };
 }

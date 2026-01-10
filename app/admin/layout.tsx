@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import {
     Loader2, ShieldAlert, LayoutDashboard, FileQuestion, Users,
-    History, Settings, CheckSquare
+    History, Settings, CheckSquare, Flag
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -16,6 +16,7 @@ import { Suspense } from "react";
 const NAV_ITEMS = [
     { label: "Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Grading", href: "/admin/grading", icon: CheckSquare },
+    { label: "Challenges", href: "/admin/challenges", icon: Flag },
     { label: "Standings", href: "/admin/standings", icon: Users },
     { label: "History", href: "/admin/history", icon: History },
     { label: "Questions", href: "/admin/questions", icon: FileQuestion },

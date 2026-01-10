@@ -129,6 +129,8 @@ export async function POST(request: Request) {
             isCorrect,
             points: earnedPoints,
             difficulty,
+            imageUrl: question.imageUrl || null,
+            questionText: question.text || "",
             mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : null,
             mtfTotalCount: questionType === "mtf" ? mtfTotalCount : null,
         });

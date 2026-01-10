@@ -18,6 +18,7 @@ export type Round = {
     // For SAQ/Spot grading pauses
     pausedAt?: number | null; // timestamp when paused for grading
     totalPauseDuration?: number; // accumulated pause time in ms
+    showResults?: boolean; // whether to reveal the answer to contestants
 };
 
 export type QuestionType = "mcq" | "mtf" | "saq" | "spot";
@@ -51,7 +52,7 @@ export type Answer = {
     teamId: string;
     questionId: string;
     roundId: string;
-    answer: string | number | boolean[]; // boolean[] for MTF answers
+    answer: string | number | (boolean | null)[]; // boolean[] for MTF answers
     isCorrect: boolean | null;
     type: QuestionType;
     points: number;

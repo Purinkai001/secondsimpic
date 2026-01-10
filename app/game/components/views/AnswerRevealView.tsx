@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, AlertCircle, Info, ChevronRight, Trophy } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Info, ChevronRight, Trophy, Loader2 } from "lucide-react";
 import { SubmissionResult } from "../../types";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,20 @@ interface AnswerRevealViewProps {
 }
 
 export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevealViewProps) => {
-    if (!result) return null;
+    const isProcessing = !result;
+
+    // Fallback content if results are still loading/syncing
+    if (isProcessing) {
+        return (
+            <div className="max-w-4xl mx-auto w-full text-center py-20">
+                <div className="p-10 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3rem] inline-block mb-10">
+                    <Loader2 className="w-20 h-20 text-blue-500 animate-spin" />
+                </div>
+                <h2 className="text-4xl font-black text-white mb-4 uppercase italic tracking-tighter">Synchronizing Results</h2>
+                <p className="text-blue-300/60 text-lg">Finalizing score verification for all teams...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto w-full">
@@ -61,11 +74,18 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
 
                 <div className="p-8 md:p-10 border-t border-white/5 space-y-6">
                     {result.correctAnswer && (
-                        <div className="bg-white/[0.03] rounded-3xl p-6 border border-white/5">
+                        <div className="bg-white/[0.03] rounded-3xl p-6 border border-white/5 space-y-6">
                             <div className="flex items-center gap-2 mb-4 text-xs font-black uppercase tracking-widest text-white/40">
                                 <Info className="w-4 h-4 text-blue-500" />
-                                Review Breakdown
+                                Response Comparison & Reference
                             </div>
+
+                            {/* Added Image Reference if available */}
+                            {(result as any).imageUrl && (
+                                <div className="aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40 mb-6 opacity-80">
+                                    <img src={(result as any).imageUrl} className="w-full h-full object-contain" alt="Reference" />
+                                </div>
+                            )}
 
                             {result.correctAnswer.type === "mcq" && (
                                 <div className="space-y-3">
@@ -114,19 +134,19 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
 
                     <div className="flex items-center justify-between pt-6">
                         <div className="flex items-center gap-4">
-                            <div className="flex gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                    <div key={i} className={cn(
-                                        "w-1 h-4 rounded-full",
-                                        i < countdown ? "bg-blue-500" : "bg-white/10"
-                                    )} />
-                                ))}
+                            <div className="flex items-center gap-2 text-blue-400">
+                                <span className="text-xs font-black uppercase tracking-widest">Awaiting Admin Sync</span>
+                                <div className="flex gap-1">
+                                    {[0, 1, 2].map(i => (
+                                        <motion.div
+                                            key={i}
+                                            className="w-1 h-3 bg-blue-500 rounded-full"
+                                            animate={{ opacity: [0.3, 1, 0.3] }}
+                                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                            <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Next Phase In {countdown}s</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-400 group cursor-pointer">
-                            <span className="text-xs font-black uppercase tracking-widest">Awaiting Round Sync</span>
-                            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </div>
                     </div>
                 </div>

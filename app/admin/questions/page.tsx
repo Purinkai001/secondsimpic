@@ -1,24 +1,49 @@
 "use client";
 
 import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
-import { FileQuestion, Plus, Search, ChevronRight, Layers } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Check, AlertCircle, Image as ImageIcon, Plus, Trash2, Upload, Loader2, FileQuestion, Search, ChevronRight, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { QuestionModal } from "@/components/admin/QuestionModal";
 import { api } from "@/lib/api";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function QuestionsPage() {
-    const { questions, fetchData } = useAdminDashboard();
+    const { questions } = useAdminDashboard();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingQuestion, setEditingQuestion] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
     const handleSave = async (questionData: any) => {
         try {
-            await api.createQuestion(questionData);
-            fetchData();
+            if (editingQuestion) {
+                await api.updateQuestion(editingQuestion.id, questionData);
+            } else {
+                await api.createQuestion(questionData);
+            }
+            setIsModalOpen(false);
+            setEditingQuestion(null);
         } catch (err) {
-            alert("Failed to create question");
+            alert(editingQuestion ? "Failed to update question" : "Failed to create question");
+        }
+    };
+
+    const handleEdit = (q: any) => {
+        setEditingQuestion(q);
+        setIsModalOpen(true);
+    };
+
+    const handleCreate = () => {
+        setEditingQuestion(null);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this question?")) return;
+        try {
+            await api.deleteQuestion(id);
+        } catch (err) {
+            alert("Failed to delete question");
         }
     };
 
@@ -26,7 +51,7 @@ export default function QuestionsPage() {
     const rounds = ["round-1", "round-2", "round-3", "round-4", "round-5", "round-sd"];
     const groupedQuestions = rounds.reduce((acc: any, rid) => {
         acc[rid] = questions.filter(q => q.roundId === rid)
-            .filter(q => q.text.toLowerCase().includes(searchTerm.toLowerCase()))
+            .filter(q => (q.text || "").toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => a.order - b.order);
         return acc;
     }, {});
@@ -51,7 +76,7 @@ export default function QuestionsPage() {
                         />
                     </div>
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleCreate}
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold transition-all text-white shadow-lg shadow-blue-500/20 active:scale-95"
                     >
                         <Plus className="w-5 h-5" />
@@ -89,9 +114,16 @@ export default function QuestionsPage() {
                                         <motion.div
                                             key={q.id}
                                             whileHover={{ y: -5 }}
-                                            className="bg-white/[0.03] border border-white/10 hover:border-blue-500/30 p-6 rounded-[2rem] space-y-4 transition-all relative overflow-hidden group"
+                                            onClick={() => handleEdit(q)}
+                                            className="bg-white/[0.03] border border-white/10 hover:border-blue-500/30 p-6 rounded-[2rem] space-y-4 transition-all relative overflow-hidden group cursor-pointer"
                                         >
-                                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all">
+                                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all flex gap-2">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(q.id); }}
+                                                    className="bg-red-500/20 hover:bg-red-500/40 p-2 rounded-xl text-red-400 transition-all"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                                 <div className="bg-blue-500/20 p-2 rounded-xl text-blue-400">
                                                     <ChevronRight className="w-4 h-4" />
                                                 </div>
@@ -111,7 +143,7 @@ export default function QuestionsPage() {
                                             </div>
 
                                             <p className="text-lg font-bold line-clamp-2 leading-snug group-hover:text-blue-200 transition-colors">
-                                                {q.text}
+                                                {q.text || "(Image Question)"}
                                             </p>
 
                                             <div className="pt-4 flex items-center justify-between border-t border-white/5">
@@ -124,6 +156,7 @@ export default function QuestionsPage() {
                                                     )} />
                                                     <span className="text-[10px] font-black uppercase text-white/40">{q.difficulty}</span>
                                                 </div>
+                                                {q.imageUrl && <LocalImageIcon className="w-3 h-3 text-blue-400/50" />}
                                                 <span className="text-[10px] font-bold text-white/20">{q.id.split('-').pop()}</span>
                                             </div>
                                         </motion.div>
@@ -142,9 +175,17 @@ export default function QuestionsPage() {
 
             <QuestionModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                editingQuestion={editingQuestion}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingQuestion(null);
+                }}
                 onSave={handleSave}
             />
         </div>
     );
 }
+
+const LocalImageIcon = ({ className }: { className?: string }) => (
+    <ImageIcon className={className} />
+);

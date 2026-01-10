@@ -5,7 +5,7 @@ import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
 import {
     Activity, Bot, Users, FileQuestion, CheckCircle, Flag,
     RefreshCw, Shuffle, RotateCcw, Layers, AlertTriangle, Zap,
-    Play
+    Play, Eye, ArrowRight
 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { ActionButton } from "@/components/admin/ActionButton";
@@ -20,8 +20,7 @@ import { db } from "@/lib/firebase";
 export default function AdminDashboardOverview() {
     const {
         teams, rounds, questions, allAnswers, challenges,
-        activeTeamsCount, botCount, humanCount, pendingChallengesCount, activeRound,
-        fetchData
+        activeTeamsCount, botCount, humanCount, pendingChallengesCount, activeRound
     } = useAdminDashboard();
 
     const [selectedRound, setSelectedRound] = useState<string | null>(null);
@@ -35,7 +34,6 @@ export default function AdminDashboardOverview() {
             alert(err.message || "Action failed");
         } finally {
             setActionLoading(null);
-            fetchData();
         }
     };
 
@@ -83,7 +81,6 @@ export default function AdminDashboardOverview() {
             startTime,
             currentQuestionIndex: 0
         });
-        fetchData();
     };
 
     const activateRound = async (roundId: string) => {
@@ -94,12 +91,10 @@ export default function AdminDashboardOverview() {
             pausedAt: null,
             totalPauseDuration: 0,
         });
-        fetchData();
     };
 
     const endRound = async (roundId: string) => {
         await updateDoc(doc(db, "rounds", roundId), { status: "completed", startTime: null });
-        fetchData();
     };
 
     const setQuestion = async (roundId: string, qId: string | null) => {
@@ -108,19 +103,54 @@ export default function AdminDashboardOverview() {
 
     const dismissChallenge = async (challengeId: string) => {
         await api.dismissChallenge(challengeId);
-        fetchData();
+    };
+
+    const pauseRound = async () => {
+        if (!activeRound) return;
+        await api.gameAction("pauseForGrading", { roundId: activeRound.id });
     };
 
     const resumeRound = async () => {
         if (!activeRound) return;
         await api.gameAction("resumeFromGrading", { roundId: activeRound.id });
-        fetchData();
+    };
+
+    const revealResults = async () => {
+        if (!activeRound) return;
+        await updateDoc(doc(db, "rounds", activeRound.id), { showResults: true });
+    };
+
+    const nextQuestion = async () => {
+        if (!activeRound) return;
+
+        const roundQuestions = questions
+            .filter(q => q.roundId === activeRound.id)
+            .sort((a, b) => a.order - b.order);
+
+        const currentIndex = activeRound.currentQuestionIndex || 0;
+
+        if (currentIndex >= roundQuestions.length - 1) {
+            if (!confirm("This is the last question. End this round and return to lobby?")) return;
+            await updateDoc(doc(db, "rounds", activeRound.id), {
+                status: "completed",
+                startTime: null,
+                showResults: false,
+                pausedAt: null
+            });
+        } else {
+            await updateDoc(doc(db, "rounds", activeRound.id), {
+                currentQuestionIndex: currentIndex + 1,
+                showResults: false,
+                pausedAt: null,
+                startTime: Date.now(), // Reset start time for the next question
+                totalPauseDuration: 0
+            });
+        }
     };
 
     const runElimination = async (roundNum: number) => {
         if (!confirm(`Run Elimination for Round ${roundNum}?`)) return;
         await api.gameAction("runElimination", { roundNum });
-        fetchData();
     };
 
     return (
@@ -153,6 +183,7 @@ export default function AdminDashboardOverview() {
                             <ActionButton onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
                             <ActionButton onClick={seedQuestions} icon={FileQuestion} label="Seed Hub" variant="primary" loading={actionLoading === "seed"} />
                             <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${30 - teams.length})`} loading={actionLoading === "fillbots"} />
+                            <ActionButton onClick={removeBots} icon={Bot} label="Remove Bots" variant="danger" loading={actionLoading === "removebots"} />
                             <ActionButton onClick={shuffleTeams} icon={Shuffle} label="Shuffle" variant="success" loading={actionLoading === "shuffle"} />
                             <ActionButton onClick={resetScoresForTurn3} icon={RotateCcw} label="Reset Score" variant="warning" loading={actionLoading === "resetScores"} />
                             <ActionButton onClick={rearrangeDivisions} icon={Layers} label="Rearrange" variant="primary" loading={actionLoading === "rearrange"} />
@@ -170,7 +201,18 @@ export default function AdminDashboardOverview() {
                                 variant="danger"
                                 loading={actionLoading === "triggerSuddenDeath"}
                             />
-                            {activeRound?.pausedAt && <ActionButton onClick={resumeRound} icon={Play} label="Resume Hub" variant="success" />}
+                            {activeRound && !activeRound.showResults && (
+                                <ActionButton onClick={revealResults} icon={Eye} label="Reveal Result" variant="primary" />
+                            )}
+                            {activeRound && (
+                                <ActionButton onClick={nextQuestion} icon={ArrowRight} label="Next Question" variant="success" />
+                            )}
+                            {activeRound && !activeRound.pausedAt && (
+                                <ActionButton onClick={pauseRound} icon={Activity} label="Force Pause/Sync" variant="warning" />
+                            )}
+                            {activeRound?.pausedAt && (
+                                <ActionButton onClick={resumeRound} icon={Play} label="Resume Hub" variant="success" />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -182,7 +224,6 @@ export default function AdminDashboardOverview() {
 
                 <div className="col-span-12 lg:col-span-4 space-y-6">
                     <EliminationPanel onRunElimination={runElimination} />
-                    <ChallengeAlerts challenges={challenges} onDismiss={dismissChallenge} />
                 </div>
 
                 <div className="col-span-12 lg:col-span-4 space-y-6">

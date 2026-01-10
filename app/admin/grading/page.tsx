@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export default function GradingPage() {
-    const { pendingAnswers, teams, questions, fetchData } = useAdminDashboard();
+    const { pendingAnswers, teams, questions } = useAdminDashboard();
 
     // Grouping by team
     const teamGroups = pendingAnswers.reduce((acc: any, answer) => {
@@ -30,7 +30,6 @@ export default function GradingPage() {
     const gradeAnswer = async (answerId: string, correct: boolean) => {
         try {
             await api.gradeAnswer(answerId, correct);
-            fetchData();
         } catch (e: any) {
             alert(e.message);
         }

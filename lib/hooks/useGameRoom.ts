@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, getDocs, query, collection, orderBy, updateDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, query, collection, orderBy, updateDoc, onSnapshot, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, requiresManualGrading, ANSWER_REVEAL_DURATION } from "@/app/game/types";
@@ -17,7 +17,7 @@ export function useGameRoom() {
 
     // Answer states
     const [mcqAnswer, setMcqAnswer] = useState<number | null>(null);
-    const [mtfAnswers, setMtfAnswers] = useState<boolean[]>([]);
+    const [mtfAnswers, setMtfAnswers] = useState<(boolean | null)[]>([]);
     const [textAnswer, setTextAnswer] = useState("");
 
     const [gameState, setGameState] = useState<GameState>("waiting");
@@ -54,7 +54,7 @@ export function useGameRoom() {
         setMcqAnswer(null);
         setTextAnswer("");
         if (question?.statements) {
-            setMtfAnswers(new Array(question.statements.length).fill(false));
+            setMtfAnswers(new Array(question.statements.length).fill(null));
         } else {
             setMtfAnswers([]);
         }
@@ -76,6 +76,11 @@ export function useGameRoom() {
             setTeam(teamData);
             return teamData;
         } else {
+            // Clear localStorage to prevent redirection loop if the team was deleted in Firestore
+            localStorage.removeItem("medical_quiz_team_id");
+            localStorage.removeItem("medical_quiz_team_name");
+            localStorage.removeItem("medical_quiz_team_group");
+            localStorage.removeItem("ingame");
             router.push("/");
             return null;
         }
@@ -93,71 +98,40 @@ export function useGameRoom() {
         return null;
     }, []);
 
-    const fetchRoundData = useCallback(async (skipRevealCheck = false) => {
-        if (gameStateRef.current === "answer_reveal" && !skipRevealCheck) {
-            return;
-        }
+    // State for raw data from Firestore
+    const [syncRound, setSyncRound] = useState<Round | null>(null);
+    const [syncQuestions, setSyncQuestions] = useState<Question[]>([]);
 
+    // Identity tracking to avoid redundant resets
+    const lastProcessedRoundId = useRef<string | null>(null);
+    const lastProcessedQIdx = useRef<number | null>(null);
+
+    const processRoundData = useCallback((round: Round, questions: Question[]) => {
         try {
-            const data = await api.getRound();
-            if (!data.success) return;
-
-            if (!data.hasActiveRound || !data.round) {
-                setCurrentRound(null);
-                setCurrentQuestion(null);
-                setRoundQuestions([]);
-                setGameState("waiting");
-                setInGame(false);
+            // 1. Detection of Round/Question Identity Changes
+            // Ensure we reset state if the round finishes or a new one starts
+            if (lastProcessedRoundId.current !== round.id) {
+                lastProcessedRoundId.current = round.id;
+                lastProcessedQIdx.current = -1; // Force question reset
                 resetAnswerState();
-                currentQuestionIndex.current = -1;
-                return;
             }
 
-            const round = data.round as Round;
-            const questions = (data.questions || []) as Question[];
-
-            if (currentRound?.id !== round.id) {
-                resetAnswerState();
-                currentQuestionIndex.current = -1;
-            }
-
-            setCurrentRound(round);
-            setRoundQuestions(questions);
-
-            if (round.pausedAt) {
-                setGameState("waiting_grading");
-                setInGame(true);
-                const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
-                const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
-                const pauseDuration = round.totalPauseDuration || 0;
-                const effectiveElapsed = Math.floor(((round.pausedAt - (round.startTime || round.pausedAt)) - pauseDuration) / 1000);
-                const currentQIdx = Math.floor(effectiveElapsed / totalTimePerQuestion);
-
-                if (currentQIdx >= 0 && currentQIdx < questions.length) {
-                    const question = questions[currentQIdx];
-                    setCurrentQuestion(question);
-                    const myAnswer = await checkMyAnswerStatus(question.id);
-                    if (myAnswer) {
-                        setSubmitted(true);
-                        if ((question.type === "saq" || question.type === "spot") && typeof myAnswer.answer === "string") {
-                            setTextAnswer(myAnswer.answer);
-                        }
-                        setLastResult({
-                            isCorrect: myAnswer.isCorrect,
-                            points: myAnswer.points || 0,
-                            streak: myAnswer.streak || team?.streak || 0,
-                            message: myAnswer.isCorrect === null ? "Waiting for grading..." : myAnswer.isCorrect ? "Correct!" : "Incorrect.",
-                            pendingGrading: myAnswer.isCorrect === null,
-                        });
-                    }
+            const qIdx = round.currentQuestionIndex || 0;
+            if (questions.length > 0 && qIdx >= 0 && qIdx < questions.length) {
+                const question = questions[qIdx];
+                if (lastProcessedQIdx.current !== qIdx) {
+                    lastProcessedQIdx.current = qIdx;
+                    resetAnswerState(question);
                 }
-                return;
+                setCurrentQuestion(question);
+            } else {
+                setCurrentQuestion(null);
             }
 
+            // 2. Time Calculations
             const now = Date.now();
             const startTime = round.startTime;
             const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
-            const totalTimePerQuestion = questionTimer + ANSWER_REVEAL_DURATION;
             const pauseDuration = round.totalPauseDuration || 0;
 
             if (!startTime) {
@@ -177,102 +151,50 @@ export function useGameRoom() {
             const safePauseDuration = Math.min(pauseDuration, actualElapsedMs);
             const effectiveElapsedMs = Math.max(0, actualElapsedMs - safePauseDuration);
             const elapsedSeconds = Math.floor(effectiveElapsedMs / 1000);
-            const currentQIdx = Math.floor(elapsedSeconds / totalTimePerQuestion);
-            const timeIntoSlot = elapsedSeconds % totalTimePerQuestion;
 
-            const isInQuestionPhase = timeIntoSlot < questionTimer;
-            const timeRemainingQuestion = questionTimer - timeIntoSlot;
-            const timeRemainingReveal = totalTimePerQuestion - timeIntoSlot;
+            const timeRemaining = Math.max(0, questionTimer - elapsedSeconds);
+            setTimeLeft(timeRemaining);
 
-            if (questions.length === 0) {
-                setGameState("playing");
-                setCurrentQuestion(null);
-                setInGame(true);
-                return;
-            }
-
-            if (currentQIdx >= questions.length) {
-                setGameState("waiting");
-                setCurrentQuestion(null);
-                setInGame(false);
-                currentQuestionIndex.current = -1;
-                return;
-            }
-
-            const question = questions[currentQIdx];
-            if (currentQuestionIndex.current !== currentQIdx) {
-                currentQuestionIndex.current = currentQIdx;
-                resetAnswerState(question);
-            }
-
-            setCurrentQuestion(question);
-            setInGame(true);
-
-            if (isInQuestionPhase) {
-                setTimeLeft(timeRemainingQuestion);
-                setGameState("playing");
-                const teamId = localStorage.getItem("medical_quiz_team_id");
-                if (teamId && question) {
-                    const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${question.id}`));
-                    if (answerDoc.exists()) {
-                        setSubmitted(true);
-                        const ansData = answerDoc.data();
-                        if (question.type === "mcq") setMcqAnswer(ansData.answer);
-                        else if (question.type === "mtf") setMtfAnswers(ansData.answer);
-                        else setTextAnswer(ansData.answer);
-
-                        setLastResult({
-                            isCorrect: ansData.isCorrect,
-                            points: ansData.points || 0,
-                            streak: ansData.streak || team?.streak || 0,
-                            message: ansData.isCorrect === true ? "Correct!" : ansData.isCorrect === false ? "Incorrect." : "Waiting for grading...",
-                            pendingGrading: ansData.isCorrect === null,
-                            mtfCorrectCount: ansData.mtfCorrectCount,
-                            mtfTotalCount: ansData.mtfTotalCount,
-                        });
-                        if (requiresManualGrading(question.type) && ansData.isCorrect === null) {
-                            setGameState("waiting_grading");
-                        }
-                    }
+            // 3. Game State Determination
+            if (round.showResults) {
+                if (gameStateRef.current !== "answer_reveal") {
+                    setAnswerRevealCountdown(ANSWER_REVEAL_DURATION);
+                }
+                setGameState("answer_reveal");
+            } else if (round.pausedAt || elapsedSeconds >= questionTimer) {
+                setGameState("waiting_grading");
+                if (elapsedSeconds >= questionTimer && !round.pausedAt) {
+                    api.gameAction("pauseForGrading", { roundId: round.id }).catch(console.error);
                 }
             } else {
-                setAnswerRevealCountdown(timeRemainingReveal);
-                setGameState("answer_reveal");
-                const teamId = localStorage.getItem("medical_quiz_team_id");
-                if (teamId && question && !lastResult) {
-                    const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${question.id}`));
-                    if (answerDoc.exists()) {
-                        const ansData = answerDoc.data();
-                        setSubmitted(true);
-                        setLastResult({
-                            isCorrect: ansData.isCorrect,
-                            points: ansData.points || 0,
-                            streak: ansData.streak || team?.streak || 0,
-                            message: ansData.isCorrect === true ? "Correct!" : ansData.isCorrect === false ? "Incorrect." : "Waiting for grading...",
-                            pendingGrading: ansData.isCorrect === null,
-                            mtfCorrectCount: ansData.mtfCorrectCount,
-                            mtfTotalCount: ansData.mtfTotalCount,
-                            correctAnswer: question.type === "mcq" ? { type: "mcq", correctChoiceIndex: question.correctChoiceIndex, choices: question.choices } : (question.type === "mtf" ? { type: "mtf", statements: question.statements } : undefined)
-                        });
-                    }
-                }
+                setGameState("playing");
             }
-        } catch (err) {
-            console.error("Error fetching round data:", err);
-        }
-    }, [currentRound?.id, resetAnswerState, lastResult, team?.streak, checkMyAnswerStatus, setInGame, currentRound?.startTime]);
 
-    // Submission Logic
-    const handleSubmit = async (forceEmpty = false) => {
+            setInGame(true);
+        } catch (err) {
+            console.error("Error in processRoundData:", err);
+        }
+    }, [resetAnswerState, setInGame]);
+
+
+    const handleSubmit = useCallback(async (forceEmpty = false) => {
         if (!currentQuestion || !team || !currentRound || submitted) return;
 
-        let answer: string | number | boolean[] | null = null;
+        let answer: string | number | (boolean | null)[] | null = null;
         if (currentQuestion.type === "mcq") answer = mcqAnswer;
         else if (currentQuestion.type === "mtf") answer = mtfAnswers;
         else answer = textAnswer;
 
+        // If time's up and no answer, provide defaults
+        if (answer === null && forceEmpty) {
+            if (currentQuestion.type === "mcq") answer = -1;
+            else if (currentQuestion.type === "mtf") {
+                answer = new Array(currentQuestion.statements?.length || 0).fill(null);
+            }
+            else answer = "";
+        }
+
         if (answer === null && !forceEmpty) return;
-        if (answer === null && forceEmpty && (currentQuestion.type === "saq" || currentQuestion.type === "spot")) answer = "";
         if (answer === null) return;
 
         const finalTimeSpent = questionStartTime.current ? (Date.now() - questionStartTime.current) / 1000 : 100;
@@ -287,9 +209,9 @@ export function useGameRoom() {
             setLastResult(result);
             setSubmitted(true);
 
+            setGameState("waiting_grading");
             if (result.pendingGrading && requiresManualGrading(currentQuestion.type)) {
                 await api.gameAction("pauseForGrading", { roundId: currentRound.id });
-                setGameState("waiting_grading");
             }
         } catch (err) {
             console.error("Error submitting answer:", err);
@@ -297,7 +219,12 @@ export function useGameRoom() {
         } finally {
             setSubmitting(false);
         }
-    };
+    }, [currentQuestion, team, currentRound, submitted, mcqAnswer, mtfAnswers, textAnswer]);
+
+    const latestHandleSubmit = useRef(handleSubmit);
+    useEffect(() => {
+        latestHandleSubmit.current = handleSubmit;
+    }, [handleSubmit]);
 
     const handleChallenge = async () => {
         if (!currentQuestion || !team || !currentRound) return;
@@ -331,85 +258,149 @@ export function useGameRoom() {
         setTeam({ ...team, name: newName });
     };
 
-    // Effects
+    // 1. Independent Team Load
     useEffect(() => {
-        const init = async () => {
-            await fetchTeam();
-            await fetchRoundData(true);
-            setLoading(false);
-        };
-        init();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchTeam().then(() => setLoading(false));
+    }, [fetchTeam]);
+
+    // 2. Round Listener
+    useEffect(() => {
+        const qRounds = query(collection(db, "rounds"), where("status", "==", "active"), limit(1));
+        const unsub = onSnapshot(qRounds, (snapshot) => {
+            if (snapshot.empty) {
+                setSyncRound(null);
+                return;
+            }
+            const doc = snapshot.docs[0];
+            setSyncRound({ id: doc.id, ...doc.data() } as Round);
+        });
+        return () => unsub();
     }, []);
 
+    // 3. Questions Listener (Response to syncRound ID change)
+    useEffect(() => {
+        if (!syncRound) {
+            setSyncQuestions([]);
+            return;
+        }
+        const qQuestions = query(collection(db, "questions"), where("roundId", "==", syncRound.id));
+        const unsub = onSnapshot(qQuestions, (snapshot) => {
+            setSyncQuestions(snapshot.docs
+                .map(d => ({ id: d.id, ...d.data() } as Question))
+                .sort((a, b) => a.order - b.order)
+            );
+        });
+        return () => unsub();
+    }, [syncRound?.id]);
+
+    // 4. Main State Processor
+    useEffect(() => {
+        if (!syncRound) {
+            setCurrentRound(null);
+            setCurrentQuestion(null);
+            setRoundQuestions([]);
+            setGameState("waiting");
+            setInGame(false);
+            lastProcessedRoundId.current = null;
+            return;
+        }
+
+        // Only process if both round and questions are available for an active round
+        // unless it's a transition round with no questions yet
+        processRoundData(syncRound, syncQuestions);
+        setCurrentRound(syncRound);
+        setRoundQuestions(syncQuestions);
+    }, [syncRound, syncQuestions, processRoundData, setInGame]);
+
+    // 5. Team rankings listener for Lobby
     useEffect(() => {
         if (gameState !== "waiting") return;
-        const fetchTeams = async () => {
-            try {
-                const teamsSnap = await getDocs(query(collection(db, "teams"), orderBy("score", "desc")));
-                setAllTeams(teamsSnap.docs.map(d => ({ ...d.data(), id: d.id } as Team)));
-            } catch (err) { console.error(err); }
-        };
-        fetchTeams();
-        const interval = setInterval(fetchTeams, 5000);
-        return () => clearInterval(interval);
+        const qTeams = query(collection(db, "teams"), orderBy("score", "desc"));
+        const unsubscribe = onSnapshot(qTeams, (snap) => {
+            setAllTeams(snap.docs.map(d => ({ ...d.data(), id: d.id } as Team)));
+        });
+        return () => unsubscribe();
+    }, [gameState]);
+
+    // 6. Answer listener for current question
+    useEffect(() => {
+        if (loading || !currentQuestion) return;
+        const teamId = localStorage.getItem("medical_quiz_team_id");
+        if (!teamId) return;
+
+        const unsubscribe = onSnapshot(doc(db, "answers", `${teamId}_${currentQuestion.id}`), (doc) => {
+            if (doc.exists()) {
+                const ansData = doc.data();
+                setSubmitted(true);
+                if (currentQuestion.type === "mcq") setMcqAnswer(ansData.answer);
+                else if (currentQuestion.type === "mtf") setMtfAnswers(ansData.answer);
+                else setTextAnswer(ansData.answer);
+
+                setLastResult({
+                    isCorrect: ansData.isCorrect,
+                    points: ansData.points || 0,
+                    streak: ansData.streak || team?.streak || 0,
+                    message: ansData.isCorrect === true ? "Correct!" : ansData.isCorrect === false ? "Incorrect." : "Waiting for grading...",
+                    pendingGrading: ansData.isCorrect === null,
+                    mtfCorrectCount: ansData.mtfCorrectCount,
+                    mtfTotalCount: ansData.mtfTotalCount,
+                    correctAnswer: currentQuestion.type === "mcq" ? { type: "mcq", correctChoiceIndex: currentQuestion.correctChoiceIndex, choices: currentQuestion.choices } : (currentQuestion.type === "mtf" ? { type: "mtf", statements: currentQuestion.statements } : undefined)
+                });
+            } else {
+                // If answer document is deleted (e.g. game reset), reset local submitted state
+                // This is crucial for the "Init Game" and "Restart Round" flows
+                setSubmitted(false);
+            }
+        });
+        return () => unsubscribe();
+    }, [loading, currentQuestion, team?.streak]);
+
+    // Force evaluation screen if submitted while playing
+    useEffect(() => {
+        if (submitted && gameState === "playing") {
+            setGameState("waiting_grading");
+        }
+    }, [submitted, gameState]);
+
+    // 7. Local timers & Auto-Submission
+    useEffect(() => {
+        if (gameState === "countdown") {
+            const timer = setInterval(() => setCountdownSeconds(prev => (prev <= 1 ? 0 : prev - 1)), 1000);
+            return () => clearInterval(timer);
+        }
     }, [gameState]);
 
     useEffect(() => {
-        if (loading) return;
-        const interval = isInGame() ? 3000 : 5000;
-        const pollInterval = setInterval(async () => {
-            if (!isInGame()) await fetchRoundData(true);
-            else await fetchRoundData(false);
-        }, interval);
-        return () => clearInterval(pollInterval);
-    }, [loading, fetchRoundData, gameState, isInGame]);
-
-    useEffect(() => {
-        if (gameState === "countdown") {
-            const timer = setInterval(() => {
-                setCountdownSeconds(prev => {
-                    if (prev <= 1) { fetchRoundData(true); return 0; }
-                    return prev - 1;
-                });
-            }, 1000);
-            return () => clearInterval(timer);
-        }
-    }, [gameState, fetchRoundData]);
-
-    useEffect(() => {
         if (gameState === "answer_reveal") {
-            const timer = setInterval(() => {
-                setAnswerRevealCountdown(prev => {
-                    if (prev <= 1) { fetchRoundData(true); return 0; }
-                    return prev - 1;
-                });
-            }, 1000);
+            const timer = setInterval(() => setAnswerRevealCountdown(prev => (prev <= 1 ? 0 : prev - 1)), 1000);
             return () => clearInterval(timer);
         }
-    }, [gameState, fetchRoundData]);
+    }, [gameState]);
 
     useEffect(() => {
-        if (gameState === "playing" && timeLeft !== null && timeLeft > 0) {
-            const timer = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev === null || prev <= 1) {
-                        if (!submitted) handleSubmit(true);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-            return () => clearInterval(timer);
+        const timerActive = (gameState === "playing" || gameState === "waiting_grading") && timeLeft !== null && timeLeft >= 0;
+        if (!timerActive) return;
+
+        if (timeLeft <= 0) {
+            if (!submitted && !submitting) latestHandleSubmit.current(true);
+            return;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gameState, timeLeft, submitted]);
+
+        const interval = setInterval(() => {
+            setTimeLeft(prev => {
+                const nv = (prev === null || prev <= 1) ? 0 : prev - 1;
+                if (nv === 0 && !submitted && !submitting) {
+                    latestHandleSubmit.current(true);
+                }
+                return nv;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [gameState, timeLeft === 0, submitted, submitting]);
 
     useEffect(() => {
         if (gameState === "playing" && !submitted && questionStartTime.current) {
-            const interval = setInterval(() => {
-                setTimeSpent((Date.now() - (questionStartTime.current || Date.now())) / 1000);
-            }, 100);
+            const interval = setInterval(() => setTimeSpent((Date.now() - (questionStartTime.current || Date.now())) / 1000), 100);
             return () => clearInterval(interval);
         }
     }, [gameState, submitted]);
@@ -419,6 +410,7 @@ export function useGameRoom() {
         mcqAnswer, setMcqAnswer, mtfAnswers, setMtfAnswers, textAnswer, setTextAnswer,
         gameState, timeLeft, countdownSeconds, answerRevealCountdown, timeSpent,
         submitted, submitting, lastResult,
-        fetchTeam, fetchRoundData, handleSubmit, handleChallenge, handleLogout, handleRename
+        fetchTeam, handleSubmit, handleChallenge, handleLogout, handleRename
     };
 }
+

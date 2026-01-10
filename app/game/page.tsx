@@ -114,7 +114,7 @@ export default function GamePage() {
                                 setTextAnswer={setTextAnswer}
                                 submitted={submitted}
                                 submitting={submitting}
-                                onSubmit={handleSubmit}
+                                onSubmit={() => handleSubmit()}
                             />
                         )}
 
@@ -131,6 +131,8 @@ export default function GamePage() {
                             <WaitingGradingView
                                 key="grading"
                                 result={lastResult}
+                                timeLeft={timeLeft}
+                                question={currentQuestion}
                             />
                         )}
                     </AnimatePresence>

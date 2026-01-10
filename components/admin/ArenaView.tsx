@@ -49,7 +49,7 @@ export function ArenaView({
                 </div>
             </div>
 
-            <main className="max-w-7xl mx-auto w-full relative z-10 flex flex-col items-center justify-center pt-20">
+            <main className="max-w-[1600px] mx-auto w-full relative z-10 flex flex-col items-center justify-center pt-20">
                 <AnimatePresence mode="wait">
                     {gameState === "waiting" && (
                         <LobbyView key="lobby" allTeams={teams} team={null} />

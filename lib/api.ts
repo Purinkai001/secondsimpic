@@ -18,8 +18,6 @@ async function fetchWithKey(url: string, options: RequestInit = {}) {
 }
 
 export const api = {
-    // Round APIs
-    getRound: () => fetchWithKey("/api/round"),
 
     // Game/Admin Action APIs
     gameAction: (action: string, body: Record<string, unknown> = {}) =>
@@ -29,7 +27,7 @@ export const api = {
         }),
 
     // Answer APIs
-    submitAnswer: (teamId: string, questionId: string, roundId: string, answer: string | number | boolean[], type: QuestionType, timeSpent: number) =>
+    submitAnswer: (teamId: string, questionId: string, roundId: string, answer: string | number | (boolean | null)[], type: QuestionType, timeSpent: number) =>
         fetchWithKey("/api/answer", {
             method: "POST",
             body: JSON.stringify({ teamId, questionId, roundId, answer, type, timeSpent }),
@@ -48,8 +46,6 @@ export const api = {
             body: JSON.stringify({ challengeId, key: ADMIN_KEY }),
         }),
 
-    // Admin Data API
-    getAdminData: () => fetchWithKey(`/api/admin?key=${ADMIN_KEY}`),
 
     // Question APIs
     getQuestions: (roundId: string) => fetchWithKey(`/api/questions?key=${ADMIN_KEY}&roundId=${roundId}`),

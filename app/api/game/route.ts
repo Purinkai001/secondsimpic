@@ -65,9 +65,25 @@ export async function POST(request: Request) {
                     status: "waiting",
                     startTime: null,
                     currentQuestionIndex: 0,
-                    questionTimer: configTimer || DEFAULT_QUESTION_TIMER
+                    questionTimer: configTimer || DEFAULT_QUESTION_TIMER,
+                    showResults: false,
+                    pausedAt: null,
+                    totalPauseDuration: 0
                 }, { merge: true });
             }
+
+            // Also reset Sudden Death
+            const sdRef = adminDb.collection("rounds").doc("round-sd");
+            batch.set(sdRef, {
+                id: "round-sd",
+                status: "waiting",
+                startTime: null,
+                currentQuestionIndex: 0,
+                questionTimer: configTimer || DEFAULT_QUESTION_TIMER,
+                showResults: false,
+                pausedAt: null,
+                totalPauseDuration: 0
+            }, { merge: true });
 
             await batch.commit();
 

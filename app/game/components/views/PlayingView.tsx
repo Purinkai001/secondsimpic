@@ -10,8 +10,8 @@ interface PlayingViewProps {
     timeSpent: number;
     mcqAnswer: number | null;
     setMcqAnswer: (val: number) => void;
-    mtfAnswers: boolean[];
-    setMtfAnswers: (val: boolean[]) => void;
+    mtfAnswers: (boolean | null)[];
+    setMtfAnswers: (val: (boolean | null)[]) => void;
     textAnswer: string;
     setTextAnswer: (val: string) => void;
     submitted: boolean;
@@ -27,6 +27,8 @@ export const PlayingView = ({
     submitted, submitting, onSubmit
 }: PlayingViewProps) => {
     if (!question) return null;
+
+    console.log(`[PlayingView] Question: ${question.id}, Type: ${question.type}, Image: ${question.imageUrl || 'NONE'}`);
 
     const labels = QUESTION_TYPE_LABELS[question.type] || { label: "Standard", color: "bg-blue-500/20 text-blue-300" };
     const difficultyKey = (question.difficulty || "easy").toLowerCase() as keyof typeof DIFFICULTY_LABELS;
@@ -91,14 +93,40 @@ export const PlayingView = ({
                 </div>
 
                 <div className="relative z-10 space-y-12">
-                    {question.imageUrl && (
-                        <div className="relative w-full aspect-video rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black/40 group-hover:border-white/20 transition-all duration-700">
-                            <img src={question.imageUrl} alt="Case Illustration" className="w-full h-full object-contain" />
+                    {/* DIAGNOSTIC OVERLAY - Only shows if imageUrl is missing but should be there, or to verify keys */}
+                    <div className="hidden">
+                        DEBUG: {question.id} | Image: {question.imageUrl || 'MISSING'} | Keys: {Object.keys(question).join(', ')}
+                    </div>
+
+                    {question.imageUrl ? (
+                        <div className="relative w-full min-h-[300px] aspect-video rounded-[2.5rem] overflow-hidden border-4 border-dashed border-blue-500/50 shadow-2xl bg-black/40 group-hover:border-white/20 transition-all duration-700">
+                            <img
+                                src={question.imageUrl}
+                                alt="Case Illustration"
+                                className="w-full h-full object-contain"
+                                onLoad={() => console.log(`[PlayingView] Image loaded: ${question.imageUrl}`)}
+                                onError={(e) => {
+                                    console.error(`[PlayingView] Image failed: ${question.imageUrl}`);
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                        const err = document.createElement('div');
+                                        err.className = "absolute inset-0 flex items-center justify-center text-red-500 font-bold bg-red-500/10 p-4 text-center";
+                                        err.innerText = `IMAGE LOAD FAILED: ${question.imageUrl}`;
+                                        parent.appendChild(err);
+                                    }
+                                }}
+                            />
                             <div className="absolute top-6 right-6 px-4 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full">
                                 <span className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                                    <ImageIcon className="w-3 h-3" /> External Source Material
+                                    <ImageIcon className="w-3 h-3" /> Case Documentation
                                 </span>
                             </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-[10px] text-yellow-500/60 font-mono">
+                            No imageUrl detected in question data object.
                         </div>
                     )}
 
