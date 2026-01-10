@@ -85,8 +85,10 @@ export function ArenaView({
                                 points: 0,
                                 streak: 0,
                                 message: "Verification Phase",
+                                imageUrl: activeQuestion?.imageUrl,
+                                questionText: activeQuestion?.text || "",
                                 correctAnswer: activeQuestion?.type === "mcq" ? { type: "mcq", correctChoiceIndex: activeQuestion.correctChoiceIndex, choices: activeQuestion.choices } : (activeQuestion?.type === "mtf" ? { type: "mtf", statements: activeQuestion.statements } : undefined)
-                            }}
+                            } as any}
                             countdown={countdown}
                             onChallenge={() => { }}
                         />
@@ -96,6 +98,8 @@ export function ArenaView({
                         <WaitingGradingView
                             key="grading"
                             result={null}
+                            timeLeft={timeLeft}
+                            question={activeQuestion}
                         />
                     )}
 
