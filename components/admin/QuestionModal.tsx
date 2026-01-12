@@ -21,17 +21,46 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
     const [imageUrl, setImageUrl] = useState("");
     const [order, setOrder] = useState(1);
 
-    // MCQ specific
-    const [choices, setChoices] = useState([{ text: "" }, { text: "" }, { text: "" }, { text: "" }]);
+    // MCQ specific (min 2, max 6)
+    const [choices, setChoices] = useState([{ text: "" }, { text: "" }]);
     const [correctChoiceIndex, setCorrectChoiceIndex] = useState(0);
 
-    // MTF specific
+    const addChoice = () => {
+        if (choices.length < 6) {
+            setChoices([...choices, { text: "" }]);
+        }
+    };
+
+    const removeChoice = (idx: number) => {
+        if (choices.length > 2) {
+            const newChoices = choices.filter((_, i) => i !== idx);
+            setChoices(newChoices);
+            // Adjust correctChoiceIndex if needed
+            if (correctChoiceIndex === idx) {
+                setCorrectChoiceIndex(0);
+            } else if (correctChoiceIndex > idx) {
+                setCorrectChoiceIndex(correctChoiceIndex - 1);
+            }
+        }
+    };
+
+    // MTF specific (min 2, max 8)
     const [statements, setStatements] = useState<MTFStatement[]>([
         { text: "", isTrue: true },
         { text: "", isTrue: false },
-        { text: "", isTrue: true },
-        { text: "", isTrue: false },
     ]);
+
+    const addStatement = () => {
+        if (statements.length < 8) {
+            setStatements([...statements, { text: "", isTrue: true }]);
+        }
+    };
+
+    const removeStatement = (idx: number) => {
+        if (statements.length > 2) {
+            setStatements(statements.filter((_, i) => i !== idx));
+        }
+    };
 
     // SAQ/Spot specific
     const [correctAnswer, setCorrectAnswer] = useState("");
@@ -281,8 +310,26 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
 
                     <div className="pt-8 border-t border-white/5">
                         {type === "mcq" && (
+<<<<<<< Updated upstream
                             <div className="space-y-6">
                                 <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Response Options</label>
+=======
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs uppercase tracking-widest text-white/40 font-bold">Choices ({choices.length}/6)</label>
+                                    <button
+                                        type="button"
+                                        onClick={addChoice}
+                                        disabled={choices.length >= 6}
+                                        className={cn(
+                                            "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                            choices.length >= 6 ? "bg-white/5 text-white/20 cursor-not-allowed" : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                        )}
+                                    >
+                                        <Plus className="w-3 h-3" /> Add
+                                    </button>
+                                </div>
+>>>>>>> Stashed changes
                                 {choices.map((choice, idx) => (
                                     <div key={idx} className="flex gap-4 group">
                                         <button
@@ -298,6 +345,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                             <span className="text-[8px] font-black uppercase mb-1">Key</span>
                                             <Check className="w-6 h-6" />
                                         </button>
+<<<<<<< Updated upstream
                                         <div className="relative flex-1">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black italic text-white/20">
                                                 {String.fromCharCode(65 + idx)}
@@ -314,6 +362,28 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                                 className="w-full h-16 bg-white/[0.03] border border-white/5 rounded-2xl pl-16 pr-6 focus:outline-none focus:border-blue-500/30 font-bold text-lg"
                                             />
                                         </div>
+=======
+                                        <input
+                                            required
+                                            value={choice.text}
+                                            onChange={(e) => {
+                                                const newChoices = [...choices];
+                                                newChoices[idx].text = e.target.value;
+                                                setChoices(newChoices);
+                                            }}
+                                            placeholder={`Choice ${idx + 1}`}
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                                        />
+                                        {choices.length > 2 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeChoice(idx)}
+                                                className="w-10 flex items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+>>>>>>> Stashed changes
                                     </div>
                                 ))}
                             </div>
@@ -321,7 +391,24 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
 
                         {type === "mtf" && (
                             <div className="space-y-4">
+<<<<<<< Updated upstream
                                 <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Binary Propositions</label>
+=======
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs uppercase tracking-widest text-white/40 font-bold">Statements ({statements.length}/8)</label>
+                                    <button
+                                        type="button"
+                                        onClick={addStatement}
+                                        disabled={statements.length >= 8}
+                                        className={cn(
+                                            "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                            statements.length >= 8 ? "bg-white/5 text-white/20 cursor-not-allowed" : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                                        )}
+                                    >
+                                        <Plus className="w-3 h-3" /> Add
+                                    </button>
+                                </div>
+>>>>>>> Stashed changes
                                 {statements.map((s, idx) => (
                                     <div key={idx} className="flex gap-4">
                                         <button
@@ -338,6 +425,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                         >
                                             {s.isTrue ? "POSITIVE" : "NEGATIVE"}
                                         </button>
+<<<<<<< Updated upstream
                                         <div className="relative flex-1">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black italic text-white/20">
                                                 {idx + 1}
@@ -354,6 +442,28 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                                 className="w-full h-16 bg-white/[0.03] border border-white/5 rounded-2xl pl-16 pr-6 focus:outline-none focus:border-blue-500/30 font-bold text-lg"
                                             />
                                         </div>
+=======
+                                        <input
+                                            required
+                                            value={s.text}
+                                            onChange={(e) => {
+                                                const newS = [...statements];
+                                                newS[idx].text = e.target.value;
+                                                setStatements(newS);
+                                            }}
+                                            placeholder={`Statement ${idx + 1}`}
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                                        />
+                                        {statements.length > 2 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeStatement(idx)}
+                                                className="w-10 flex items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+>>>>>>> Stashed changes
                                     </div>
                                 ))}
                             </div>

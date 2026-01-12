@@ -101,9 +101,19 @@ export async function POST(request: Request) {
 
         if (questionType === "mtf") {
             if (mtfTotalCount > 0) {
-                const baseScore = calculateScore(difficulty, timeSpent, currentStreak, true);
-                earnedPoints = Math.round(baseScore * (mtfCorrectCount / mtfTotalCount));
+                // Above-chance proportional scoring:
+                // Random guessing yields ~50% correct, so only score performance above that
+                const half = mtfTotalCount / 2;
+                if (mtfCorrectCount <= half) {
+                    // At or below chance level = 0 points
+                    earnedPoints = 0;
+                } else {
+                    // Above chance: score = baseScore × (correctCount - half) / half
+                    const baseScore = calculateScore(difficulty, timeSpent, currentStreak, true);
+                    earnedPoints = Math.round(baseScore * (mtfCorrectCount - half) / half);
+                }
 
+                // Streak: +1 if all correct, reset to 0 if none correct, unchanged otherwise
                 if (isCorrect) {
                     newStreak = Math.min(currentStreak + 1, 4);
                 } else if (mtfCorrectCount === 0) {
