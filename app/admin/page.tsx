@@ -42,7 +42,6 @@ export default function AdminDashboardOverview() {
         return api.gameAction("initGame");
     });
 
-    const seedQuestions = () => handleAction("seed", () => api.seedAction("seed"));
     const fillBots = () => handleAction("fillbots", () => api.seedAction("fillbots"));
     const removeBots = () => handleAction("removebots", async () => {
         if (!confirm("Remove ALL bots?")) return;
@@ -181,7 +180,6 @@ export default function AdminDashboardOverview() {
                         <div className="flex items-center gap-2 text-white/40 text-xs uppercase font-bold tracking-widest"><Zap className="w-3 h-3" /> Control Panel</div>
                         <div className="flex flex-wrap gap-4">
                             <ActionButton onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
-                            <ActionButton onClick={seedQuestions} icon={FileQuestion} label="Seed Hub" variant="primary" loading={actionLoading === "seed"} />
                             <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${30 - teams.length})`} loading={actionLoading === "fillbots"} />
                             <ActionButton onClick={removeBots} icon={Bot} label="Remove Bots" variant="danger" loading={actionLoading === "removebots"} />
                             <ActionButton onClick={shuffleTeams} icon={Shuffle} label="Shuffle" variant="success" loading={actionLoading === "shuffle"} />

@@ -2,14 +2,33 @@
 
 import { useGameConfig } from "@/lib/hooks/useGameConfig";
 import { StatCard } from "@/components/admin/StatCard";
-import { Clock, Users, ShieldCheck, Save, RefreshCw } from "lucide-react";
+import { Clock, Users, ShieldCheck, Save, RefreshCw, Trash2, AlertTriangle, UserX } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Team } from "@/lib/types";
 
 export default function ConfigPage() {
     const { config, updateConfig, loading } = useGameConfig();
     const [localTimer, setLocalTimer] = useState<string>("");
     const [saving, setSaving] = useState(false);
+    const [resetting, setResetting] = useState(false);
+    const [kicking, setKicking] = useState(false);
+    const [kickingAll, setKickingAll] = useState(false);
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [selectedTeamId, setSelectedTeamId] = useState("");
+    const [confirmReset, setConfirmReset] = useState(false);
+    const [confirmKickAll, setConfirmKickAll] = useState(false);
+
+    // Subscribe to teams for kick dropdown
+    useEffect(() => {
+        const unsub = onSnapshot(collection(db, "teams"), (snap) => {
+            const t = snap.docs.map(d => ({ id: d.id, ...d.data() } as Team));
+            setTeams(t.sort((a, b) => a.name.localeCompare(b.name)));
+        });
+        return () => unsub();
+    }, []);
 
     if (loading) return <div>Loading config...</div>;
 
@@ -19,6 +38,65 @@ export default function ConfigPage() {
         const timer = parseInt(localTimer || config.questionTimer.toString());
         await updateConfig({ questionTimer: timer });
         setSaving(false);
+    };
+
+    const handleResetScores = async () => {
+        if (!confirmReset) {
+            setConfirmReset(true);
+            return;
+        }
+        setResetting(true);
+        try {
+            const res = await fetch("/api/admin/reset-scores", { method: "POST" });
+            const data = await res.json();
+            alert(data.message || "Scores reset!");
+        } catch (err) {
+            alert("Failed to reset scores");
+        } finally {
+            setResetting(false);
+            setConfirmReset(false);
+        }
+    };
+
+    const handleKickTeam = async () => {
+        if (!selectedTeamId) return;
+        setKicking(true);
+        try {
+            const res = await fetch("/api/admin/kick", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ teamId: selectedTeamId }),
+            });
+            const data = await res.json();
+            alert(data.message || "Team kicked!");
+            setSelectedTeamId("");
+        } catch (err) {
+            alert("Failed to kick team");
+        } finally {
+            setKicking(false);
+        }
+    };
+
+    const handleKickAll = async () => {
+        if (!confirmKickAll) {
+            setConfirmKickAll(true);
+            return;
+        }
+        setKickingAll(true);
+        try {
+            const res = await fetch("/api/admin/kick", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ kickAll: true }),
+            });
+            const data = await res.json();
+            alert(data.message || "All teams kicked!");
+        } catch (err) {
+            alert("Failed to kick all teams");
+        } finally {
+            setKickingAll(false);
+            setConfirmKickAll(false);
+        }
     };
 
     return (
@@ -82,6 +160,75 @@ export default function ConfigPage() {
                 </div>
             </div>
 
+            {/* Danger Zone */}
+            <div className="bg-red-500/5 border border-red-500/20 p-8 rounded-3xl space-y-6">
+                <h2 className="text-xl font-semibold flex items-center gap-3 text-red-400">
+                    <AlertTriangle className="w-5 h-5" />
+                    Danger Zone
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Reset Scores */}
+                    <div className="space-y-3">
+                        <p className="text-sm text-white/60">Reset all team scores and streaks to zero</p>
+                        <button
+                            onClick={handleResetScores}
+                            disabled={resetting}
+                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${confirmReset
+                                    ? "bg-red-600 hover:bg-red-500 text-white"
+                                    : "bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20"
+                                }`}
+                        >
+                            {resetting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {confirmReset ? "Click Again to Confirm" : "Reset All Scores"}
+                        </button>
+                    </div>
+
+                    {/* Kick All */}
+                    <div className="space-y-3">
+                        <p className="text-sm text-white/60">Remove all teams and their answer history</p>
+                        <button
+                            onClick={handleKickAll}
+                            disabled={kickingAll}
+                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${confirmKickAll
+                                    ? "bg-red-600 hover:bg-red-500 text-white"
+                                    : "bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20"
+                                }`}
+                        >
+                            {kickingAll ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
+                            {confirmKickAll ? "Click Again to Confirm" : "Kick All Players"}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Kick Individual */}
+                <div className="space-y-3 pt-4 border-t border-red-500/10">
+                    <p className="text-sm text-white/60">Kick a specific team</p>
+                    <div className="flex gap-3">
+                        <select
+                            value={selectedTeamId}
+                            onChange={(e) => setSelectedTeamId(e.target.value)}
+                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500/50 text-white appearance-none cursor-pointer"
+                        >
+                            <option value="" className="bg-[#0a0e1a]">Select a team...</option>
+                            {teams.map((team) => (
+                                <option key={team.id} value={team.id} className="bg-[#0a0e1a]">
+                                    {team.name} (Group {team.group}) - {team.score} pts
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={handleKickTeam}
+                            disabled={!selectedTeamId || kicking}
+                            className="px-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-xl font-bold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {kicking ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
+                            Kick
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl space-y-4">
                 <p className="text-amber-400 text-sm flex items-center gap-2 font-bold">
                     <ShieldCheck className="w-5 h-5" />
@@ -99,3 +246,4 @@ export default function ConfigPage() {
         </div>
     );
 }
+
