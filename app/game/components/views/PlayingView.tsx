@@ -135,34 +135,34 @@ export const PlayingView = ({
                             <Zap className="w-4 h-4 fill-current" />
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">Proctor Inquiry</span>
                         </div>
-                        <h2 className="text-3xl md:text-5xl font-black text-white leading-tight italic tracking-tight">
+                        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black text-white leading-tight italic tracking-tight break-words hyphens-auto">
                             {question.text || "Examine the clinical presentation and determine the most likely diagnosis."}
                         </h2>
                     </div>
 
                     <div className="space-y-4 pt-4">
                         {question.type === "mcq" && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 {question.choices?.map((choice, idx) => (
                                     <button
                                         key={idx}
                                         disabled={submitted}
                                         onClick={() => setMcqAnswer(idx)}
                                         className={cn(
-                                            "group text-left p-6 rounded-3xl border transition-all duration-300 relative overflow-hidden",
+                                            "group text-left p-4 md:p-6 rounded-2xl md:rounded-3xl border transition-all duration-300 relative overflow-hidden min-h-[5rem] flex items-center",
                                             mcqAnswer === idx
                                                 ? "bg-blue-500 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
                                                 : "bg-white/[0.03] border-white/5 text-white/60 hover:bg-white/10 hover:border-white/20"
                                         )}
                                     >
-                                        <div className="flex items-center gap-5 relative z-10">
+                                        <div className="flex items-center gap-4 md:gap-5 relative z-10 w-full">
                                             <div className={cn(
-                                                "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic transition-all duration-300",
+                                                "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-lg md:text-xl italic transition-all duration-300 shrink-0",
                                                 mcqAnswer === idx ? "bg-white text-blue-600 shadow-xl" : "bg-white/5 text-white/20 group-hover:bg-white/10"
                                             )}>
                                                 {String.fromCharCode(65 + idx)}
                                             </div>
-                                            <span className={cn("text-xl font-bold tracking-tight", mcqAnswer === idx ? "text-white" : "text-white/80")}>
+                                            <span className={cn("text-base md:text-xl font-bold tracking-tight break-words hyphens-auto", mcqAnswer === idx ? "text-white" : "text-white/80")}>
                                                 {choice.text}
                                             </span>
                                         </div>

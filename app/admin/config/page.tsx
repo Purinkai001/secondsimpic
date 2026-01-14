@@ -175,8 +175,8 @@ export default function ConfigPage() {
                             onClick={handleResetScores}
                             disabled={resetting}
                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${confirmReset
-                                    ? "bg-red-600 hover:bg-red-500 text-white"
-                                    : "bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20"
+                                ? "bg-red-600 hover:bg-red-500 text-white"
+                                : "bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20"
                                 }`}
                         >
                             {resetting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -191,8 +191,8 @@ export default function ConfigPage() {
                             onClick={handleKickAll}
                             disabled={kickingAll}
                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${confirmKickAll
-                                    ? "bg-red-600 hover:bg-red-500 text-white"
-                                    : "bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20"
+                                ? "bg-red-600 hover:bg-red-500 text-white"
+                                : "bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20"
                                 }`}
                         >
                             {kickingAll ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
@@ -208,7 +208,7 @@ export default function ConfigPage() {
                         <select
                             value={selectedTeamId}
                             onChange={(e) => setSelectedTeamId(e.target.value)}
-                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500/50 text-white appearance-none cursor-pointer"
+                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500/50 text-white appearance-none cursor-pointer truncate max-w-[200px] md:max-w-none"
                         >
                             <option value="" className="bg-[#0a0e1a]">Select a team...</option>
                             {teams.map((team) => (

@@ -129,7 +129,7 @@ export function WinnerCelebration({ team, rank }: WinnerCelebrationProps) {
 
                 {/* Congratulations text */}
                 <motion.h1
-                    className="text-5xl md:text-7xl font-black text-white mt-4 mb-2"
+                    className="text-4xl md:text-7xl font-black text-white mt-4 mb-2 tracking-tight"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5 }}
@@ -139,13 +139,13 @@ export function WinnerCelebration({ team, rank }: WinnerCelebrationProps) {
 
                 {/* Team name */}
                 <motion.div
-                    className="mt-6"
+                    className="mt-6 px-4"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.7 }}
                 >
-                    <span className="text-white/60 text-lg">Team</span>
-                    <h2 className={`text-4xl md:text-5xl font-black bg-gradient-to-r ${rankInfo.color} bg-clip-text text-transparent`}>
+                    <span className="text-white/60 text-base md:text-lg">Team</span>
+                    <h2 className={`text-3xl md:text-5xl font-black bg-gradient-to-r ${rankInfo.color} bg-clip-text text-transparent break-words`}>
                         {team.name}
                     </h2>
                 </motion.div>

@@ -131,23 +131,23 @@ export default function GradingPage() {
                                                 </div>
 
                                                 <div className="flex gap-4">
-                                                    <div className="bg-white/5 border border-white/5 rounded-2xl p-6 flex-1">
+                                                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 md:p-6 flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <MessageCircle className="w-3 h-3 text-white/20" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Student Answer</span>
+                                                            <MessageCircle className="w-3 h-3 text-white/20 shrink-0" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/20 whitespace-nowrap">Student Answer</span>
                                                         </div>
-                                                        <p className="text-4xl font-black text-blue-100 tracking-tight leading-none">
+                                                        <p className="text-xl md:text-3xl font-black text-blue-100 tracking-tight leading-tight break-words whitespace-pre-wrap">
                                                             {answer.answer}
                                                         </p>
                                                     </div>
 
                                                     {answer.question?.correctAnswer && (
-                                                        <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-6 flex-1">
+                                                        <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-4 md:p-6 flex-1 min-w-0">
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <ShieldCheck className="w-3 h-3 text-green-500/30" />
-                                                                <span className="text-[10px] font-black uppercase tracking-widest text-green-500/30">Reference Key</span>
+                                                                <ShieldCheck className="w-3 h-3 text-green-500/30 shrink-0" />
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-green-500/30 whitespace-nowrap">Reference Key</span>
                                                             </div>
-                                                            <p className="text-4xl font-black text-green-400 tracking-tight leading-none italic opacity-70">
+                                                            <p className="text-xl md:text-3xl font-black text-green-400 tracking-tight leading-tight italic opacity-70 break-words whitespace-pre-wrap">
                                                                 {answer.question.correctAnswer}
                                                             </p>
                                                         </div>
@@ -155,21 +155,21 @@ export default function GradingPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="col-span-12 lg:col-span-5 flex items-center justify-end gap-4">
+                                            <div className="col-span-12 lg:col-span-5 flex flex-row items-stretch justify-end gap-3 md:gap-4 h-full">
                                                 <button
                                                     onClick={() => gradeAnswer(answer.id, false)}
-                                                    className="flex-1 lg:flex-none h-20 px-10 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-3xl border border-red-500/20 transition-all flex flex-col items-center justify-center gap-1 group active:scale-95 shadow-lg shadow-red-500/5"
+                                                    className="flex-1 lg:flex-none h-14 md:h-20 px-4 md:px-10 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl md:rounded-3xl border border-red-500/20 transition-all flex flex-col items-center justify-center gap-1 group active:scale-95 shadow-lg shadow-red-500/5 shrink-0"
                                                 >
-                                                    <X className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Reject</span>
+                                                    <X className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest hidden md:block">Reject</span>
                                                 </button>
 
                                                 <button
                                                     onClick={() => gradeAnswer(answer.id, true)}
-                                                    className="flex-1 lg:flex-none h-20 px-10 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white rounded-3xl border border-green-500/20 transition-all flex flex-col items-center justify-center gap-1 group active:scale-95 shadow-lg shadow-green-500/5"
+                                                    className="flex-1 lg:flex-none h-14 md:h-20 px-4 md:px-10 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white rounded-2xl md:rounded-3xl border border-green-500/20 transition-all flex flex-col items-center justify-center gap-1 group active:scale-95 shadow-lg shadow-green-500/5 shrink-0"
                                                 >
-                                                    <Check className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Approve</span>
+                                                    <Check className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest hidden md:block">Approve</span>
                                                 </button>
                                             </div>
                                         </div>

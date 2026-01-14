@@ -85,7 +85,7 @@ export default function GamePage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col p-4 md:p-8 overflow-x-hidden relative">
+        <div className="min-h-[100dvh] bg-[#0a0e1a] text-white flex flex-col p-4 md:p-8 overflow-x-hidden relative">
             {/* Background decorative elements */}
             <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />

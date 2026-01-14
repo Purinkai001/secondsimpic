@@ -54,8 +54,8 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                         : "bg-white/5 border-white/10 hover:bg-white/10"
                             )}
                         >
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
+                            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
+                                <div className="flex items-center gap-2 mb-2 xl:mb-0">
                                     <span className="font-bold uppercase text-sm text-white">{r.id.replace("-", " ")}</span>
                                     <span
                                         className={cn(
@@ -70,12 +70,12 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                         {r.status}
                                     </span>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
                                     {(r.status === "waiting" || r.status === "completed") && (
                                         <>
                                             <motion.button
                                                 onClick={() => scheduleRound(r.id)}
-                                                className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-lg shadow-amber-500/20"
+                                                className="flex-1 xl:flex-none justify-center text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-lg shadow-amber-500/20 whitespace-nowrap"
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                             >
@@ -83,7 +83,7 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                             </motion.button>
                                             <motion.button
                                                 onClick={() => onActivate(r.id)}
-                                                className="text-xs bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-green-500/20"
+                                                className="flex-1 xl:flex-none justify-center text-xs bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-green-500/20 whitespace-nowrap"
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                             >
@@ -94,7 +94,7 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                     {r.status === "active" && (
                                         <motion.button
                                             onClick={() => onEnd(r.id)}
-                                            className="text-xs bg-gradient-to-r from-red-500 to-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-red-500/20"
+                                            className="flex-1 xl:flex-none justify-center text-xs bg-gradient-to-r from-red-500 to-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-red-500/20 whitespace-nowrap"
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                         >
@@ -104,7 +104,7 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                     <motion.button
                                         onClick={() => onSelect(r.id)}
                                         className={cn(
-                                            "text-xs px-3 py-1.5 rounded-lg font-semibold border transition-all",
+                                            "flex-1 xl:flex-none justify-center text-xs px-3 py-1.5 rounded-lg font-semibold border transition-all whitespace-nowrap",
                                             selectedRoundId === r.id
                                                 ? "bg-blue-500 text-white border-blue-500"
                                                 : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10"

@@ -56,17 +56,17 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
                         {result.message}
                     </h2>
 
-                    <div className="flex justify-center gap-6 mt-8">
-                        <div className="text-center">
+                    <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-6 mt-8">
+                        <div className="bg-white/5 p-4 rounded-2xl md:bg-transparent md:p-0">
                             <div className="text-[10px] text-white/40 uppercase font-black tracking-widest mb-1">Points Gained</div>
-                            <div className="text-4xl font-black text-white">+{result.points}</div>
+                            <div className="text-3xl md:text-4xl font-black text-white">+{result.points}</div>
                         </div>
-                        <div className="w-px h-12 bg-white/10" />
-                        <div className="text-center">
+                        <div className="hidden md:block w-px h-12 bg-white/10" />
+                        <div className="bg-white/5 p-4 rounded-2xl md:bg-transparent md:p-0">
                             <div className="text-[10px] text-white/40 uppercase font-black tracking-widest mb-1">Current Streak</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center gap-2">
                                 <Trophy className="w-5 h-5 text-yellow-500" />
-                                <div className="text-4xl font-black text-white">{result.streak}</div>
+                                <div className="text-3xl md:text-4xl font-black text-white">{result.streak}</div>
                             </div>
                         </div>
                     </div>

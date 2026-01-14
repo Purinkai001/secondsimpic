@@ -21,14 +21,14 @@ export function EliminationPanel({ onRunElimination }: EliminationPanelProps) {
                     className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
                     whileHover={{ scale: 1.01 }}
                 >
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <span className="font-bold text-red-300">End of Round 3</span>
-                            <p className="text-xs text-red-400/70 mt-0.5">Eliminate 3 per division (15 total)</p>
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
+                        <div className="min-w-0">
+                            <span className="font-bold text-red-300 whitespace-nowrap">End of Round 3</span>
+                            <p className="text-xs text-red-400/70 mt-0.5 break-words">Eliminate 3 per division (15 total)</p>
                         </div>
                         <motion.button
                             onClick={() => onRunElimination(3)}
-                            className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2"
+                            className="w-full xl:w-auto justify-center bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2 whitespace-nowrap"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
@@ -42,14 +42,14 @@ export function EliminationPanel({ onRunElimination }: EliminationPanelProps) {
                     className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
                     whileHover={{ scale: 1.01 }}
                 >
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <span className="font-bold text-red-300">End of Round 5</span>
-                            <p className="text-xs text-red-400/70 mt-0.5">Eliminate 2 per division (10 total)</p>
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
+                        <div className="min-w-0">
+                            <span className="font-bold text-red-300 whitespace-nowrap">End of Round 5</span>
+                            <p className="text-xs text-red-400/70 mt-0.5 break-words">Eliminate 2 per division (10 total)</p>
                         </div>
                         <motion.button
                             onClick={() => onRunElimination(5)}
-                            className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2"
+                            className="w-full xl:w-auto justify-center bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2 whitespace-nowrap"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >

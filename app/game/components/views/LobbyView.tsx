@@ -58,10 +58,10 @@ export const LobbyView = ({ allTeams, team }: LobbyViewProps) => {
             </div>
 
             {/* 6x5 Full Width Leaderboard Grid */}
-            <div className="grid grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 pb-20">
                 {divisions.map(({ divNum, teams }) => (
                     <div key={divNum} className="space-y-4">
-                        <div className="py-3 px-6 bg-gradient-to-r from-blue-600/20 to-transparent border-l-4 border-blue-500 rounded-r-xl">
+                        <div className="py-2 md:py-3 px-4 md:px-6 bg-gradient-to-r from-blue-600/20 to-transparent border-l-4 border-blue-500 rounded-r-xl sticky top-20 z-10 backdrop-blur-md">
                             <span className="text-sm font-black uppercase tracking-[0.2em] text-white italic">Division {divNum}</span>
                         </div>
 
@@ -73,7 +73,7 @@ export const LobbyView = ({ allTeams, team }: LobbyViewProps) => {
                                         key={t?.id || `empty-${divNum}-${idx}`}
                                         layout
                                         className={cn(
-                                            "h-24 p-5 rounded-[2rem] border transition-all relative overflow-hidden flex flex-col justify-center",
+                                            "min-h-[5rem] md:min-h-[6rem] h-auto p-4 md:p-5 rounded-2xl md:rounded-[2rem] border transition-all relative overflow-hidden flex flex-col justify-center",
                                             t?.id === team?.id
                                                 ? "bg-blue-600/30 border-blue-500/50 ring-2 ring-blue-500/20 shadow-[0_0_40px_rgba(59,130,246,0.1)]"
                                                 : "bg-white/[0.03] border-white/5 hover:border-white/10"
@@ -81,22 +81,22 @@ export const LobbyView = ({ allTeams, team }: LobbyViewProps) => {
                                     >
                                         {t ? (
                                             <>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3 min-w-0">
+                                                <div className="flex items-start justify-between mb-2 gap-2">
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
                                                         <div className={cn(
-                                                            "w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] italic shadow-sm",
+                                                            "w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] italic shadow-sm shrink-0",
                                                             idx === 0 ? "bg-yellow-500 text-black" : "bg-white/10 text-white/40"
                                                         )}>
                                                             {idx + 1}
                                                         </div>
                                                         <span className={cn(
-                                                            "text-sm font-black uppercase italic truncate tracking-tight",
+                                                            "text-sm font-black uppercase italic tracking-tight break-words leading-tight",
                                                             t.id === team?.id ? "text-white" : "text-white/70"
                                                         )}>
                                                             {t.name}
                                                         </span>
                                                     </div>
-                                                    <span className="text-xl font-black text-white italic tracking-tighter">{t.score}</span>
+                                                    <span className="text-xl font-black text-white italic tracking-tighter shrink-0">{t.score}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <div className={cn(

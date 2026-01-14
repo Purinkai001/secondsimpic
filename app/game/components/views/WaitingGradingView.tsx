@@ -12,30 +12,30 @@ interface WaitingGradingViewProps {
 
 export const WaitingGradingView = ({ result, timeLeft, question }: WaitingGradingViewProps) => (
     <div className="max-w-5xl mx-auto w-full px-4 space-y-12">
-        <div className="bg-white/[0.02] border border-white/10 rounded-[3rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-6">
-                <div className="relative">
+        <div className="bg-white/[0.02] border border-white/10 rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                <div className="relative shrink-0">
                     <motion.div
                         className="absolute inset-0 bg-blue-500 blur-2xl opacity-20"
                         animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
                         transition={{ duration: 4, repeat: Infinity }}
                     />
-                    <div className="relative p-6 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-2xl">
-                        <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+                    <div className="relative p-5 md:p-6 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-2xl">
+                        <Loader2 className="w-8 h-8 md:w-10 md:h-10 text-blue-500 animate-spin" />
                     </div>
                 </div>
-                <div className="text-left">
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic leading-none mb-2">Evaluation In Progress</h2>
+                <div>
+                    <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter italic leading-none mb-2">Evaluation In Progress</h2>
                     <p className="text-blue-300/40 text-[10px] font-black uppercase tracking-widest">Verifying Clinical Records • Syncing Data</p>
                 </div>
             </div>
 
             {timeLeft != null && (
-                <div className="px-8 py-4 bg-blue-500/10 border border-blue-500/30 rounded-3xl">
+                <div className="w-full md:w-auto px-8 py-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl md:rounded-3xl flex flex-col items-center md:block text-center md:text-right">
                     <span className="text-blue-400 font-black text-3xl tabular-nums leading-none">
                         {timeLeft}s
                     </span>
-                    <span className="ml-3 text-[10px] text-blue-300/40 uppercase font-black tracking-widest block transform -translate-y-1">Next Phase Sync</span>
+                    <span className="ml-0 md:ml-3 text-[10px] text-blue-300/40 uppercase font-black tracking-widest block transform md:-translate-y-1 mt-1 md:mt-0">Next Phase Sync</span>
                 </div>
             )}
         </div>

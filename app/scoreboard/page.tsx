@@ -2,7 +2,7 @@
 
 import { useStandingsSync } from "@/lib/hooks/useStandingsSync";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Crown } from "lucide-react";
+import { Trophy, Crown, Skull } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -50,9 +50,9 @@ export default function ScoreboardPage() {
                                                 exit={{ opacity: 0, scale: 0.9 }}
                                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                                 className={cn(
-                                                    "relative flex items-center justify-between p-4 rounded-2xl border transition-all duration-500",
+                                                    "relative flex items-center gap-3 p-3 md:p-4 rounded-2xl border transition-all duration-500 overflow-hidden",
                                                     team.status === "eliminated"
-                                                        ? "bg-red-900/10 border-red-500/20 opacity-50 grayscale"
+                                                        ? "bg-red-950/20 border-red-500/10"
                                                         : index === 0
                                                             ? "bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/40 shadow-[0_0_30px_rgba(234,179,8,0.1)]"
                                                             : index === 1
@@ -62,33 +62,50 @@ export default function ScoreboardPage() {
                                                                     : "bg-black/20 border-white/5"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-4 min-w-0">
-                                                    <div className={cn(
-                                                        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
-                                                        index === 0 ? "bg-yellow-400 text-black shadow-lg shadow-yellow-400/20" :
-                                                            index === 1 ? "bg-slate-300 text-slate-900" :
-                                                                index === 2 ? "bg-orange-700 text-orange-100" : "bg-white/5 text-white/40"
-                                                    )}>
-                                                        {index + 1}
+                                                {/* Eliminated Overlay */}
+                                                {team.status === "eliminated" && (
+                                                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/60 backdrop-blur-[1px]">
+                                                        <span className="text-red-500 font-black italic tracking-[0.3em] text-sm md:text-lg uppercase drop-shadow-md border-y-2 border-red-500/50 py-1 bg-black/40 w-full text-center">
+                                                            ELIMINATED
+                                                        </span>
                                                     </div>
+                                                )}
+
+                                                {/* Rank - Allow shrinking slightly on very small screens, but mostly fixed */}
+                                                <div className={cn(
+                                                    "w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-sm md:text-lg shrink-0 shadow-lg relative z-10 transition-opacity",
+                                                    team.status === "eliminated" ? "opacity-20" : "opacity-100",
+                                                    index === 0 ? "bg-yellow-400 text-black shadow-yellow-400/20" :
+                                                        index === 1 ? "bg-slate-300 text-slate-900" :
+                                                            index === 2 ? "bg-orange-700 text-orange-100" : "bg-white/5 text-white/40 border border-white/5"
+                                                )}>
+                                                    {index + 1}
+                                                </div>
+
+                                                {/* Name - Flex grow and truncate to fill available space */}
+                                                <div className="flex flex-col min-w-0 flex-1 relative z-10 transition-opacity" style={{ opacity: team.status === "eliminated" ? 0.3 : 1 }}>
                                                     <span className={cn(
-                                                        "font-bold truncate text-lg tracking-tight",
-                                                        team.status === "eliminated" && "line-through decoration-red-500/50"
+                                                        "font-bold truncate text-sm md:text-lg tracking-tight leading-tight",
+                                                        index === 0 ? "text-white" : "text-white/90"
                                                     )}>
                                                         {team.name}
                                                     </span>
                                                 </div>
 
-                                                <span className={cn(
-                                                    "font-black font-mono text-2xl ml-4",
-                                                    index === 0 ? "text-yellow-400" : "text-white/60"
-                                                )}>
-                                                    {team.score || 0}
-                                                </span>
+                                                {/* Score - Fixed width approx or shrink-0 to never wrap */}
+                                                <div className="shrink-0 text-right relative z-10 transition-opacity" style={{ opacity: team.status === "eliminated" ? 0.3 : 1 }}>
+                                                    <span className={cn(
+                                                        "font-black font-mono text-lg md:text-2xl block leading-none",
+                                                        index === 0 ? "text-yellow-400" : "text-white"
+                                                    )}>
+                                                        {team.score || 0}
+                                                    </span>
+                                                </div>
 
+                                                {/* Crown for #1 */}
                                                 {index === 0 && team.status !== "eliminated" && (
-                                                    <div className="absolute -top-3 -right-2 transform rotate-12">
-                                                        <Crown className="w-8 h-8 text-yellow-400 fill-yellow-400 animate-bounce" />
+                                                    <div className="absolute -top-3 -right-2 transform rotate-12 z-20 pointer-events-none">
+                                                        <Crown className="w-6 h-6 md:w-8 md:h-8 text-yellow-400 fill-yellow-400 animate-bounce" />
                                                     </div>
                                                 )}
                                             </motion.div>
