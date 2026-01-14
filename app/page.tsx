@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInAnonymously } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { Loader2, ArrowRight, Stethoscope, Sparkles, Zap, Trophy, Users, Brain, Heart, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -72,10 +72,9 @@ export default function LoginPage() {
     setAssignedGroup(null);
 
     try {
-      // Ensure user is authenticated via Google for Firestore rules
+      // Ensure user is authenticated anonymously for Firestore rules
       if (!auth.currentUser) {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        await signInAnonymously(auth);
       }
 
       const teamsRef = collection(db, "teams");
