@@ -105,6 +105,7 @@ export function useGameRoom() {
     // Identity tracking to avoid redundant resets
     const lastProcessedRoundId = useRef<string | null>(null);
     const lastProcessedQIdx = useRef<number | null>(null);
+    const hasPausedForQuestion = useRef<boolean>(false);
 
     const processRoundData = useCallback((round: Round, questions: Question[]) => {
         try {
@@ -121,6 +122,7 @@ export function useGameRoom() {
                 const question = questions[qIdx];
                 if (lastProcessedQIdx.current !== qIdx) {
                     lastProcessedQIdx.current = qIdx;
+                    hasPausedForQuestion.current = false; // Reset pause flag for new question
                     resetAnswerState(question);
                 }
                 setCurrentQuestion(question);
@@ -163,7 +165,8 @@ export function useGameRoom() {
                 setGameState("answer_reveal");
             } else if (round.pausedAt || elapsedSeconds >= questionTimer) {
                 setGameState("waiting_grading");
-                if (elapsedSeconds >= questionTimer && !round.pausedAt) {
+                if (elapsedSeconds >= questionTimer && !round.pausedAt && !hasPausedForQuestion.current) {
+                    hasPausedForQuestion.current = true;
                     api.gameAction("pauseForGrading", { roundId: round.id }).catch(console.error);
                 }
             } else {
@@ -210,9 +213,7 @@ export function useGameRoom() {
             setSubmitted(true);
 
             setGameState("waiting_grading");
-            if (result.pendingGrading && requiresManualGrading(currentQuestion.type)) {
-                await api.gameAction("pauseForGrading", { roundId: currentRound.id });
-            }
+            // Note: Auto-pause removed. Pause only on timer expiry or admin action.
         } catch (err) {
             console.error("Error submitting answer:", err);
             alert("Failed to submit. Try again.");
