@@ -242,7 +242,7 @@ export const PlayingView = ({
                             >
                                 <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000" />
                                 {submitting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Zap className="w-8 h-8 fill-current" />}
-                                Submit Diagnosis
+                                Submit
                             </button>
                             <p className="text-center text-[10px] font-bold text-white/10 uppercase tracking-[0.4em] mt-6">Secure Uplink Established • Encryption Active</p>
                         </div>

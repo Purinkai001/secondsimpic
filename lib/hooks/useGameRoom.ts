@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, getDocs, query, collection, orderBy, updateDoc, onSnapshot, where, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, requiresManualGrading, ANSWER_REVEAL_DURATION } from "@/app/game/types";
 import { api } from "@/lib/api";
