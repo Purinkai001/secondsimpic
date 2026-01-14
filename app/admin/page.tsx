@@ -116,11 +116,23 @@ export default function AdminDashboardOverview() {
 
     const revealResults = async () => {
         if (!activeRound) return;
+        if (!confirm("Are you sure you want to REVEAL RESULTS? This cannot be undone.")) return;
+
+        // Trigger bot simulation for this turn
+        // Trigger bot simulation for this turn
+        const roundQuestions = questions
+            .filter(q => q.roundId === activeRound.id)
+            .sort((a, b) => a.order - b.order);
+        const currentQ = roundQuestions[activeRound.currentQuestionIndex || 0];
+        const difficulty = currentQ?.difficulty || "easy";
+
+        await api.gameAction("simulateBotScores", { difficulty });
         await updateDoc(doc(db, "rounds", activeRound.id), { showResults: true });
     };
 
     const nextQuestion = async () => {
         if (!activeRound) return;
+        if (!confirm("Are you sure you want to proceed to the NEXT QUESTION?")) return;
 
         const roundQuestions = questions
             .filter(q => q.roundId === activeRound.id)
@@ -159,12 +171,25 @@ export default function AdminDashboardOverview() {
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Overview</h1>
                     <p className="text-white/40 mt-1">Live session status and control hub</p>
                 </div>
-                {activeRound && (
-                    <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-full">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                        <span className="text-green-400 text-xs font-bold uppercase tracking-widest">Active: {activeRound.id}</span>
-                    </div>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                    {activeRound && (
+                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-full">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            <span className="text-green-400 text-xs font-bold uppercase tracking-widest">Active: {activeRound.id}</span>
+                        </div>
+                    )}
+                    {activeRound && !activeRound.showResults && (
+                        <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-full">
+                            <Users className="w-3 h-3 text-blue-400" />
+                            <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">
+                                Answers: {allAnswers.filter(a => {
+                                    const currentQ = questions.find(q => q.roundId === activeRound.id && q.order === (activeRound.currentQuestionIndex || 0));
+                                    return currentQ && a.questionId === currentQ.id;
+                                }).length} / {teams.filter(t => t.status === 'active').length}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { calculateScore } from "@/lib/scoring";
 import { Difficulty, QuestionType } from "@/lib/types";
+import { FieldValue } from "firebase-admin/firestore";
 
 function checkMTFPartial(userAnswers: boolean[], correctAnswers: boolean[]): {
     correctCount: number;
@@ -35,150 +36,189 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const questionDoc = await adminDb.collection("questions").doc(questionId).get();
-        if (!questionDoc.exists) {
-            return NextResponse.json({ error: "Question not found" }, { status: 404 });
-        }
-        const question = questionDoc.data()!;
-        const difficulty: Difficulty = question.difficulty || "easy";
+        const result = await adminDb.runTransaction(async (transaction) => {
+            const answerId = `${teamId}_${questionId}`;
+            const answerRef = adminDb.collection("answers").doc(answerId);
+            const teamRef = adminDb.collection("teams").doc(teamId);
+            const questionRef = adminDb.collection("questions").doc(questionId);
+            const roundRef = adminDb.collection("rounds").doc(roundId);
 
-        const teamRef = adminDb.collection("teams").doc(teamId);
-        const teamDoc = await teamRef.get();
-        if (!teamDoc.exists) {
-            return NextResponse.json({ error: "Team not found" }, { status: 404 });
-        }
-        const teamData = teamDoc.data()!;
-        const currentStreak = teamData.streak || 0;
+            const [answerDoc, teamDoc, questionDoc, roundDoc] = await Promise.all([
+                transaction.get(answerRef),
+                transaction.get(teamRef),
+                transaction.get(questionRef),
+                transaction.get(roundRef)
+            ]);
 
-        let isCorrect: boolean | null = null;
-        const questionType = type as QuestionType;
+            // 1. Prevent Double Submission or Replay
+            if (answerDoc.exists) {
+                // Already submitted. Return existing result to be idempotent.
+                // We throw a specific error to handle it in the response without failing 500
+                throw new Error("ALREADY_SUBMITTED");
+            }
 
-        let correctAnswerData: Record<string, unknown> | null = null;
-        let mtfCorrectCount = 0;
-        let mtfTotalCount = 0;
+            if (!teamDoc.exists || !questionDoc.exists || !roundDoc.exists) {
+                throw new Error("NOT_FOUND");
+            }
 
-        switch (questionType) {
-            case "mcq":
-                if (question.correctChoiceIndex !== undefined) {
-                    isCorrect = answer === question.correctChoiceIndex;
-                    correctAnswerData = {
-                        type: "mcq",
-                        correctChoiceIndex: question.correctChoiceIndex,
-                        choices: question.choices,
-                    };
-                }
-                break;
+            const teamData = teamDoc.data()!;
 
-            case "mtf":
-                if (question.statements && Array.isArray(answer)) {
-                    const correctAnswers = question.statements.map((s: { isTrue: boolean }) => s.isTrue);
-                    const mtfResult = checkMTFPartial(answer, correctAnswers);
-                    mtfCorrectCount = mtfResult.correctCount;
-                    mtfTotalCount = mtfResult.totalCount;
-                    isCorrect = mtfResult.allCorrect;
-                    correctAnswerData = {
-                        type: "mtf",
-                        statements: question.statements,
-                    };
-                }
-                break;
+            if (teamData.status === "eliminated") {
+                throw new Error("ELIMINATED");
+            }
 
-            case "saq":
-            case "spot":
-                isCorrect = null;
-                correctAnswerData = {
-                    type: questionType,
-                    pendingGrading: true,
-                };
-                break;
+            const question = questionDoc.data()!;
+            const roundData = roundDoc.data()!;
 
-            default:
-                isCorrect = null;
-        }
+            // 2. Validate Time (Grace period 5s)
+            const GRACE_PERIOD_MS = 10000; // ample grace for lag
+            const now = Date.now();
+            const startTime = roundData.startTime;
+            const timerSec = roundData.questionTimer || 30;
 
-        let earnedPoints = 0;
-        let newStreak = currentStreak;
+            // Only enforce if round is active
+            if (startTime) {
+                const pauseDur = roundData.totalPauseDuration || 0;
+                const maxEndTime = startTime + (timerSec * 1000) + pauseDur + GRACE_PERIOD_MS;
 
-        if (questionType === "mtf") {
-            if (mtfTotalCount > 0) {
-                // Above-chance proportional scoring:
-                // Random guessing yields ~50% correct, so only score performance above that
-                const half = mtfTotalCount / 2;
-                if (mtfCorrectCount <= half) {
-                    // At or below chance level = 0 points
-                    earnedPoints = 0;
-                } else {
-                    // Above chance: score = baseScore × (correctCount - half) / half
-                    const baseScore = calculateScore(difficulty, timeSpent, currentStreak, true);
-                    earnedPoints = Math.round(baseScore * (mtfCorrectCount - half) / half);
-                }
-
-                // Streak: +1 if all correct, reset to 0 if none correct, unchanged otherwise
-                if (isCorrect) {
-                    newStreak = Math.min(currentStreak + 1, 4);
-                } else if (mtfCorrectCount === 0) {
-                    newStreak = 0;
+                // If round is paused, we might be lenient or strict. 
+                // Logic: If pausedAt is set, timer is technically stopped, so submissions might be allowed if they happened "before" pause?
+                // For now, simple check: if it's way past time, reject.
+                if (now > maxEndTime) {
+                    throw new Error("TIME_EXPIRED");
                 }
             }
-        } else if (isCorrect === true) {
-            earnedPoints = calculateScore(difficulty, timeSpent, currentStreak, true);
-            newStreak = Math.min(currentStreak + 1, 4);
-        } else if (isCorrect === false) {
-            newStreak = 0;
-        }
 
-        const answerId = `${teamId}_${questionId}`;
-        await adminDb.collection("answers").doc(answerId).set({
-            teamId,
-            questionId,
-            roundId,
-            answer,
-            type: questionType,
-            submittedAt: Date.now(),
-            timeSpent,
-            isCorrect,
-            points: earnedPoints,
-            difficulty,
-            imageUrl: question.imageUrl || null,
-            questionText: question.text || "",
-            mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : null,
-            mtfTotalCount: questionType === "mtf" ? mtfTotalCount : null,
-        });
 
-        if (isCorrect !== null || (questionType === "mtf" && earnedPoints > 0)) {
-            const currentScore = teamData.score || 0;
-            await teamRef.update({
-                score: currentScore + earnedPoints,
-                streak: newStreak,
+            const difficulty: Difficulty = question.difficulty || "easy";
+            const currentStreak = teamData.streak || 0;
+            let isCorrect: boolean | null = null;
+            const questionType = type as QuestionType;
+            let correctAnswerData: Record<string, unknown> | null = null;
+            let mtfCorrectCount = 0;
+            let mtfTotalCount = 0;
+
+            // Scoring Logic
+            switch (questionType) {
+                case "mcq":
+                    if (question.correctChoiceIndex !== undefined) {
+                        isCorrect = answer === question.correctChoiceIndex;
+                        correctAnswerData = {
+                            type: "mcq",
+                            correctChoiceIndex: question.correctChoiceIndex,
+                            choices: question.choices,
+                        };
+                    }
+                    break;
+                case "mtf":
+                    if (question.statements && Array.isArray(answer)) {
+                        const correctAnswers = question.statements.map((s: { isTrue: boolean }) => s.isTrue);
+                        const mtfResult = checkMTFPartial(answer, correctAnswers);
+                        mtfCorrectCount = mtfResult.correctCount;
+                        mtfTotalCount = mtfResult.totalCount;
+                        isCorrect = mtfResult.allCorrect;
+                        correctAnswerData = { type: "mtf", statements: question.statements };
+                    }
+                    break;
+                case "saq":
+                case "spot":
+                    isCorrect = null; // Pending
+                    correctAnswerData = { type: questionType, pendingGrading: true };
+                    break;
+                default:
+                    isCorrect = null;
+            }
+
+            let earnedPoints = 0;
+            let newStreak = currentStreak;
+
+            if (questionType === "mtf") {
+                if (mtfTotalCount > 0) {
+                    const half = mtfTotalCount / 2;
+                    if (mtfCorrectCount <= half) {
+                        earnedPoints = 0;
+                    } else {
+                        const baseScore = calculateScore(difficulty, timeSpent, currentStreak, true);
+                        earnedPoints = Math.round(baseScore * (mtfCorrectCount - half) / half);
+                    }
+                    if (isCorrect) newStreak = Math.min(currentStreak + 1, 4);
+                    else if (mtfCorrectCount === 0) newStreak = 0;
+                }
+            } else if (isCorrect === true) {
+                earnedPoints = calculateScore(difficulty, timeSpent, currentStreak, true);
+                newStreak = Math.min(currentStreak + 1, 4);
+            } else if (isCorrect === false) {
+                newStreak = 0;
+            }
+
+            // Write Answer
+            transaction.set(answerRef, {
+                teamId,
+                questionId,
+                roundId,
+                answer,
+                type: questionType,
+                submittedAt: now,
+                timeSpent,
+                isCorrect,
+                points: earnedPoints,
+                difficulty,
+                imageUrl: question.imageUrl || null,
+                questionText: question.text || "",
+                mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : null,
+                mtfTotalCount: questionType === "mtf" ? mtfTotalCount : null,
             });
-        }
 
-        let message = "";
-        if (questionType === "mtf") {
-            message = `${mtfCorrectCount}/${mtfTotalCount} correct! +${earnedPoints} points`;
-            if (mtfCorrectCount === mtfTotalCount) {
-                message += ` (streak: ${newStreak})`;
+            // Update Team Score (Atomic)
+            if (earnedPoints !== 0 || newStreak !== currentStreak) {
+                transaction.update(teamRef, {
+                    score: FieldValue.increment(earnedPoints),
+                    streak: newStreak
+                });
             }
-        } else if (isCorrect === true) {
-            message = `Correct! +${earnedPoints} points (${difficulty}, ${timeSpent.toFixed(1)}s, streak: ${newStreak})`;
-        } else if (isCorrect === false) {
-            message = "Incorrect. Streak reset.";
-        } else {
-            message = "Answer submitted. Waiting for admin to grade.";
-        }
 
-        return NextResponse.json({
-            success: true,
-            isCorrect,
-            points: earnedPoints,
-            streak: newStreak,
-            message,
-            correctAnswer: correctAnswerData,
-            pendingGrading: isCorrect === null && questionType !== "mtf",
-            mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : undefined,
-            mtfTotalCount: questionType === "mtf" ? mtfTotalCount : undefined,
+            // Build Message
+            let message = "";
+            if (questionType === "mtf") {
+                message = `${mtfCorrectCount}/${mtfTotalCount} correct! +${earnedPoints} points`;
+                if (mtfCorrectCount === mtfTotalCount) message += ` (streak: ${newStreak})`;
+            } else if (isCorrect === true) {
+                message = `Correct! +${earnedPoints} points (${difficulty}, ${timeSpent.toFixed(1)}s, streak: ${newStreak})`;
+            } else if (isCorrect === false) {
+                message = "Incorrect. Streak reset.";
+            } else {
+                message = "Answer submitted. Waiting for admin to grade.";
+            }
+
+            return {
+                success: true,
+                isCorrect,
+                points: earnedPoints,
+                streak: newStreak,
+                message,
+                correctAnswer: correctAnswerData,
+                pendingGrading: isCorrect === null && questionType !== "mtf",
+                mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : undefined,
+                mtfTotalCount: questionType === "mtf" ? mtfTotalCount : undefined,
+            };
         });
-    } catch (error) {
+
+        return NextResponse.json(result);
+
+    } catch (error: any) {
+        if (error.message === "ALREADY_SUBMITTED") {
+            // Fetch duplicate return? For now just say it exists
+            return NextResponse.json({ error: "Answer already received" }, { status: 409 });
+        }
+        if (error.message === "TIME_EXPIRED") {
+            return NextResponse.json({ error: "Time expired for this question" }, { status: 403 });
+        }
+        if (error.message === "NOT_FOUND") {
+            return NextResponse.json({ error: "Resource not found" }, { status: 404 });
+        }
+        if (error.message === "ELIMINATED") {
+            return NextResponse.json({ error: "Team is eliminated" }, { status: 403 });
+        }
         console.error("Error submitting answer:", error);
         return NextResponse.json({ error: "Failed to submit answer" }, { status: 500 });
     }

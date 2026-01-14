@@ -5,9 +5,11 @@ import { db, auth } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, requiresManualGrading, ANSWER_REVEAL_DURATION } from "@/app/game/types";
 import { api } from "@/lib/api";
+import { useServerTime } from "./useServerTime";
 
 export function useGameRoom() {
     const router = useRouter();
+    const { now, loading: timeLoading } = useServerTime();
     const [loading, setLoading] = useState(true);
     const [team, setTeam] = useState<Team | null>(null);
     const [currentRound, setCurrentRound] = useState<Round | null>(null);
@@ -60,9 +62,9 @@ export function useGameRoom() {
         }
         setSubmitted(false);
         setLastResult(null);
-        questionStartTime.current = Date.now();
+        questionStartTime.current = now();
         setTimeSpent(0);
-    }, []);
+    }, [now]); // Depends on now() but it's stable
 
     const fetchTeam = useCallback(async () => {
         const teamId = localStorage.getItem("medical_quiz_team_id");
@@ -70,13 +72,13 @@ export function useGameRoom() {
             router.push("/");
             return null;
         }
+        // Initial fetch only, real updates handle by snapshot below
         const teamDoc = await getDoc(doc(db, "teams", teamId));
         if (teamDoc.exists()) {
             const teamData = { ...teamDoc.data(), id: teamDoc.id } as Team;
             setTeam(teamData);
             return teamData;
         } else {
-            // Clear localStorage to prevent redirection loop if the team was deleted in Firestore
             localStorage.removeItem("medical_quiz_team_id");
             localStorage.removeItem("medical_quiz_team_name");
             localStorage.removeItem("medical_quiz_team_group");
@@ -85,18 +87,6 @@ export function useGameRoom() {
             return null;
         }
     }, [router]);
-
-    const checkMyAnswerStatus = useCallback(async (questionId: string) => {
-        const teamId = localStorage.getItem("medical_quiz_team_id");
-        if (!teamId || !questionId) return null;
-        try {
-            const answerDoc = await getDoc(doc(db, "answers", `${teamId}_${questionId}`));
-            if (answerDoc.exists()) return answerDoc.data();
-        } catch (err) {
-            console.error("Error checking answer status:", err);
-        }
-        return null;
-    }, []);
 
     // State for raw data from Firestore
     const [syncRound, setSyncRound] = useState<Round | null>(null);
@@ -108,6 +98,8 @@ export function useGameRoom() {
     const hasPausedForQuestion = useRef<boolean>(false);
 
     const processRoundData = useCallback((round: Round, questions: Question[]) => {
+        if (timeLoading) return; // Wait for server time sync
+
         try {
             // 1. Detection of Round/Question Identity Changes
             // Ensure we reset state if the round finishes or a new one starts
@@ -124,14 +116,18 @@ export function useGameRoom() {
                     lastProcessedQIdx.current = qIdx;
                     hasPausedForQuestion.current = false; // Reset pause flag for new question
                     resetAnswerState(question);
+                    // Update current question immediately to prevent "ghost" previous question state
+                    setCurrentQuestion(question);
+                } else {
+                    // Same question, just update in case of edits
+                    setCurrentQuestion(question);
                 }
-                setCurrentQuestion(question);
             } else {
                 setCurrentQuestion(null);
             }
 
             // 2. Time Calculations
-            const now = Date.now();
+            const serverNow = now();
             const startTime = round.startTime;
             const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
             const pauseDuration = round.totalPauseDuration || 0;
@@ -142,18 +138,20 @@ export function useGameRoom() {
                 return;
             }
 
-            if (now < startTime) {
+            // Countdown phase
+            if (serverNow < startTime) {
                 setGameState("countdown");
-                setCountdownSeconds(Math.ceil((startTime - now) / 1000));
+                setCountdownSeconds(Math.ceil((startTime - serverNow) / 1000));
                 setInGame(true);
                 return;
             }
 
-            const actualElapsedMs = now - startTime;
+            const actualElapsedMs = serverNow - startTime;
             const safePauseDuration = Math.min(pauseDuration, actualElapsedMs);
             const effectiveElapsedMs = Math.max(0, actualElapsedMs - safePauseDuration);
             const elapsedSeconds = Math.floor(effectiveElapsedMs / 1000);
 
+            // Calculate remaining time
             const timeRemaining = Math.max(0, questionTimer - elapsedSeconds);
             setTimeLeft(timeRemaining);
 
@@ -163,21 +161,33 @@ export function useGameRoom() {
                     setAnswerRevealCountdown(ANSWER_REVEAL_DURATION);
                 }
                 setGameState("answer_reveal");
-            } else if (round.pausedAt || elapsedSeconds >= questionTimer) {
+            } else if (round.pausedAt) {
                 setGameState("waiting_grading");
-                if (elapsedSeconds >= questionTimer && !round.pausedAt && !hasPausedForQuestion.current) {
+            } else if (timeRemaining <= 0) {
+                // **CRITICAL FIX**: If time is up, force waiting/grading state locally.
+                // We do NOT wait for 'pausedAt' to be set by admin or auto-pause.
+                setGameState("waiting_grading");
+
+                // If we haven't flagged this as paused-for-question yet, do so to trigger auto-pause if needed (usually handled by admin/server)
+                if (!hasPausedForQuestion.current) {
                     hasPausedForQuestion.current = true;
-                    api.gameAction("pauseForGrading", { roundId: round.id }).catch(console.error);
+                    // Optimistically try to pause, but don't rely on it for local UI state
+                    api.gameAction("pauseForGrading", { roundId: round.id }).catch(() => { });
                 }
             } else {
-                setGameState("playing");
+                // If we have ALREADY submitted, we should stay in waiting_grading, not revert to playing
+                if (submitted) {
+                    setGameState("waiting_grading");
+                } else {
+                    setGameState("playing");
+                }
             }
 
             setInGame(true);
         } catch (err) {
             console.error("Error in processRoundData:", err);
         }
-    }, [resetAnswerState, setInGame]);
+    }, [resetAnswerState, setInGame, now, timeLoading, submitted]);
 
 
     const handleSubmit = useCallback(async (forceEmpty = false) => {
@@ -200,27 +210,34 @@ export function useGameRoom() {
         if (answer === null && !forceEmpty) return;
         if (answer === null) return;
 
-        const finalTimeSpent = questionStartTime.current ? (Date.now() - questionStartTime.current) / 1000 : 100;
+        const finalTimeSpent = questionStartTime.current ? (now() - questionStartTime.current) / 1000 : 100;
         setSubmitting(true);
-        try {
-            const result = await api.submitAnswer(team.id, currentQuestion.id, currentRound.id, answer, currentQuestion.type, Math.min(finalTimeSpent, 100));
 
-            if (result.isCorrect !== null || result.points > 0) {
-                setTeam({ ...team, score: (team.score || 0) + (result.points || 0), streak: result.streak });
-            }
+        // **CRITICAL FIX**: Mark as submitted immediately to prevent loops, even if API fails
+        setSubmitted(true);
+
+        try {
+            const result = await api.submitAnswer(team.id, currentQuestion.id, currentRound.id, answer, currentQuestion.type, Math.min(Math.abs(finalTimeSpent), 100));
+
+            // Note: We don't manually update team score here anymore. 
+            // We rely on the Firestore snapshot listener to update the team state to ensure consistency.
 
             setLastResult(result);
-            setSubmitted(true);
-
             setGameState("waiting_grading");
-            // Note: Auto-pause removed. Pause only on timer expiry or admin action.
         } catch (err) {
             console.error("Error submitting answer:", err);
-            alert("Failed to submit. Try again.");
+            // Even if failed, we keep 'submitted' true to avoid retry loop. User can refresh if needed.
+            setLastResult({
+                isCorrect: null,
+                points: 0,
+                streak: team.streak || 0,
+                message: "Submission failed (Network Error).",
+                pendingGrading: true
+            });
         } finally {
             setSubmitting(false);
         }
-    }, [currentQuestion, team, currentRound, submitted, mcqAnswer, mtfAnswers, textAnswer]);
+    }, [currentQuestion, team, currentRound, submitted, mcqAnswer, mtfAnswers, textAnswer, now]);
 
     const latestHandleSubmit = useRef(handleSubmit);
     useEffect(() => {
@@ -234,6 +251,7 @@ export function useGameRoom() {
 
         try {
             const result = await api.submitChallenge(team.id, team.name, currentQuestion.id, currentQuestion.text, currentRound.id);
+            // Optimistic update
             setTeam({ ...team, challengesRemaining: result.challengesRemaining });
             alert(result.message);
         } catch (err: unknown) {
@@ -256,12 +274,24 @@ export function useGameRoom() {
         if (!team) return;
         await updateDoc(doc(db, "teams", team.id), { name: newName });
         localStorage.setItem("medical_quiz_team_name", newName);
-        setTeam({ ...team, name: newName });
+        // Team snapshot will handle update
     };
 
-    // 1. Independent Team Load
+    // 1. Independent Team Load & Sync
     useEffect(() => {
+        // Initial check
         fetchTeam().then(() => setLoading(false));
+
+        // **CRITICAL FIX**: Real-time listener for own team data (Score Sync)
+        const teamId = localStorage.getItem("medical_quiz_team_id");
+        if (teamId) {
+            const unsub = onSnapshot(doc(db, "teams", teamId), (doc) => {
+                if (doc.exists()) {
+                    setTeam({ ...doc.data(), id: doc.id } as Team);
+                }
+            });
+            return () => unsub();
+        }
     }, [fetchTeam]);
 
     // 2. Round Listener
@@ -278,7 +308,7 @@ export function useGameRoom() {
         return () => unsub();
     }, []);
 
-    // 3. Questions Listener (Response to syncRound ID change)
+    // 3. Questions Listener
     useEffect(() => {
         if (!syncRound) {
             setSyncQuestions([]);
@@ -305,15 +335,12 @@ export function useGameRoom() {
             lastProcessedRoundId.current = null;
             return;
         }
-
-        // Only process if both round and questions are available for an active round
-        // unless it's a transition round with no questions yet
         processRoundData(syncRound, syncQuestions);
         setCurrentRound(syncRound);
         setRoundQuestions(syncQuestions);
     }, [syncRound, syncQuestions, processRoundData, setInGame]);
 
-    // 5. Team rankings listener for Lobby
+    // 5. Team rankings listener for Lobby (Optional, mostly for waiting screen)
     useEffect(() => {
         if (gameState !== "waiting") return;
         const qTeams = query(collection(db, "teams"), orderBy("score", "desc"));
@@ -332,7 +359,7 @@ export function useGameRoom() {
         const unsubscribe = onSnapshot(doc(db, "answers", `${teamId}_${currentQuestion.id}`), (doc) => {
             if (doc.exists()) {
                 const ansData = doc.data();
-                setSubmitted(true);
+                setSubmitted(true); // Should already be true from handleSubmit, but ensures reloads work
                 if (currentQuestion.type === "mcq") setMcqAnswer(ansData.answer);
                 else if (currentQuestion.type === "mtf") setMtfAnswers(ansData.answer);
                 else setTextAnswer(ansData.answer);
@@ -348,13 +375,16 @@ export function useGameRoom() {
                     correctAnswer: currentQuestion.type === "mcq" ? { type: "mcq", correctChoiceIndex: currentQuestion.correctChoiceIndex, choices: currentQuestion.choices } : (currentQuestion.type === "mtf" ? { type: "mtf", statements: currentQuestion.statements } : undefined)
                 });
             } else {
-                // If answer document is deleted (e.g. game reset), reset local submitted state
-                // This is crucial for the "Init Game" and "Restart Round" flows
-                setSubmitted(false);
+                // Determine if we should really reset. If we are 'submitting', finding no document is expected briefly.
+                // But if we are clearly in a new question or round, it's fine.
+                // Generally safe to reset if NOT currently submitting.
+                if (!submitting) {
+                    setSubmitted(false);
+                }
             }
         });
         return () => unsubscribe();
-    }, [loading, currentQuestion, team?.streak]);
+    }, [loading, currentQuestion, team?.streak, submitting]); // added submitting to deps
 
     // Force evaluation screen if submitted while playing
     useEffect(() => {
@@ -363,48 +393,50 @@ export function useGameRoom() {
         }
     }, [submitted, gameState]);
 
-    // 7. Local timers & Auto-Submission
+    // 7. Local timers & Auto-Submission & Game Loop
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Re-run processRoundData periodically to update based on server time
+            if (currentRound && roundQuestions.length > 0) {
+                processRoundData(currentRound, roundQuestions);
+            }
+        }, 500); // Check every 500ms for responsiveness
+        return () => clearInterval(interval);
+    }, [currentRound, roundQuestions, processRoundData]);
+
+
     useEffect(() => {
         if (gameState === "countdown") {
-            const timer = setInterval(() => setCountdownSeconds(prev => (prev <= 1 ? 0 : prev - 1)), 1000);
-            return () => clearInterval(timer);
+            // pure UI decrement for smoothness, state is corrected by processRoundData
+            // no-op, processRoundData handles it
         }
     }, [gameState]);
 
     useEffect(() => {
-        if (gameState === "answer_reveal") {
-            const timer = setInterval(() => setAnswerRevealCountdown(prev => (prev <= 1 ? 0 : prev - 1)), 1000);
+        // Auto-submit trigger
+        // processRoundData sets timeLeft. If it hits 0, we must submit.
+        if (gameState === "waiting_grading" && timeLeft !== null && timeLeft <= 0 && !submitted && !submitting) {
+            latestHandleSubmit.current(true);
+        }
+    }, [gameState, timeLeft, submitted, submitting]);
+
+    // Smooth UI timer decrement (optional, but good for UX between 500ms ticks)
+    useEffect(() => {
+        if (gameState === "playing" && timeLeft !== null && timeLeft > 0) {
+            const timer = setInterval(() => {
+                setTimeLeft(t => t && t > 0 ? t - 1 : 0);
+            }, 1000);
             return () => clearInterval(timer);
         }
-    }, [gameState]);
+    }, [gameState, timeLeft]);
 
-    useEffect(() => {
-        const timerActive = (gameState === "playing" || gameState === "waiting_grading") && timeLeft !== null && timeLeft >= 0;
-        if (!timerActive) return;
-
-        if (timeLeft <= 0) {
-            if (!submitted && !submitting) latestHandleSubmit.current(true);
-            return;
-        }
-
-        const interval = setInterval(() => {
-            setTimeLeft(prev => {
-                const nv = (prev === null || prev <= 1) ? 0 : prev - 1;
-                if (nv === 0 && !submitted && !submitting) {
-                    latestHandleSubmit.current(true);
-                }
-                return nv;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [gameState, timeLeft === 0, submitted, submitting]);
 
     useEffect(() => {
         if (gameState === "playing" && !submitted && questionStartTime.current) {
-            const interval = setInterval(() => setTimeSpent((Date.now() - (questionStartTime.current || Date.now())) / 1000), 100);
+            const interval = setInterval(() => setTimeSpent((now() - (questionStartTime.current || now())) / 1000), 100);
             return () => clearInterval(interval);
         }
-    }, [gameState, submitted]);
+    }, [gameState, submitted, now]);
 
     return {
         loading, team, setTeam, currentRound, currentQuestion, roundQuestions, allTeams,
@@ -414,4 +446,3 @@ export function useGameRoom() {
         fetchTeam, handleSubmit, handleChallenge, handleLogout, handleRename
     };
 }
-

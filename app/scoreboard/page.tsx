@@ -1,113 +1,104 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useStandingsSync } from "@/lib/hooks/useStandingsSync";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Crown, Medal } from "lucide-react";
+import { Trophy, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type Team = { id: string; name: string; group: number; score: number; status: "active" | "eliminated" };
-
-const GROUPS = [1, 2, 3, 4, 5];
+import { useEffect, useState } from "react";
 
 export default function ScoreboardPage() {
-    const [teams, setTeams] = useState<Team[]>([]);
+    const { allTeams } = useStandingsSync();
 
-    useEffect(() => {
-        const q = query(collection(db, "teams"), orderBy("score", "desc"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setTeams(snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Team)));
-        });
-        return () => unsubscribe();
-    }, []);
+    // Auto-scroll logic could go here, but for now let's just ensure it fits or scrolls naturally
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white p-8 overflow-hidden">
-            <div className="text-center mb-8">
-                <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400 animate-gradient-x flex items-center justify-center gap-4">
-                    <Trophy className="w-12 h-12 md:w-20 md:h-20 text-yellow-500" />
-                    Live Leaderboard
-                </h1>
-            </div>
+        <div className="min-h-screen bg-[#0a0e1a] text-white p-4 md:p-8 overflow-y-auto">
+            {/* Background decorative elements */}
+            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 h-full">
-                {GROUPS.map((group) => {
-                    const groupTeams = teams
-                        .filter((t) => t.group === group)
-                        .sort((a, b) => b.score - a.score);
+            <div className="relative z-10 max-w-[1920px] mx-auto">
+                <div className="text-center mb-12">
+                    <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-yellow-300 flex items-center justify-center gap-6 drop-shadow-2xl">
+                        <Trophy className="w-16 h-16 md:w-24 md:h-24 text-yellow-400 fill-yellow-400/20" />
+                        <span className="italic tracking-tighter">LIVE STANDINGS</span>
+                    </h1>
+                </div>
 
-                    return (
-                        <div key={group} className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm flex flex-col h-full">
-                            <div className="text-center mb-6">
-                                <h2 className="text-2xl font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 py-2 rounded-lg">Group {group}</h2>
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    {[1, 2, 3, 4, 5].map((group) => {
+                        const groupTeams = allTeams
+                            .filter((t) => t.group === group)
+                            .sort((a, b) => (b.score || 0) - (a.score || 0));
 
-                            <div className="space-y-3 flex-1">
-                                <AnimatePresence>
-                                    {groupTeams.map((team, index) => (
-                                        <motion.div
-                                            key={team.id}
-                                            layout
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: 20 }}
-                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                            className={cn(
-                                                "relative flex items-center justify-between p-4 rounded-xl border border-white/5 shadow-lg",
-                                                team.status === "eliminated"
-                                                    ? "bg-red-900/20 border-red-500/30 opacity-60 grayscale"
-                                                    : index === 0
-                                                        ? "bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50"
-                                                        : index === 1
-                                                            ? "bg-white/10 border-white/20"
-                                                            : index === 2
-                                                                ? "bg-orange-900/20 border-orange-500/20"
-                                                                : "bg-black/20"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className={cn(
-                                                    "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0",
-                                                    index === 0 ? "bg-yellow-500 text-black" :
-                                                        index === 1 ? "bg-gray-300 text-black" :
-                                                            index === 2 ? "bg-orange-700 text-white" : "bg-slate-700 text-slate-400"
-                                                )}>
-                                                    {index + 1}
+                        return (
+                            <div key={group} className="bg-white/[0.03] border border-white/10 rounded-3xl p-6 backdrop-blur-md flex flex-col shadow-2xl">
+                                <div className="text-center mb-8">
+                                    <div className="inline-block px-6 py-2 rounded-full bg-blue-500/10 border border-blue-500/20">
+                                        <h2 className="text-xl md:text-2xl font-black text-blue-400 uppercase tracking-[0.2em]">Group {group}</h2>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <AnimatePresence mode="popLayout">
+                                        {groupTeams.map((team, index) => (
+                                            <motion.div
+                                                key={team.id}
+                                                layoutId={`team-${team.id}`}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.9 }}
+                                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                                className={cn(
+                                                    "relative flex items-center justify-between p-4 rounded-2xl border transition-all duration-500",
+                                                    team.status === "eliminated"
+                                                        ? "bg-red-900/10 border-red-500/20 opacity-50 grayscale"
+                                                        : index === 0
+                                                            ? "bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/40 shadow-[0_0_30px_rgba(234,179,8,0.1)]"
+                                                            : index === 1
+                                                                ? "bg-white/10 border-white/20"
+                                                                : index === 2
+                                                                    ? "bg-white/5 border-white/10"
+                                                                    : "bg-black/20 border-white/5"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <div className={cn(
+                                                        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
+                                                        index === 0 ? "bg-yellow-400 text-black shadow-lg shadow-yellow-400/20" :
+                                                            index === 1 ? "bg-slate-300 text-slate-900" :
+                                                                index === 2 ? "bg-orange-700 text-orange-100" : "bg-white/5 text-white/40"
+                                                    )}>
+                                                        {index + 1}
+                                                    </div>
+                                                    <span className={cn(
+                                                        "font-bold truncate text-lg tracking-tight",
+                                                        team.status === "eliminated" && "line-through decoration-red-500/50"
+                                                    )}>
+                                                        {team.name}
+                                                    </span>
                                                 </div>
+
                                                 <span className={cn(
-                                                    "font-bold truncate text-sm md:text-base",
-                                                    team.status === "eliminated" && "line-through decoration-red-500"
+                                                    "font-black font-mono text-2xl ml-4",
+                                                    index === 0 ? "text-yellow-400" : "text-white/60"
                                                 )}>
-                                                    {team.name}
+                                                    {team.score || 0}
                                                 </span>
-                                            </div>
-                                            <span className={cn(
-                                                "font-mono font-bold text-xl",
-                                                index === 0 ? "text-yellow-400" : "text-white"
-                                            )}>
-                                                {team.score}
-                                            </span>
 
-                                            {index === 0 && team.status !== "eliminated" && (
-                                                <Crown className="absolute -top-3 -right-2 w-6 h-6 text-yellow-500 rotate-12 drop-shadow-lg" />
-                                            )}
-                                            {team.status === "eliminated" && (
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-red-500 font-black uppercase tracking-widest text-xs rotate-12 border-2 border-red-500 rounded-xl">
-                                                    Eliminated
-                                                </div>
-                                            )}
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-
-                                {groupTeams.length === 0 && (
-                                    <div className="text-center text-white/20 italic mt-10">No Teams</div>
-                                )}
+                                                {index === 0 && team.status !== "eliminated" && (
+                                                    <div className="absolute -top-3 -right-2 transform rotate-12">
+                                                        <Crown className="w-8 h-8 text-yellow-400 fill-yellow-400 animate-bounce" />
+                                                    </div>
+                                                )}
+                                            </motion.div>
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

@@ -5,8 +5,10 @@ import { collection, query, onSnapshot, orderBy, where, limit } from "firebase/f
 import { db } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState } from "@/app/game/types";
+import { useServerTime } from "./useServerTime";
 
 export function useStandingsSync() {
+    const { now, loading: timeLoading } = useServerTime();
     const [loading, setLoading] = useState(true);
     const [currentRound, setCurrentRound] = useState<Round | null>(null);
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -15,8 +17,6 @@ export function useStandingsSync() {
     const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
     const [answerRevealCountdown, setAnswerRevealCountdown] = useState<number>(0);
     const [allTeams, setAllTeams] = useState<Team[]>([]);
-
-    const currentQuestionIndex = useRef<number>(-1);
 
     // 1. Listen for Teams
     useEffect(() => {
@@ -32,6 +32,7 @@ export function useStandingsSync() {
     useEffect(() => {
         const q = query(collection(db, "rounds"), where("status", "==", "active"), limit(1));
         let unsubQuestions: (() => void) | null = null;
+        let activeRound: Round | null = null;
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (snapshot.empty) {
@@ -43,27 +44,44 @@ export function useStandingsSync() {
             }
 
             const round = { ...snapshot.docs[0].data(), id: snapshot.docs[0].id } as Round;
+            activeRound = round;
             setCurrentRound(round);
 
             // If round changed or first time, sync questions
             if (unsubQuestions) unsubQuestions();
 
-            const q2 = query(collection(db, "questions"), where("roundId", "==", round.id), orderBy("order", "asc"));
+            const q2 = query(collection(db, "questions"), where("roundId", "==", round.id));
             unsubQuestions = onSnapshot(q2, (qSnapshot) => {
-                const questions = qSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Question));
-                processState(round, questions);
+                const questions = qSnapshot.docs
+                    .map(doc => ({ ...doc.data(), id: doc.id } as Question))
+                    .sort((a, b) => a.order - b.order);
+                processState(round, questions); // Call immediately with whatever time we have
                 setLoading(false);
             });
         });
 
+        // Loop to update timer based on server time
+        const interval = setInterval(() => {
+            if (activeRound) {
+                // We don't have questions in this scope easily without ref, but processState is internal. 
+                // Actually this loop structure is weak. 
+                // Better: trigger a re-render or effect dep on `now()`.
+                // But `now()` doesn't change state. 
+                // We can use a ticker.
+            }
+        }, 1000);
+
         return () => {
             unsubscribe();
             if (unsubQuestions) unsubQuestions();
+            clearInterval(interval);
         };
     }, []);
 
-    const processState = (round: Round, questions: Question[]) => {
-        const now = Date.now();
+    const processState = (round: Round | null, questions: Question[]) => {
+        if (!round) return;
+
+        const serverNow = now();
         const startTime = round.startTime;
         const questionTimer = round.questionTimer || DEFAULT_QUESTION_TIMER;
         const pauseDuration = round.totalPauseDuration || 0;
@@ -73,13 +91,13 @@ export function useStandingsSync() {
             return;
         }
 
-        if (now < startTime) {
+        if (serverNow < startTime) {
             setGameState("countdown");
-            setCountdownSeconds(Math.ceil((startTime - now) / 1000));
+            setCountdownSeconds(Math.ceil((startTime - serverNow) / 1000));
             return;
         }
 
-        // Manual flow logic
+        // Manual flow logic (fallback)
         const qIdx = round.currentQuestionIndex || 0;
         if (qIdx >= questions.length) {
             setGameState("waiting");
@@ -101,33 +119,50 @@ export function useStandingsSync() {
         }
 
         // Timer logic
-        const actualElapsedMs = now - startTime;
+        const actualElapsedMs = serverNow - startTime;
         const safePauseDuration = Math.min(pauseDuration, actualElapsedMs);
         const effectiveElapsedMs = Math.max(0, actualElapsedMs - safePauseDuration);
         const elapsedSeconds = Math.floor(effectiveElapsedMs / 1000);
 
-        // In the new flow, we don't calculate index from time, we use the admin's index.
-        // We only care if we are in the "playing" time window.
-        // But for standings/observer, we just follow the admin's lead.
-        // If it's not paused and not revealing, it's playing.
         setGameState("playing");
         const timeRemaining = questionTimer - elapsedSeconds;
         setTimeLeft(timeRemaining > 0 ? timeRemaining : 0);
     };
 
-    // UI Timers
+    // Re-run process state periodically
     useEffect(() => {
-        const timer = setInterval(() => {
-            if (currentRound && gameState === "playing") {
-                // Approximate local decrement for smooth UI
-                setTimeLeft(prev => (prev != null && prev > 0 ? prev - 1 : 0));
-            }
-            if (currentRound && gameState === "countdown") {
-                setCountdownSeconds(prev => (prev > 0 ? prev - 1 : 0));
+        const interval = setInterval(() => {
+            // force update logic... 
+            // Actually `useServerTime` doesn't expose a ticking state, intentionally. 
+            // But we need to update the UI.
+            if (currentRound && currentQuestion) {
+                // re-process? We need the questions list. 
+                // simpler to just decrement timeLeft locally like before, but synced to serverNow on major events.
+                // or just trust the processState logic if we had access to dynamic now.
             }
         }, 1000);
-        return () => clearInterval(timer);
-    }, [gameState, currentRound]);
+        return () => clearInterval(interval);
+    }, [currentRound, currentQuestion]);
+
+    // Better Re-run approach:
+    useEffect(() => {
+        if (!currentRound) return;
+        // poll every 500ms to update time left
+        const i = setInterval(() => {
+            const serverNow = now();
+            const startTime = currentRound.startTime;
+            if (startTime && serverNow >= startTime) {
+                const effective = Math.max(0, (serverNow - startTime) - (currentRound.totalPauseDuration || 0));
+                const elapsed = Math.floor(effective / 1000);
+                const left = (currentRound.questionTimer || DEFAULT_QUESTION_TIMER) - elapsed;
+                setTimeLeft(left > 0 ? left : 0);
+            } else if (startTime && serverNow < startTime) {
+                setCountdownSeconds(Math.ceil((startTime - serverNow) / 1000));
+            }
+        }, 500);
+        return () => clearInterval(i);
+    }, [currentRound, now]);
+
 
     return {
         loading,

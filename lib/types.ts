@@ -58,6 +58,7 @@ export type Answer = {
     points: number;
     timeSpent: number; // seconds spent answering
     submittedAt: number; // timestamp
+    pendingGrading?: boolean;
 };
 
 // Challenge alert for admin

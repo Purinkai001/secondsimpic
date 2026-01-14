@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -15,18 +15,25 @@ import {
     WaitingGradingView
 } from "./components";
 import { SettingsModal, WinnerCelebration } from "./components";
+import { PreloadImages } from "./components/PreloadImages";
 
 export default function GamePage() {
     const router = useRouter();
     const [showSettings, setShowSettings] = useState(false);
 
     const {
-        loading, team, currentRound, currentQuestion, allTeams,
+        loading, team, currentRound, currentQuestion, allTeams, roundQuestions,
         mcqAnswer, setMcqAnswer, mtfAnswers, setMtfAnswers, textAnswer, setTextAnswer,
         gameState, timeLeft, countdownSeconds, answerRevealCountdown, timeSpent,
         submitted, submitting, lastResult,
         handleSubmit, handleChallenge, handleLogout, handleRename
     } = useGameRoom();
+
+    const preloadUrls = useMemo(() => {
+        return roundQuestions
+            .map(q => q.imageUrl)
+            .filter((url): url is string => !!url);
+    }, [roundQuestions]);
 
     if (loading) {
         return (
@@ -139,6 +146,7 @@ export default function GamePage() {
                 </main>
 
                 <GameFooter />
+                <PreloadImages images={preloadUrls} />
             </div>
 
             {showSettings && team && (

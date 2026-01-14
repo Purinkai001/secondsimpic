@@ -281,18 +281,36 @@ export async function POST(request: Request) {
 
         // ===== SIMULATE BOT SCORES =====
         if (action === "simulateBotScores") {
+            const { difficulty = "easy" } = body; // Pass difficulty from admin if possible
             const teamsSnap = await adminDb.collection("teams").get();
             const batch = adminDb.batch();
             let botsUpdated = 0;
 
+            const basePoints = difficulty === "hard" ? 300 : difficulty === "medium" ? 200 : 100;
+
             teamsSnap.docs.forEach(doc => {
                 const data = doc.data();
                 if (data.isBot && data.status === "active") {
-                    const randomScore = Math.floor(Math.random() * 4500) + 500;
-                    const randomStreak = Math.floor(Math.random() * 5);
+                    // 60% chance to be correct
+                    const isCorrect = Math.random() < 0.6;
+
+                    let newScore = data.score || 0;
+                    let newStreak = data.streak || 0;
+
+                    if (isCorrect) {
+                        newStreak += 1;
+                        // Bonus calculation (same as player: base + streak * 50)
+                        const streakBonus = Math.min(newStreak, 5) * 50;
+                        const points = basePoints + streakBonus;
+                        newScore += points;
+                    } else {
+                        newStreak = 0;
+                        // No points lost, just streak reset
+                    }
+
                     batch.update(doc.ref, {
-                        score: randomScore,
-                        streak: randomStreak
+                        score: newScore,
+                        streak: newStreak
                     });
                     botsUpdated++;
                 }
@@ -302,7 +320,7 @@ export async function POST(request: Request) {
 
             return NextResponse.json({
                 success: true,
-                message: `Simulated scores for ${botsUpdated} bots.`
+                message: `Simulated realistic turn for ${botsUpdated} bots.`
             });
         }
 

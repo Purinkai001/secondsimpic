@@ -88,6 +88,12 @@ export default function LoginPage() {
         const existingTeam = nameSnapshot.docs[0];
         const teamData = existingTeam.data();
 
+        if (teamData.status === "eliminated") {
+          setError("This team has been eliminated.");
+          setLoading(false);
+          return;
+        }
+
         localStorage.setItem("medical_quiz_team_id", existingTeam.id);
         localStorage.setItem("medical_quiz_team_name", teamData.name);
         localStorage.setItem("medical_quiz_team_group", teamData.group.toString());
@@ -95,6 +101,7 @@ export default function LoginPage() {
         router.push("/game");
         return;
       }
+
 
       // 2. Find group with space
       const groupCounts: { [key: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };

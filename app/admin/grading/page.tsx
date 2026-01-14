@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
 import { api } from "@/lib/api";
 import { CheckSquare, ShieldCheck, User, BookOpen, Check, X, Users, MessageCircle } from "lucide-react";
@@ -7,10 +8,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export default function GradingPage() {
-    const { pendingAnswers, teams, questions } = useAdminDashboard();
+    // State for viewing history
+    const [view, setView] = useState<"pending" | "history">("pending");
+
+    // Get all data from the main hook
+    const { pendingAnswers, teams, questions, allAnswers } = useAdminDashboard();
+
+    const displayedAnswers = view === "pending"
+        ? pendingAnswers
+        : allAnswers.filter((a) => a.pendingGrading === false && a.answer !== undefined); // Simple filter for graded
 
     // Grouping by team
-    const teamGroups = pendingAnswers.reduce((acc: any, answer) => {
+    const teamGroups = displayedAnswers.reduce((acc: any, answer) => {
         const teamId = answer.teamId;
         if (!acc[teamId]) {
             acc[teamId] = {
@@ -40,16 +49,31 @@ export default function GradingPage() {
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-5xl font-black bg-gradient-to-r from-white via-white to-amber-500 bg-clip-text text-transparent italic tracking-tight">
-                        GRADING QUEUE
+                        {view === "pending" ? "GRADING QUEUE" : "GRADING HISTORY"}
                     </h1>
                     <p className="text-white/40 mt-2 text-lg font-medium">Manual assessment hub for medical reasoning</p>
                 </div>
                 <div className="flex items-center gap-6">
+                    <div className="flex bg-white/5 rounded-2xl p-1 border border-white/5">
+                        <button
+                            onClick={() => setView("pending")}
+                            className={cn("px-6 py-2 rounded-xl text-sm font-bold transition-all", view === "pending" ? "bg-amber-500 text-black" : "text-white/40 hover:text-white")}
+                        >
+                            Pending
+                        </button>
+                        <button
+                            onClick={() => setView("history")}
+                            className={cn("px-6 py-2 rounded-xl text-sm font-bold transition-all", view === "history" ? "bg-blue-500 text-white" : "text-white/40 hover:text-white")}
+                        >
+                            History
+                        </button>
+                    </div>
+
                     <div className="px-6 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-4">
                         <Users className="w-5 h-5 text-amber-500" />
                         <div>
                             <p className="text-2xl font-black leading-none">{teamIds.length}</p>
-                            <p className="text-[10px] font-black uppercase text-amber-500/50 mt-1">Teams Waiting</p>
+                            <p className="text-[10px] font-black uppercase text-amber-500/50 mt-1">Teams</p>
                         </div>
                     </div>
                 </div>
@@ -77,14 +101,14 @@ export default function GradingPage() {
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Group {group.team?.group}</span>
                                                 <div className="w-1 h-1 bg-white/10 rounded-full" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">{group.answers.length} Pending Results</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">{group.answers.length} Items</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex gap-2">
                                         <div className="px-4 py-2 bg-white/5 rounded-xl text-xs font-bold text-white/40 border border-white/5">
-                                            Awaiting Grade
+                                            {view === "pending" ? "Awaiting Grade" : "Graded"}
                                         </div>
                                     </div>
                                 </div>
@@ -99,6 +123,11 @@ export default function GradingPage() {
                                                     <p className="text-lg font-medium text-white/60 italic leading-relaxed">
                                                         {answer.question?.text}
                                                     </p>
+                                                    {view === "history" && (
+                                                        <span className={cn("text-xs font-bold px-2 py-1 rounded border", answer.isCorrect ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500")}>
+                                                            {answer.isCorrect ? "CORRECT" : "INCORRECT"}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex gap-4">
@@ -154,8 +183,8 @@ export default function GradingPage() {
                 {teamIds.length === 0 && (
                     <div className="py-60 text-center bg-white/[0.02] border-4 border-dashed border-white/[0.03] rounded-[4rem]">
                         <ShieldCheck className="w-24 h-24 text-green-500/10 mx-auto mb-8" />
-                        <p className="text-4xl font-black text-white/20 italic uppercase tracking-wider">Queue Clear</p>
-                        <p className="text-white/10 mt-2 font-medium">All manual grading points have been processed</p>
+                        <p className="text-4xl font-black text-white/20 italic uppercase tracking-wider">{view === "pending" ? "Queue Clear" : "No History"}</p>
+                        <p className="text-white/10 mt-2 font-medium">{view === "pending" ? "All manual grading points have been processed" : "No graded answers found"}</p>
                     </div>
                 )}
             </div>
