@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
-
-const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 function shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
@@ -15,12 +14,14 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { action, key, roundNum } = body;
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
 
-        if (key !== ADMIN_KEY) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    try {
+        const body = await request.json();
+        const { action, roundNum } = body;
 
         // ===== INIT GAME =====
         if (action === "simulateTies") {
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
             await batch.commit();
 
             const answersSnap = await adminDb.collection("answers").get();
+            // TODO: Use chunked delete for >500 docs if needed in future
             const deleteBatch = adminDb.batch();
             answersSnap.docs.forEach(doc => {
                 deleteBatch.delete(doc.ref);

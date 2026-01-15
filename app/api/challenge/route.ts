@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
-const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
-
-// POST: Create a new challenge (from team)
+// POST: Create a new challenge (from team) - PUBLIC (No Admin Auth required)
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -58,7 +57,19 @@ export async function POST(request: Request) {
 }
 
 // GET: Fetch all pending challenges (for admin)
-export async function GET() {
+// NOTE: Frontend uses Firestore snapshot, so this might be unused, but securing it anyway or removing.
+// Keeping it but securing if it's used.
+export async function GET(request: Request) {
+    // Optional: Secure if this is admin only
+    // Given the previous code didn't check key, but likely intended for admin.
+    // Let's secure it.
+    try {
+        await verifyAdmin(request);
+    } catch {
+        // If it was public before, maybe it needed to be? But challenges list is definitely admin data.
+        return unauthorizedResponse();
+    }
+
     try {
         const challengesSnap = await adminDb.collection("challenges")
             .where("dismissed", "==", false)
@@ -83,12 +94,14 @@ export async function GET() {
 // PATCH: Dismiss a challenge (admin action)
 export async function PATCH(request: Request) {
     try {
-        const body = await request.json();
-        const { challengeId, key } = body;
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
 
-        if (key !== ADMIN_KEY) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    try {
+        const body = await request.json();
+        const { challengeId } = body;
 
         if (!challengeId) {
             return NextResponse.json({ error: "challengeId required" }, { status: 400 });

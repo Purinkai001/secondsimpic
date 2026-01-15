@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 // POST: Reset all team scores
-export async function POST() {
+export async function POST(request: Request) {
+    try {
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
+
     try {
         const teamsSnapshot = await adminDb.collection("teams").get();
 

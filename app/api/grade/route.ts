@@ -2,18 +2,19 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { calculateScore } from "@/lib/scoring";
 import { Difficulty } from "@/lib/types";
-
-const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 // POST - Grade an answer (for SAQ/Spot types that need manual grading)
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { answerId, isCorrect, key } = body;
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
 
-        if (key !== ADMIN_KEY) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    try {
+        const body = await request.json();
+        const { answerId, isCorrect } = body;
 
         if (!answerId || isCorrect === undefined) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

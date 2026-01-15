@@ -1,15 +1,26 @@
 import { Question, Round, Team, Answer, QuestionType } from "./types";
+import { auth } from "@/lib/firebase";
 
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "admin123";
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+    // Ensure auth is ready
+    const user = auth.currentUser;
+    if (!user) {
+        // Double check if we might be in loading state? 
+        // For admin usage, we expect them to be logged in.
+        throw new Error("Not authenticated. Please log in.");
+    }
 
-async function fetchWithKey(url: string, options: RequestInit = {}) {
+    const token = await user.getIdToken();
+
     const res = await fetch(url, {
         ...options,
         headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
             ...options.headers,
         },
     });
+
     const data = await res.json();
     if (!res.ok) {
         throw new Error(data.error || "API call failed");
@@ -21,61 +32,71 @@ export const api = {
 
     // Game/Admin Action APIs
     gameAction: (action: string, body: Record<string, unknown> = {}) =>
-        fetchWithKey("/api/game", {
+        fetchWithAuth("/api/game", {
             method: "POST",
-            body: JSON.stringify({ action, key: ADMIN_KEY, ...body }),
+            body: JSON.stringify({ action, ...body }),
         }),
 
-    // Answer APIs
-    submitAnswer: (teamId: string, questionId: string, roundId: string, answer: string | number | (boolean | null)[], type: QuestionType, timeSpent: number) =>
-        fetchWithKey("/api/answer", {
+    // Answer APIs (Student facing - No change to logic, just separation)
+    submitAnswer: async (teamId: string, questionId: string, roundId: string, answer: string | number | (boolean | null)[], type: QuestionType, timeSpent: number) => {
+        const res = await fetch("/api/answer", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ teamId, questionId, roundId, answer, type, timeSpent }),
-        }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Submission failed");
+        return data;
+    },
 
-    // Challenge APIs
-    submitChallenge: (teamId: string, teamName: string, questionId: string, questionText: string, roundId: string) =>
-        fetchWithKey("/api/challenge", {
+    submitChallenge: async (teamId: string, teamName: string, questionId: string, questionText: string, roundId: string) => {
+        const res = await fetch("/api/challenge", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ teamId, teamName, questionId, questionText, roundId }),
-        }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Challenge failed");
+        return data;
+    },
 
+    // Admin APIs (Require Token)
     dismissChallenge: (challengeId: string) =>
-        fetchWithKey("/api/challenge", {
+        fetchWithAuth("/api/challenge", {
             method: "PATCH",
-            body: JSON.stringify({ challengeId, key: ADMIN_KEY }),
+            body: JSON.stringify({ challengeId }),
         }),
 
 
     // Question APIs
-    getQuestions: (roundId: string) => fetchWithKey(`/api/questions?key=${ADMIN_KEY}&roundId=${roundId}`),
+    getQuestions: (roundId: string) => fetchWithAuth(`/api/questions?roundId=${roundId}`),
 
     createQuestion: (question: Partial<Question>) =>
-        fetchWithKey("/api/questions", {
+        fetchWithAuth("/api/questions", {
             method: "POST",
-            body: JSON.stringify({ key: ADMIN_KEY, question }),
+            body: JSON.stringify({ question }),
         }),
 
     updateQuestion: (questionId: string, updates: Partial<Question>) =>
-        fetchWithKey("/api/questions", {
+        fetchWithAuth("/api/questions", {
             method: "PUT",
-            body: JSON.stringify({ key: ADMIN_KEY, questionId, updates }),
+            body: JSON.stringify({ questionId, updates }),
         }),
 
     deleteQuestion: (questionId: string) =>
-        fetchWithKey("/api/questions", {
+        fetchWithAuth("/api/questions", {
             method: "DELETE",
-            body: JSON.stringify({ key: ADMIN_KEY, questionId }),
+            body: JSON.stringify({ questionId }),
         }),
 
     // Seed/Bot APIs
     seedAction: (action: "seed" | "fillbots" | "removebots") =>
-        fetchWithKey(`/api/seed?key=${ADMIN_KEY}&action=${action}`),
+        fetchWithAuth(`/api/seed?action=${action}`),
 
     // Grade API
     gradeAnswer: (answerId: string, isCorrect: boolean) =>
-        fetchWithKey("/api/grade", {
+        fetchWithAuth("/api/grade", {
             method: "POST",
-            body: JSON.stringify({ answerId, isCorrect, key: ADMIN_KEY }),
+            body: JSON.stringify({ answerId, isCorrect }),
         }),
 };

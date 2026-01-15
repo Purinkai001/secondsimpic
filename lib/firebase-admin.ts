@@ -1,9 +1,11 @@
 import { initializeApp, getApps, cert, ServiceAccount, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
 import { getStorage, Storage } from "firebase-admin/storage";
+import { getAuth, Auth } from "firebase-admin/auth";
 
 let adminDb: Firestore;
 let adminStorage: Storage;
+let adminAuth: Auth;
 
 // Only initialize if we have the required env vars (prevents build errors)
 const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -30,12 +32,13 @@ if (projectId && privateKey && clientEmail) {
 
     adminDb = getFirestore(app);
     adminStorage = getStorage(app);
+    adminAuth = getAuth(app);
 } else {
     // Create a mock for build time - actual runtime will have env vars
     console.warn("Firebase Admin SDK not initialized - missing environment variables");
     adminDb = null as unknown as Firestore;
     adminStorage = null as unknown as Storage;
+    adminAuth = null as unknown as Auth;
 }
 
-export { adminDb, adminStorage };
-
+export { adminDb, adminStorage, adminAuth };

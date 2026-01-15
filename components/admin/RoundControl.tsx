@@ -1,4 +1,4 @@
-import { Play, Calendar, Clock, CheckCircle, Pause } from "lucide-react";
+import { Play, Calendar, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Round } from "@/lib/types";
 import { motion } from "framer-motion";

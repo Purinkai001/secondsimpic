@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-
-const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 // GET: Fetch all questions
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get("key");
-    const roundId = searchParams.get("roundId");
-
-    if (key !== ADMIN_KEY) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
     }
+
+    const { searchParams } = new URL(request.url);
+    const roundId = searchParams.get("roundId");
 
     try {
         let questionsSnap;
@@ -41,12 +41,14 @@ export async function GET(request: Request) {
 // POST: Create a new question
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { key, question } = body;
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
 
-        if (key !== ADMIN_KEY) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    try {
+        const body = await request.json();
+        const { question } = body; // Removed 'key'
 
         if (!question || !question.roundId || !question.type || !question.difficulty) {
             return NextResponse.json({ error: "Missing required fields: roundId, type, difficulty" }, { status: 400 });
@@ -97,12 +99,14 @@ export async function POST(request: Request) {
 // PUT: Update an existing question
 export async function PUT(request: Request) {
     try {
-        const body = await request.json();
-        const { key, questionId, updates } = body;
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
 
-        if (key !== ADMIN_KEY) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    try {
+        const body = await request.json();
+        const { questionId, updates } = body;
 
         if (!questionId || !updates) {
             return NextResponse.json({ error: "questionId and updates required" }, { status: 400 });
@@ -123,12 +127,14 @@ export async function PUT(request: Request) {
 // DELETE: Delete a question
 export async function DELETE(request: Request) {
     try {
-        const body = await request.json();
-        const { key, questionId } = body;
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
 
-        if (key !== ADMIN_KEY) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    try {
+        const body = await request.json();
+        const { questionId } = body;
 
         if (!questionId) {
             return NextResponse.json({ error: "questionId required" }, { status: 400 });

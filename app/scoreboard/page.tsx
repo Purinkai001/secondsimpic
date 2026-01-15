@@ -2,20 +2,40 @@
 
 import { useStandingsSync } from "@/lib/hooks/useStandingsSync";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Crown, Skull } from "lucide-react";
+import { Trophy, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { BackgroundDecoration } from "@/components/ui/BackgroundDecoration";
 
 export default function ScoreboardPage() {
     const { allTeams } = useStandingsSync();
+
+    const groupedTeams = useMemo(() => {
+        // Initialize groups
+        const groups: Record<number, typeof allTeams> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+
+        // Distribute teams
+        allTeams.forEach(t => {
+            const g = t.group || 1; // Default to 1 if undefined, though it should be defined
+            if (!groups[g]) groups[g] = [];
+            groups[g].push(t);
+        });
+
+        // Sort each group
+        Object.keys(groups).forEach(key => {
+            const k = Number(key);
+            groups[k].sort((a, b) => (b.score || 0) - (a.score || 0));
+        });
+
+        return groups;
+    }, [allTeams]);
 
     // Auto-scroll logic could go here, but for now let's just ensure it fits or scrolls naturally
 
     return (
         <div className="min-h-screen bg-[#0a0e1a] text-white p-4 md:p-8 overflow-y-auto">
             {/* Background decorative elements */}
-            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
-            <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />
+            <BackgroundDecoration />
 
             <div className="relative z-10 max-w-[1920px] mx-auto">
                 <div className="text-center mb-12">
@@ -27,9 +47,7 @@ export default function ScoreboardPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     {[1, 2, 3, 4, 5].map((group) => {
-                        const groupTeams = allTeams
-                            .filter((t) => t.group === group)
-                            .sort((a, b) => (b.score || 0) - (a.score || 0));
+                        const groupTeams = groupedTeams[group] || [];
 
                         return (
                             <div key={group} className="bg-white/[0.03] border border-white/10 rounded-3xl p-6 backdrop-blur-md flex flex-col shadow-2xl">

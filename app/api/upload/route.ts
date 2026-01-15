@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { adminStorage } from "@/lib/firebase-admin";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 export async function POST(request: Request) {
     try {
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
+    }
+
+    try {
         const formData = await request.formData();
         const file = formData.get("file") as File;
-        const key = formData.get("key") as string;
-
-        if (key !== "admin123") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        // key removed
 
         if (!file) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
