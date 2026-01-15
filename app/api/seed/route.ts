@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
-
-const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 const MEDICAL_QUESTIONS = [
     // ===== ROUND 1 (Turn 1) =====
@@ -217,13 +216,14 @@ const BOT_NAMES = [
 ];
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get("key");
-    const action = searchParams.get("action") || "seed";
-
-    if (key !== ADMIN_KEY) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+        await verifyAdmin(request);
+    } catch (e) {
+        return unauthorizedResponse();
     }
+
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action") || "seed";
 
     try {
         if (action === "seed") {

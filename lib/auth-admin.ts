@@ -6,6 +6,7 @@ export async function verifyAdmin(request: Request) {
     const authHeader = request.headers.get("Authorization");
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        console.warn("[AuthDebug] Missing or invalid Authorization header");
         throw new Error("Missing or invalid Authorization header");
     }
 
@@ -15,11 +16,15 @@ export async function verifyAdmin(request: Request) {
         const decodedToken = await adminAuth.verifyIdToken(token);
 
         // Check whitelist
-        const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
+        // Filter out empty strings from split if any
+        const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(e => e);
         const userEmail = decodedToken.email;
 
+        console.log(`[AuthDebug] Checking access for: ${userEmail}`);
+        console.log(`[AuthDebug] Whitelist: ${JSON.stringify(adminEmails)}`);
+
         if (!userEmail || !adminEmails.includes(userEmail)) {
-            console.warn(`Unauthorized access attempt by: ${userEmail}`);
+            console.warn(`[AuthDebug] Unauthorized access attempt by: ${userEmail}. Not in whitelist.`);
             throw new Error("Unauthorized: Email not whitelisted");
         }
 

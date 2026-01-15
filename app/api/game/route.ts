@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
+import { calculateScore } from "@/lib/scoring";
 
 function shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
@@ -283,12 +284,13 @@ export async function POST(request: Request) {
 
         // ===== SIMULATE BOT SCORES =====
         if (action === "simulateBotScores") {
-            const { difficulty = "easy" } = body; // Pass difficulty from admin if possible
+            const { difficulty = "easy" } = body;
+            // Map "hard" to "difficult" just in case, though app uses "difficult"
+            const diffValue = (difficulty === "hard" ? "difficult" : difficulty) as any;
+
             const teamsSnap = await adminDb.collection("teams").get();
             const batch = adminDb.batch();
             let botsUpdated = 0;
-
-            const basePoints = difficulty === "hard" ? 300 : difficulty === "medium" ? 200 : 100;
 
             teamsSnap.docs.forEach(doc => {
                 const data = doc.data();
@@ -300,14 +302,17 @@ export async function POST(request: Request) {
                     let newStreak = data.streak || 0;
 
                     if (isCorrect) {
-                        newStreak += 1;
-                        // Bonus calculation (same as player: base + streak * 50)
-                        const streakBonus = Math.min(newStreak, 5) * 50;
-                        const points = basePoints + streakBonus;
+                        // Simulate human-like time: fast (5s) to slow (45s)
+                        const timeSpent = Math.floor(Math.random() * 40) + 5;
+
+                        const points = calculateScore(diffValue, timeSpent, newStreak, true);
+
+                        // Update score and streak
                         newScore += points;
+                        newStreak += 1;
                     } else {
                         newStreak = 0;
-                        // No points lost, just streak reset
+                        // No points lost
                     }
 
                     batch.update(doc.ref, {

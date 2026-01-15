@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import {
     Loader2, ShieldAlert, LayoutDashboard, FileQuestion, Users,
-    History, Settings, CheckSquare, Flag
+    History, Settings, CheckSquare, Flag, LogOut
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -84,7 +84,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                             onClick={handleLogout}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-all"
                         >
-                            <Settings className="w-4 h-4" />
+                            <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
                         </button>
                     </div>
@@ -93,6 +93,24 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-h-screen">
+                {/* Top Header for User Info */}
+                <header className="px-8 py-4 flex justify-end items-center gap-4 bg-black/10 backdrop-blur-sm border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                        <div className="text-right">
+                            <p className="text-xs text-white/40 font-bold uppercase tracking-wider">Logged in as</p>
+                            <p className="text-sm font-medium text-blue-400">{user.email}</p>
+                        </div>
+                        <div className="h-8 w-px bg-white/10 mx-2" />
+                        <button
+                            onClick={handleLogout}
+                            className="p-2 hover:bg-red-500/20 rounded-lg text-white/50 hover:text-red-400 transition-all"
+                            title="Sign Out"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
+                    </div>
+                </header>
+
                 <main className={cn("flex-1", isFullscreen ? "p-0" : "p-8")}>
                     {children}
                 </main>
