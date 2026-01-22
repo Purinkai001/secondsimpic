@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, AlertCircle, Image as ImageIcon, Plus, Trash2, Upload, Loader2, FileQuestion, Search, ChevronRight, Layers } from "lucide-react";
-import { QuestionType, Difficulty, MTFStatement } from "@/lib/types";
+import { QuestionType, Difficulty, MTFStatement, Question } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
 interface QuestionModalProps {
     isOpen: boolean;
-    editingQuestion?: any;
+    editingQuestion?: Question | null;
     onClose: () => void;
-    onSave: (question: any) => Promise<void>;
+    onSave: (question: Partial<Question>) => Promise<void>;
 }
 
 export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: QuestionModalProps) {
@@ -135,7 +135,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
         e.preventDefault();
         setSaving(true);
         try {
-            const questionData: any = {
+            const questionData: Partial<Question> = {
                 type,
                 difficulty,
                 roundId,

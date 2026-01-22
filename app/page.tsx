@@ -143,7 +143,7 @@ export default function LoginPage() {
       localStorage.setItem("medical_quiz_team_group", randomGroup.toString());
 
       setTimeout(() => router.push("/game"), 1500);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Join error details:", err);
       setError("Connection failed. Try again.");
       setLoading(false);

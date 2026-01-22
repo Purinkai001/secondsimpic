@@ -106,6 +106,21 @@ export type SubmissionResult = {
     mtfTotalCount?: number;
 };
 
+// Firestore document reference type (used in API routes)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DocumentRef = any; // Firestore DocumentReference - kept as any for flexibility
+
+// Firestore document with ref (for batch operations)
+export type TeamWithRef = Team & { ref: DocumentRef };
+export type AnswerWithRef = Answer & { ref: DocumentRef };
+export type QuestionWithRef = Question & { ref: DocumentRef };
+
+// Tie info for checkTies action
+export type TieInfo = {
+    division: number;
+    teams: { id: string; name: string; score: number }[];
+};
+
 export const GROUPS = [1, 2, 3, 4, 5];
 export const MAX_TEAMS_PER_GROUP = 6;
 export const TOTAL_TEAMS = 30;

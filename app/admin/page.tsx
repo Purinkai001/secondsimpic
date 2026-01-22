@@ -30,8 +30,8 @@ export default function AdminDashboardOverview() {
         setActionLoading(name);
         try {
             await fn();
-        } catch (err: any) {
-            alert(err.message || "Action failed");
+        } catch (err) {
+            alert(err instanceof Error ? err.message : "Action failed");
         } finally {
             setActionLoading(null);
         }

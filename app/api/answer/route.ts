@@ -142,17 +142,18 @@ export async function POST(request: Request) {
 
         return NextResponse.json(result);
 
-    } catch (error: any) {
-        if (error.message === "ALREADY_SUBMITTED") {
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        if (message === "ALREADY_SUBMITTED") {
             return NextResponse.json({ error: "Answer already received" }, { status: 409 });
         }
-        if (error.message === "TIME_EXPIRED") {
+        if (message === "TIME_EXPIRED") {
             return NextResponse.json({ error: "Time expired for this question" }, { status: 403 });
         }
-        if (error.message === "NOT_FOUND") {
+        if (message === "NOT_FOUND") {
             return NextResponse.json({ error: "Resource not found" }, { status: 404 });
         }
-        if (error.message === "ELIMINATED") {
+        if (message === "ELIMINATED") {
             return NextResponse.json({ error: "Team is eliminated" }, { status: 403 });
         }
         console.error("Error submitting answer:", error);

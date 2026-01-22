@@ -6,6 +6,16 @@ import { api } from "@/lib/api";
 import { CheckSquare, ShieldCheck, User, BookOpen, Check, X, Users, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Team, Question, Answer } from "@/lib/types";
+
+// Type for answer with question data
+type AnswerWithQuestion = Answer & { question?: Question };
+
+// Type for team group
+type TeamAnswerGroup = {
+    team?: Team;
+    answers: AnswerWithQuestion[];
+};
 
 export default function GradingPage() {
     // State for viewing history
@@ -19,7 +29,7 @@ export default function GradingPage() {
         : allAnswers.filter((a) => a.isCorrect !== null && a.answer !== undefined); // Show anything with a made decision
 
     // Grouping by team
-    const teamGroups = displayedAnswers.reduce((acc: any, answer) => {
+    const teamGroups = displayedAnswers.reduce((acc: Record<string, TeamAnswerGroup>, answer) => {
         const teamId = answer.teamId;
         if (!acc[teamId]) {
             acc[teamId] = {
@@ -39,8 +49,8 @@ export default function GradingPage() {
     const gradeAnswer = async (answerId: string, correct: boolean) => {
         try {
             await api.gradeAnswer(answerId, correct);
-        } catch (e: any) {
-            alert(e.message);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "Grading failed");
         }
     };
 
@@ -114,7 +124,7 @@ export default function GradingPage() {
                                 </div>
 
                                 <div className="divide-y divide-white/5">
-                                    {group.answers.map((answer: any, aIdx: number) => (
+                                    {group.answers.map((answer, aIdx) => (
                                         <div key={answer.id} className="p-8 grid grid-cols-12 gap-8 items-center hover:bg-white/[0.01] transition-all">
                                             <div className="col-span-12 lg:col-span-7 space-y-4">
                                                 <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
+import { DEFAULT_QUESTION_TIMER, TeamWithRef, TieInfo } from "@/lib/types";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 import { calculateScore } from "@/lib/scoring";
 
@@ -178,21 +178,21 @@ export async function POST(request: Request) {
         // ===== REARRANGE DIVISIONS BY SCORE (Rotation Shift) =====
         if (action === "rearrangeDivisions") {
             const teamsSnap = await adminDb.collection("teams").get();
-            const allTeams = teamsSnap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() }));
+            const allTeams = teamsSnap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() } as TeamWithRef));
 
             // 1. Filter active teams only
-            const activeTeams = allTeams.filter((t: any) => t.status === "active");
+            const activeTeams = allTeams.filter(t => t.status === "active");
 
             // 2. Group teams by their current group, then rank within each group
-            const teamsByGroup: Record<number, any[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-            activeTeams.forEach((t: any) => {
+            const teamsByGroup: Record<number, TeamWithRef[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+            activeTeams.forEach(t => {
                 const g = t.group || 1;
                 if (teamsByGroup[g]) teamsByGroup[g].push(t);
             });
 
             // Sort each group by score DESC, streak DESC, name ASC (deterministic)
             Object.keys(teamsByGroup).forEach(key => {
-                teamsByGroup[Number(key)].sort((a: any, b: any) => {
+                teamsByGroup[Number(key)].sort((a, b) => {
                     if (b.score !== a.score) return b.score - a.score;
                     if ((b.streak || 0) !== (a.streak || 0)) return (b.streak || 0) - (a.streak || 0);
                     return a.name.localeCompare(b.name);
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
             // etc.
             Object.entries(teamsByGroup).forEach(([groupStr, teams]) => {
                 const oldGroup = Number(groupStr);
-                teams.forEach((team: any, index) => {
+                teams.forEach((team, index) => {
                     const rank = index + 1; // 1-indexed rank within group
                     // Formula: newGroup = (oldGroup - 1 + rank - 1) % 5 + 1
                     const newGroup = ((oldGroup - 1) + (rank - 1)) % 5 + 1;
@@ -218,8 +218,8 @@ export async function POST(request: Request) {
 
             // 4. Move eliminated teams to Group 6 (Graveyard)
             allTeams
-                .filter((t: any) => t.status === "eliminated")
-                .forEach((t: any) => {
+                .filter(t => t.status === "eliminated")
+                .forEach(t => {
                     batch.update(t.ref, { group: 6 });
                 });
 
@@ -253,18 +253,18 @@ export async function POST(request: Request) {
                 id: d.id,
                 ref: d.ref,
                 ...d.data()
-            } as any));
+            } as TeamWithRef));
 
             const batch = adminDb.batch();
             let totalEliminated = 0;
 
             for (let division = 1; division <= 5; division++) {
                 const divisionTeams = teams
-                    .filter((t: any) => t.group === division && t.status === "active")
-                    .sort((a: any, b: any) => a.score - b.score);
+                    .filter(t => t.group === division && t.status === "active")
+                    .sort((a, b) => a.score - b.score);
 
                 const toEliminate = divisionTeams.slice(0, eliminateCount);
-                toEliminate.forEach((t: any) => {
+                toEliminate.forEach(t => {
                     batch.update(t.ref, { status: "eliminated" });
                     totalEliminated++;
                 });
@@ -284,20 +284,20 @@ export async function POST(request: Request) {
             const teamsSnap = await adminDb.collection("teams").get();
             const teams = teamsSnap.docs
                 .filter(d => d.data().status === "active")
-                .map(d => ({ id: d.id, ...d.data() } as any));
+                .map(d => ({ id: d.id, ...d.data() } as TeamWithRef));
 
-            const ties: any[] = [];
+            const ties: TieInfo[] = [];
 
             for (let division = 1; division <= 5; division++) {
-                const divisionTeams = teams.filter((t: any) => t.group === division);
-                const scoreGroups: Record<number, any[]> = {};
+                const divisionTeams = teams.filter(t => t.group === division);
+                const scoreGroups: Record<number, TeamWithRef[]> = {};
 
-                divisionTeams.forEach((t: any) => {
+                divisionTeams.forEach(t => {
                     if (!scoreGroups[t.score]) scoreGroups[t.score] = [];
                     scoreGroups[t.score].push(t);
                 });
 
-                Object.entries(scoreGroups).forEach(([score, teamsWithScore]) => {
+                Object.entries(scoreGroups).forEach(([, teamsWithScore]) => {
                     if (teamsWithScore.length > 1) {
                         ties.push({
                             division,

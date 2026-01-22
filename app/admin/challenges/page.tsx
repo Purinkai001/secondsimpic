@@ -13,8 +13,8 @@ export default function ChallengesPage() {
     const handleDismiss = async (challengeId: string) => {
         try {
             await api.dismissChallenge(challengeId);
-        } catch (e: any) {
-            alert(e.message);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "Dismiss failed");
         }
     };
 

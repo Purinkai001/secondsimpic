@@ -7,14 +7,15 @@ import { X, Check, AlertCircle, Image as ImageIcon, Plus, Trash2, Upload, Loader
 import { cn } from "@/lib/utils";
 import { QuestionModal } from "@/components/admin/QuestionModal";
 import { api } from "@/lib/api";
+import { Question } from "@/lib/types";
 
 export default function QuestionsPage() {
     const { questions } = useAdminDashboard();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingQuestion, setEditingQuestion] = useState<any>(null);
+    const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const handleSave = async (questionData: any) => {
+    const handleSave = async (questionData: Partial<Question>) => {
         try {
             if (editingQuestion) {
                 await api.updateQuestion(editingQuestion.id, questionData);
@@ -28,7 +29,7 @@ export default function QuestionsPage() {
         }
     };
 
-    const handleEdit = (q: any) => {
+    const handleEdit = (q: Question) => {
         setEditingQuestion(q);
         setIsModalOpen(true);
     };
@@ -49,7 +50,7 @@ export default function QuestionsPage() {
 
     // Grouping logic
     const rounds = ["round-1", "round-2", "round-3", "round-4", "round-5", "round-sd"];
-    const groupedQuestions = rounds.reduce((acc: any, rid) => {
+    const groupedQuestions = rounds.reduce((acc: Record<string, Question[]>, rid) => {
         acc[rid] = questions.filter(q => q.roundId === rid)
             .filter(q => (q.text || "").toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => a.order - b.order);
@@ -110,7 +111,7 @@ export default function QuestionsPage() {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {roundQs.map((q: any) => (
+                                    {roundQs.map((q) => (
                                         <motion.div
                                             key={q.id}
                                             whileHover={{ y: -5 }}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 import { calculateScore } from "@/lib/scoring";
-import { Answer, Question, QuestionType, Difficulty } from "@/lib/types";
+import { Answer, Question, QuestionType, Difficulty, AnswerWithRef } from "@/lib/types";
 
 // Helper to check MTF (Duplicated from answer route to keep contained)
 function checkMTF(userAnswers: boolean[], correctAnswers: boolean[]) {
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
             const qDoc = await t.get(questionRef);
             if (!qDoc.exists) throw new Error("Question not found");
 
-            const updateData: any = {};
+            const updateData: Partial<Question> = {};
             if (type) updateData.type = type;
             if (correctAnswer !== undefined) updateData.correctAnswer = correctAnswer;
             if (choices !== undefined) updateData.choices = choices;
@@ -63,8 +63,8 @@ export async function POST(request: Request) {
         const answerDocs = answersSnapshot.docs;
         const affectedTeamIds = new Set(answerDocs.map(d => d.data().teamId));
 
-        const results: any[] = [];
-        const errors: any[] = [];
+        const results: { teamId: string; score: number; streak: number }[] = [];
+        const errors: { teamId: string; error: string }[] = [];
 
         // 4. Per-Team Transaction Replay
         // We execute these sequentially or with limiting concurrency to avoid contention
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
                         id: d.id,
                         ref: d.ref,
                         ...d.data()
-                    } as Answer & { ref: any }));
+                    } as AnswerWithRef));
 
                     // Sort chronologically (Critical for Streak)
                     history.sort((a, b) => a.submittedAt - b.submittedAt);
