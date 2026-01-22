@@ -175,27 +175,59 @@ export async function POST(request: Request) {
             });
         }
 
-        // ===== REARRANGE DIVISIONS BY SCORE =====
+        // ===== REARRANGE DIVISIONS BY SCORE (Rotation Shift) =====
         if (action === "rearrangeDivisions") {
             const teamsSnap = await adminDb.collection("teams").get();
-            const activeTeams = teamsSnap.docs
-                .filter(d => d.data().status === "active")
-                .map(d => ({ id: d.id, ref: d.ref, ...d.data() }))
-                .sort((a: any, b: any) => b.score - a.score);
+            const allTeams = teamsSnap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() }));
+
+            // 1. Filter active teams only
+            const activeTeams = allTeams.filter((t: any) => t.status === "active");
+
+            // 2. Group teams by their current group, then rank within each group
+            const teamsByGroup: Record<number, any[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+            activeTeams.forEach((t: any) => {
+                const g = t.group || 1;
+                if (teamsByGroup[g]) teamsByGroup[g].push(t);
+            });
+
+            // Sort each group by score DESC, streak DESC, name ASC (deterministic)
+            Object.keys(teamsByGroup).forEach(key => {
+                teamsByGroup[Number(key)].sort((a: any, b: any) => {
+                    if (b.score !== a.score) return b.score - a.score;
+                    if ((b.streak || 0) !== (a.streak || 0)) return (b.streak || 0) - (a.streak || 0);
+                    return a.name.localeCompare(b.name);
+                });
+            });
 
             const batch = adminDb.batch();
-            const teamsPerDivision = Math.ceil(activeTeams.length / 5);
 
-            activeTeams.forEach((team: any, index) => {
-                const division = Math.floor(index / teamsPerDivision) + 1;
-                batch.update(team.ref, { group: Math.min(division, 5) });
+            // 3. Apply rotation: newGroup = (oldGroup + rank - 2) % 5 + 1
+            // Row 1 (rank 1): no shift
+            // Row 2 (rank 2): shift right by 1
+            // Row 3 (rank 3): shift right by 2
+            // etc.
+            Object.entries(teamsByGroup).forEach(([groupStr, teams]) => {
+                const oldGroup = Number(groupStr);
+                teams.forEach((team: any, index) => {
+                    const rank = index + 1; // 1-indexed rank within group
+                    // Formula: newGroup = (oldGroup - 1 + rank - 1) % 5 + 1
+                    const newGroup = ((oldGroup - 1) + (rank - 1)) % 5 + 1;
+                    batch.update(team.ref, { group: newGroup });
+                });
             });
+
+            // 4. Move eliminated teams to Group 6 (Graveyard)
+            allTeams
+                .filter((t: any) => t.status === "eliminated")
+                .forEach((t: any) => {
+                    batch.update(t.ref, { group: 6 });
+                });
 
             await batch.commit();
 
             return NextResponse.json({
                 success: true,
-                message: `Rearranged ${activeTeams.length} teams into divisions by score ranking.`
+                message: `Rearranged ${activeTeams.length} active teams using rotation shift. Eliminated teams moved to Group 6.`
             });
         }
 
