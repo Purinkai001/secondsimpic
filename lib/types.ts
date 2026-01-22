@@ -76,6 +76,36 @@ export type Challenge = {
     dismissed: boolean;
 };
 
+// Scoring result from calculateAnswerScore
+export type ScoreResult = {
+    isCorrect: boolean | null;
+    points: number;
+    newStreak: number;
+    mtfStats?: { correctCount: number; totalCount: number };
+    correctAnswerData?: CorrectAnswerData;
+};
+
+// Correct answer data returned from API for answer reveal
+export type CorrectAnswerData = {
+    type: QuestionType;
+    correctChoiceIndex?: number;
+    choices?: { text: string }[];
+    statements?: { text: string; isTrue: boolean }[];
+    pendingGrading?: boolean;
+};
+
+// Submission result returned to client after answer submission
+export type SubmissionResult = {
+    isCorrect: boolean | null;
+    points: number;
+    streak: number;
+    message: string;
+    correctAnswer?: CorrectAnswerData;
+    pendingGrading?: boolean;
+    mtfCorrectCount?: number;
+    mtfTotalCount?: number;
+};
+
 export const GROUPS = [1, 2, 3, 4, 5];
 export const MAX_TEAMS_PER_GROUP = 6;
 export const TOTAL_TEAMS = 30;

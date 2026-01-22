@@ -1,4 +1,7 @@
-import { Team, Round, Question, QuestionType } from "@/lib/types";
+import { QuestionType } from "@/lib/types";
+
+// Re-export centralized types for convenience
+export type { CorrectAnswerData, SubmissionResult } from "@/lib/types";
 
 // Answer reveal duration in seconds
 export const ANSWER_REVEAL_DURATION = 5;
@@ -17,28 +20,6 @@ export const DIFFICULTY_LABELS = {
     medium: { label: "Medium", color: "bg-yellow-600", points: 2 },
     difficult: { label: "Difficult", color: "bg-red-600", points: 3 },
 };
-
-// Type for correct answer data from API
-export interface CorrectAnswerData {
-    type: QuestionType;
-    correctChoiceIndex?: number;
-    choices?: { text: string }[];
-    statements?: { text: string; isTrue: boolean }[];
-    pendingGrading?: boolean;
-}
-
-// Type for submission result
-export interface SubmissionResult {
-    isCorrect: boolean | null;
-    points: number;
-    streak: number;
-    message: string;
-    correctAnswer?: CorrectAnswerData;
-    pendingGrading?: boolean;
-    // For MTF partial scoring
-    mtfCorrectCount?: number;
-    mtfTotalCount?: number;
-}
 
 // Game state type
 export type GameState = "waiting" | "countdown" | "playing" | "answer_reveal" | "waiting_grading";

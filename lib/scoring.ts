@@ -1,4 +1,4 @@
-import { Difficulty } from "./types";
+import { Difficulty, ScoreResult } from "./types";
 
 /**
  * Calculate the speed factor based on time spent answering
@@ -126,13 +126,7 @@ export function checkMTFPartial(userAnswers: boolean[], correctAnswers: boolean[
     };
 }
 
-export type ScoreResult = {
-    isCorrect: boolean | null;
-    points: number;
-    newStreak: number;
-    mtfStats?: { correctCount: number; totalCount: number };
-    correctAnswerData?: any;
-};
+
 
 /**
  * Centralized logic to calculate score, streak, and correctness
