@@ -63,8 +63,6 @@ export async function POST(request: Request) {
         const answerDocs = answersSnapshot.docs;
         const affectedTeamIds = new Set(answerDocs.map(d => d.data().teamId));
 
-        console.log(`Regrade: Updating Question ${questionId}. Affected Teams: ${affectedTeamIds.size}`);
-
         const results: any[] = [];
         const errors: any[] = [];
 

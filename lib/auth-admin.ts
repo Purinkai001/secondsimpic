@@ -20,8 +20,7 @@ export async function verifyAdmin(request: Request) {
         const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(e => e);
         const userEmail = decodedToken.email;
 
-        console.log(`[AuthDebug] Checking access for: ${userEmail}`);
-        console.log(`[AuthDebug] Whitelist: ${JSON.stringify(adminEmails)}`);
+
 
         if (!userEmail || !adminEmails.includes(userEmail)) {
             console.warn(`[AuthDebug] Unauthorized access attempt by: ${userEmail}. Not in whitelist.`);

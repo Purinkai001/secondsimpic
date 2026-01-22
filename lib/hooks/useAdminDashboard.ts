@@ -37,11 +37,9 @@ export function useAdminDashboard() {
         }, (err) => console.error("Answers sync error:", err));
 
         const unsubChallenges = onSnapshot(collection(db, "challenges"), (snap) => {
-            console.log("Challenges snapshot received, count:", snap.size);
             const challengeData = snap.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as Challenge))
                 .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            console.log("Challenges data:", challengeData);
             setChallenges(challengeData);
             setLastUpdate(new Date());
         }, (err) => {

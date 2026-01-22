@@ -28,8 +28,6 @@ export const PlayingView = ({
 }: PlayingViewProps) => {
     if (!question) return null;
 
-    console.log(`[PlayingView] Question: ${question.id}, Type: ${question.type}, Image: ${question.imageUrl || 'NONE'}`);
-
     const labels = QUESTION_TYPE_LABELS[question.type] || { label: "Standard", color: "bg-blue-500/20 text-blue-300" };
     const difficultyKey = (question.difficulty || "easy").toLowerCase() as keyof typeof DIFFICULTY_LABELS;
     const difficulty = DIFFICULTY_LABELS[difficultyKey] || DIFFICULTY_LABELS.easy;
@@ -104,7 +102,6 @@ export const PlayingView = ({
                                 src={question.imageUrl}
                                 alt="Case Illustration"
                                 className="w-full h-full object-contain"
-                                onLoad={() => console.log(`[PlayingView] Image loaded: ${question.imageUrl}`)}
                                 onError={(e) => {
                                     console.error(`[PlayingView] Image failed: ${question.imageUrl}`);
                                     const target = e.target as HTMLImageElement;
