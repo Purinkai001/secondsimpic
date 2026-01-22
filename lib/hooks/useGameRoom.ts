@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, getDocs, query, collection, orderBy, updateDoc, onSnapshot, where, limit } from "firebase/firestore";
+import { doc, getDoc, getDocs, query, collection, orderBy, updateDoc, onSnapshot, where, limit, setDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, requiresManualGrading, ANSWER_REVEAL_DURATION } from "@/app/game/types";
@@ -437,6 +437,32 @@ export function useGameRoom() {
             return () => clearInterval(interval);
         }
     }, [gameState, submitted, now]);
+
+    // --- HEARTBEAT / LOGIN TRACKING ---
+    useEffect(() => {
+        const teamId = localStorage.getItem("medical_quiz_team_id");
+        if (!teamId) return;
+
+        const reportPresence = async () => {
+            try {
+                await setDoc(doc(db, "presence", teamId), {
+                    lastSeen: Date.now(),
+                    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+                    connected: true,
+                    teamId: teamId // redundant but helpful
+                }, { merge: true });
+            } catch (e) {
+                console.error("Heartbeat fail", e);
+            }
+        };
+
+        // Report immediately
+        reportPresence();
+
+        // Then every 30s
+        const interval = setInterval(reportPresence, 30000);
+        return () => clearInterval(interval);
+    }, [team?.id]); // Re-run if team changes ID (e.g. login)
 
     return {
         loading, team, setTeam, currentRound, currentQuestion, roundQuestions, allTeams,

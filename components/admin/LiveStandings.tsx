@@ -48,7 +48,7 @@ export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveSta
                                         )}
                                         whileHover={{ scale: t.status !== "eliminated" ? 1.02 : 1 }}
                                     >
-                                        <span className="truncate max-w-[80px] flex items-center gap-1.5">
+                                        <span className="break-words max-w-[80px] flex items-center gap-1.5 ">
                                             {idx === 0 && t.status === "active" && (
                                                 <Crown className="w-3 h-3 text-yellow-400" />
                                             )}

@@ -67,7 +67,7 @@ export function QuestionManager({ selectedRoundId, questions, onSetQuestion }: Q
                                         {q.difficulty}
                                     </span>
                                 </div>
-                                <p className="text-sm text-white/70 truncate">
+                                <p className="text-sm text-white/70 break-words">
                                     {q.text || "(Image question)"}
                                 </p>
                             </div>

@@ -103,7 +103,7 @@ export default function ScoreboardPage() {
                                                 {/* Name - Flex grow and truncate to fill available space */}
                                                 <div className="flex flex-col min-w-0 flex-1 relative z-10 transition-opacity" style={{ opacity: team.status === "eliminated" ? 0.3 : 1 }}>
                                                     <span className={cn(
-                                                        "font-bold truncate text-sm md:text-lg tracking-tight leading-tight",
+                                                        "font-bold break-words text-sm md:text-lg tracking-tight leading-tight",
                                                         index === 0 ? "text-white" : "text-white/90"
                                                     )}>
                                                         {team.name}

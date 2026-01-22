@@ -76,7 +76,8 @@ export default function GamePage() {
 
     // Winner detection
     const activeTeams = allTeams.filter(t => t.status === "active");
-    const isWinner = team?.status === "winner" || (!currentRound && activeTeams.length === 5 && team?.status === "active");
+    // Explicit winner status ONLY - preventing random congratulations
+    const isWinner = team?.status === "winner";
 
     if (isWinner && team) {
         const finalists = team.status === "winner" ? allTeams.filter(t => t.status === "winner") : activeTeams;
@@ -87,7 +88,6 @@ export default function GamePage() {
 
     return (
         <div className="min-h-[100dvh] bg-[#0a0e1a] text-white flex flex-col p-4 md:p-8 overflow-x-hidden relative">
-            {/* Background decorative elements */}
             {/* Background decorative elements */}
             <BackgroundDecoration />
 

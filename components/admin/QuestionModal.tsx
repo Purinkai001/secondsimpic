@@ -64,6 +64,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
 
     // SAQ/Spot specific
     const [correctAnswer, setCorrectAnswer] = useState("");
+    const [alternateAnswers, setAlternateAnswers] = useState(""); // Textarea input for alternatives
 
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -88,6 +89,8 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 ]);
             } else {
                 setCorrectAnswer(editingQuestion.correctAnswer || "");
+                // Join array with newlines for editing
+                setAlternateAnswers((editingQuestion.alternateAnswers || []).join("\n"));
             }
         } else {
             // Reset for new question
@@ -104,6 +107,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 { text: "", isTrue: false },
             ]);
             setCorrectAnswer("");
+            setAlternateAnswers("");
         }
     }, [editingQuestion, isOpen]);
 
@@ -147,6 +151,11 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 questionData.statements = statements;
             } else {
                 questionData.correctAnswer = correctAnswer;
+                // Split by newline and filter empty strings
+                questionData.alternateAnswers = alternateAnswers
+                    .split("\n")
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
             }
 
             await onSave(questionData);
@@ -429,18 +438,33 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         )}
 
                         {(type === "saq" || type === "spot") && (
-                            <div className="space-y-3">
-                                <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Verification Protocol (Key)</label>
-                                <div className="relative">
-                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-blue-500/40">
-                                        <Check className="w-full h-full" />
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Verification Protocol (Key)</label>
+                                    <div className="relative">
+                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-blue-500/40">
+                                            <Check className="w-full h-full" />
+                                        </div>
+                                        <input
+                                            required
+                                            value={correctAnswer}
+                                            onChange={(e) => setCorrectAnswer(e.target.value)}
+                                            placeholder="Expected nomenclature/diagnosis..."
+                                            className="w-full h-20 bg-blue-500/5 border border-blue-500/20 rounded-3xl pl-16 pr-6 focus:outline-none focus:border-blue-500/50 font-black text-2xl text-blue-400 italic"
+                                        />
                                     </div>
-                                    <input
-                                        required
-                                        value={correctAnswer}
-                                        onChange={(e) => setCorrectAnswer(e.target.value)}
-                                        placeholder="Expected nomenclature/diagnosis..."
-                                        className="w-full h-20 bg-blue-500/5 border border-blue-500/20 rounded-3xl pl-16 pr-6 focus:outline-none focus:border-blue-500/50 font-black text-2xl text-blue-400 italic"
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Alternative Acceptable Answers</label>
+                                        <span className="text-[10px] font-bold text-white/20">{alternateAnswers.split('\n').filter(s => s.trim().length > 0).length} Variants</span>
+                                    </div>
+                                    <textarea
+                                        value={alternateAnswers}
+                                        onChange={(e) => setAlternateAnswers(e.target.value)}
+                                        placeholder="Enter alternative correct answers, one per line..."
+                                        className="w-full bg-white/[0.03] border border-white/5 rounded-[2rem] px-6 py-5 focus:outline-none focus:border-blue-500/30 min-h-[150px] text-lg font-medium leading-relaxed resize-none text-white/70"
                                     />
                                 </div>
                             </div>

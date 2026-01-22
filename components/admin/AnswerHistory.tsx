@@ -99,7 +99,7 @@ export function AnswerHistory({ answers, teams, questions }: AnswerHistoryProps)
                                         {(a as any).points || 0} pts
                                     </span>
                                 </div>
-                                <div className="text-white/40 truncate text-xs">{getQuestionText(a.questionId)}</div>
+                                <div className="text-white/40 break-words text-xs">{getQuestionText(a.questionId)}</div>
                                 <div className="mt-1 text-white/70 font-medium text-xs">
                                     Answer: {typeof a.answer === "number" ? `Choice ${a.answer + 1}` :
                                         Array.isArray(a.answer) ? `[${a.answer.map(v => v ? "T" : "F").join(", ")}]` :

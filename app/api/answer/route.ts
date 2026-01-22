@@ -1,31 +1,10 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { calculateScore } from "@/lib/scoring";
+import { calculateAnswerScore } from "@/lib/scoring";
 import { Difficulty, QuestionType } from "@/lib/types";
 import { FieldValue } from "firebase-admin/firestore";
 
-function checkMTFPartial(userAnswers: boolean[], correctAnswers: boolean[]): {
-    correctCount: number;
-    totalCount: number;
-    allCorrect: boolean;
-} {
-    if (userAnswers.length !== correctAnswers.length) {
-        return { correctCount: 0, totalCount: correctAnswers.length, allCorrect: false };
-    }
-
-    let correctCount = 0;
-    for (let i = 0; i < userAnswers.length; i++) {
-        if (userAnswers[i] === correctAnswers[i]) {
-            correctCount++;
-        }
-    }
-
-    return {
-        correctCount,
-        totalCount: correctAnswers.length,
-        allCorrect: correctCount === correctAnswers.length,
-    };
-}
+// Removed local checkMTFPartial in favor of library function
 
 export async function POST(request: Request) {
     try {
@@ -52,8 +31,6 @@ export async function POST(request: Request) {
 
             // 1. Prevent Double Submission or Replay
             if (answerDoc.exists) {
-                // Already submitted. Return existing result to be idempotent.
-                // We throw a specific error to handle it in the response without failing 500
                 throw new Error("ALREADY_SUBMITTED");
             }
 
@@ -71,85 +48,44 @@ export async function POST(request: Request) {
             const roundData = roundDoc.data()!;
 
             // 2. Validate Time (Grace period 5s)
-            const GRACE_PERIOD_MS = 10000; // ample grace for lag
+            const GRACE_PERIOD_MS = 10000;
             const now = Date.now();
             const startTime = roundData.startTime;
             const timerSec = roundData.questionTimer || 30;
 
-            // Only enforce if round is active
+            let effectiveTimeSpent = timeSpent;
+
             if (startTime) {
                 const pauseDur = roundData.totalPauseDuration || 0;
-                const maxEndTime = startTime + (timerSec * 1000) + pauseDur + GRACE_PERIOD_MS;
 
-                // If round is paused, we might be lenient or strict. 
-                // Logic: If pausedAt is set, timer is technically stopped, so submissions might be allowed if they happened "before" pause?
-                // For now, simple check: if it's way past time, reject.
+                // Strict Server-Side Time Validation
+                // Calculate how much time has legally passed on server
+                const serverElapsed = (now - startTime - pauseDur) / 1000;
+
+                // Prevent "Zero-Second" cheats: 
+                // If server knows 50s have passed, user cannot claim 1s.
+                // We allow a 2s buffer for network latency/clock drift.
+                const minExpectedTime = Math.max(0, serverElapsed - 2);
+                effectiveTimeSpent = Math.max(timeSpent, minExpectedTime);
+
+                const maxEndTime = startTime + (timerSec * 1000) + pauseDur + GRACE_PERIOD_MS;
                 if (now > maxEndTime) {
                     throw new Error("TIME_EXPIRED");
                 }
             }
 
-
             const difficulty: Difficulty = question.difficulty || "easy";
             const currentStreak = teamData.streak || 0;
-            let isCorrect: boolean | null = null;
-            const questionType = type as QuestionType;
-            let correctAnswerData: Record<string, unknown> | null = null;
-            let mtfCorrectCount = 0;
-            let mtfTotalCount = 0;
 
-            // Scoring Logic
-            switch (questionType) {
-                case "mcq":
-                    if (question.correctChoiceIndex !== undefined) {
-                        isCorrect = answer === question.correctChoiceIndex;
-                        correctAnswerData = {
-                            type: "mcq",
-                            correctChoiceIndex: question.correctChoiceIndex,
-                            choices: question.choices,
-                        };
-                    }
-                    break;
-                case "mtf":
-                    if (question.statements && Array.isArray(answer)) {
-                        const correctAnswers = question.statements.map((s: { isTrue: boolean }) => s.isTrue);
-                        const mtfResult = checkMTFPartial(answer, correctAnswers);
-                        mtfCorrectCount = mtfResult.correctCount;
-                        mtfTotalCount = mtfResult.totalCount;
-                        isCorrect = mtfResult.allCorrect;
-                        correctAnswerData = { type: "mtf", statements: question.statements };
-                    }
-                    break;
-                case "saq":
-                case "spot":
-                    isCorrect = null; // Pending
-                    correctAnswerData = { type: questionType, pendingGrading: true };
-                    break;
-                default:
-                    isCorrect = null;
-            }
-
-            let earnedPoints = 0;
-            let newStreak = currentStreak;
-
-            if (questionType === "mtf") {
-                if (mtfTotalCount > 0) {
-                    const half = mtfTotalCount / 2;
-                    if (mtfCorrectCount <= half) {
-                        earnedPoints = 0;
-                    } else {
-                        const baseScore = calculateScore(difficulty, timeSpent, currentStreak, true);
-                        earnedPoints = Math.round(baseScore * (mtfCorrectCount - half) / half);
-                    }
-                    if (isCorrect) newStreak = Math.min(currentStreak + 1, 4);
-                    else if (mtfCorrectCount === 0) newStreak = 0;
-                }
-            } else if (isCorrect === true) {
-                earnedPoints = calculateScore(difficulty, timeSpent, currentStreak, true);
-                newStreak = Math.min(currentStreak + 1, 4);
-            } else if (isCorrect === false) {
-                newStreak = 0;
-            }
+            // 3. Centralized Scoring Logic
+            const scoreResult = calculateAnswerScore(
+                question,
+                answer,
+                type,
+                difficulty,
+                effectiveTimeSpent,
+                currentStreak
+            );
 
             // Write Answer
             transaction.set(answerRef, {
@@ -157,34 +93,35 @@ export async function POST(request: Request) {
                 questionId,
                 roundId,
                 answer,
-                type: questionType,
+                type: type as QuestionType,
                 submittedAt: now,
-                timeSpent,
-                isCorrect,
-                points: earnedPoints,
+                timeSpent: effectiveTimeSpent,
+                isCorrect: scoreResult.isCorrect,
+                points: scoreResult.points,
                 difficulty,
                 imageUrl: question.imageUrl || null,
                 questionText: question.text || "",
-                mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : null,
-                mtfTotalCount: questionType === "mtf" ? mtfTotalCount : null,
+                mtfCorrectCount: scoreResult.mtfStats?.correctCount ?? null,
+                mtfTotalCount: scoreResult.mtfStats?.totalCount ?? null,
             });
 
             // Update Team Score (Atomic)
-            if (earnedPoints !== 0 || newStreak !== currentStreak) {
+            if (scoreResult.points !== 0 || scoreResult.newStreak !== currentStreak) {
                 transaction.update(teamRef, {
-                    score: FieldValue.increment(earnedPoints),
-                    streak: newStreak
+                    score: FieldValue.increment(scoreResult.points),
+                    streak: scoreResult.newStreak
                 });
             }
 
             // Build Message
             let message = "";
-            if (questionType === "mtf") {
-                message = `${mtfCorrectCount}/${mtfTotalCount} correct! +${earnedPoints} points`;
-                if (mtfCorrectCount === mtfTotalCount) message += ` (streak: ${newStreak})`;
-            } else if (isCorrect === true) {
-                message = `Correct! +${earnedPoints} points (${difficulty}, ${timeSpent.toFixed(1)}s, streak: ${newStreak})`;
-            } else if (isCorrect === false) {
+            if (type === "mtf") {
+                const { correctCount, totalCount } = scoreResult.mtfStats || { correctCount: 0, totalCount: 0 };
+                if (scoreResult.isCorrect) message = `${correctCount}/${totalCount} correct! +${scoreResult.points} points`;
+                else message = `${correctCount}/${totalCount} correct. No partial points.`;
+            } else if (scoreResult.isCorrect === true) {
+                message = `Correct! +${scoreResult.points} points (${difficulty}, ${effectiveTimeSpent.toFixed(1)}s, streak: ${scoreResult.newStreak})`;
+            } else if (scoreResult.isCorrect === false) {
                 message = "Incorrect. Streak reset.";
             } else {
                 message = "Answer submitted. Waiting for admin to grade.";
@@ -192,14 +129,14 @@ export async function POST(request: Request) {
 
             return {
                 success: true,
-                isCorrect,
-                points: earnedPoints,
-                streak: newStreak,
+                isCorrect: scoreResult.isCorrect,
+                points: scoreResult.points,
+                streak: scoreResult.newStreak,
                 message,
-                correctAnswer: correctAnswerData,
-                pendingGrading: isCorrect === null && questionType !== "mtf",
-                mtfCorrectCount: questionType === "mtf" ? mtfCorrectCount : undefined,
-                mtfTotalCount: questionType === "mtf" ? mtfTotalCount : undefined,
+                correctAnswer: scoreResult.correctAnswerData,
+                pendingGrading: scoreResult.isCorrect === null && type !== "mtf",
+                mtfCorrectCount: scoreResult.mtfStats?.correctCount,
+                mtfTotalCount: scoreResult.mtfStats?.totalCount,
             };
         });
 
@@ -207,7 +144,6 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         if (error.message === "ALREADY_SUBMITTED") {
-            // Fetch duplicate return? For now just say it exists
             return NextResponse.json({ error: "Answer already received" }, { status: 409 });
         }
         if (error.message === "TIME_EXPIRED") {

@@ -99,10 +99,109 @@ export function checkSAQAnswer(userAnswer: string, correctAnswer: string): boole
     return normalized(userAnswer) === normalized(correctAnswer);
 }
 
+
 /**
- * Check if MTF answers are all correct
+ * Check MTF partial score
  */
-export function checkMTFAnswer(userAnswers: boolean[], correctAnswers: boolean[]): boolean {
-    if (userAnswers.length !== correctAnswers.length) return false;
-    return userAnswers.every((ans, idx) => ans === correctAnswers[idx]);
+export function checkMTFPartial(userAnswers: boolean[], correctAnswers: boolean[]): {
+    correctCount: number;
+    totalCount: number;
+    allCorrect: boolean;
+} {
+    if (userAnswers.length !== correctAnswers.length) {
+        return { correctCount: 0, totalCount: correctAnswers.length, allCorrect: false };
+    }
+
+    let correctCount = 0;
+    for (let i = 0; i < userAnswers.length; i++) {
+        if (userAnswers[i] === correctAnswers[i]) {
+            correctCount++;
+        }
+    }
+
+    return {
+        correctCount,
+        totalCount: correctAnswers.length,
+        allCorrect: correctCount === correctAnswers.length,
+    };
+}
+
+export type ScoreResult = {
+    isCorrect: boolean | null;
+    points: number;
+    newStreak: number;
+    mtfStats?: { correctCount: number; totalCount: number };
+    correctAnswerData?: any;
+};
+
+/**
+ * Centralized logic to calculate score, streak, and correctness
+ */
+export function calculateAnswerScore(
+    question: any, // Using any to deal with raw Firestore data flexibility
+    answer: any,
+    type: string,
+    difficulty: Difficulty,
+    timeSpent: number,
+    currentStreak: number
+): ScoreResult {
+    let isCorrect: boolean | null = null;
+    let correctAnswerData: any = null;
+    let mtfStats = { correctCount: 0, totalCount: 0 };
+    let points = 0;
+    let newStreak = currentStreak;
+
+    // 1. Determine Correctness
+    switch (type) {
+        case "mcq":
+            if (question.correctChoiceIndex !== undefined) {
+                isCorrect = answer === question.correctChoiceIndex;
+                correctAnswerData = {
+                    type: "mcq",
+                    correctChoiceIndex: question.correctChoiceIndex,
+                    choices: question.choices,
+                };
+            }
+            break;
+        case "mtf":
+            if (question.statements && Array.isArray(answer)) {
+                const correctAnswers = question.statements.map((s: { isTrue: boolean }) => s.isTrue);
+                const mtfResult = checkMTFPartial(answer, correctAnswers);
+                mtfStats = { correctCount: mtfResult.correctCount, totalCount: mtfResult.totalCount };
+                isCorrect = mtfResult.allCorrect;
+                correctAnswerData = { type: "mtf", statements: question.statements };
+            }
+            break;
+        case "saq":
+        case "spot":
+            isCorrect = null; // Pending
+            correctAnswerData = { type, pendingGrading: true };
+            break;
+        default:
+            isCorrect = null;
+    }
+
+    // 2. Calculate Points & Streak
+    if (type === "mtf") {
+        if (isCorrect) {
+            points = calculateScore(difficulty, timeSpent, currentStreak, true);
+            newStreak = Math.min(currentStreak + 1, 4);
+        } else {
+            points = 0;
+            newStreak = 0;
+        }
+    } else if (isCorrect === true) {
+        points = calculateScore(difficulty, timeSpent, currentStreak, true);
+        newStreak = Math.min(currentStreak + 1, 4);
+    } else if (isCorrect === false) {
+        newStreak = 0;
+    }
+
+    return {
+        isCorrect,
+        points,
+        newStreak,
+        mtfStats: type === "mtf" ? mtfStats : undefined,
+        correctAnswerData
+    };
 }

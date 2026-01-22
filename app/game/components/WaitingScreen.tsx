@@ -50,7 +50,7 @@ export function WaitingScreen({ team, allTeams }: WaitingScreenProps) {
                                                     "text-white/70"
                                         )}
                                     >
-                                        <span className="flex items-center gap-1 truncate max-w-[80px]">
+                                        <span className="flex items-center gap-1 break-words max-w-[80px]">
                                             {idx === 0 && t.status === "active" && <span className="text-yellow-400">👑</span>}
                                             {t.name}
                                         </span>

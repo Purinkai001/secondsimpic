@@ -285,7 +285,6 @@ export async function POST(request: Request) {
         // ===== SIMULATE BOT SCORES =====
         if (action === "simulateBotScores") {
             const { difficulty = "easy" } = body;
-            // Map "hard" to "difficult" just in case, though app uses "difficult"
             const diffValue = (difficulty === "hard" ? "difficult" : difficulty) as any;
 
             const teamsSnap = await adminDb.collection("teams").get();
@@ -295,24 +294,17 @@ export async function POST(request: Request) {
             teamsSnap.docs.forEach(doc => {
                 const data = doc.data();
                 if (data.isBot && data.status === "active") {
-                    // 60% chance to be correct
                     const isCorrect = Math.random() < 0.6;
-
                     let newScore = data.score || 0;
                     let newStreak = data.streak || 0;
 
                     if (isCorrect) {
-                        // Simulate human-like time: fast (5s) to slow (45s)
                         const timeSpent = Math.floor(Math.random() * 40) + 5;
-
                         const points = calculateScore(diffValue, timeSpent, newStreak, true);
-
-                        // Update score and streak
                         newScore += points;
                         newStreak += 1;
                     } else {
                         newStreak = 0;
-                        // No points lost
                     }
 
                     batch.update(doc.ref, {
@@ -328,6 +320,25 @@ export async function POST(request: Request) {
             return NextResponse.json({
                 success: true,
                 message: `Simulated realistic turn for ${botsUpdated} bots.`
+            });
+        }
+
+        // ===== DECLARE WINNERS =====
+        if (action === "declareWinners") {
+            const teamsSnap = await adminDb.collection("teams").where("status", "==", "active").get();
+            const batch = adminDb.batch();
+
+            teamsSnap.docs.forEach(doc => {
+                if (doc.data().status === "active") {
+                    batch.update(doc.ref, { status: "winner" });
+                }
+            });
+
+            await batch.commit();
+
+            return NextResponse.json({
+                success: true,
+                message: `Declared ${teamsSnap.size} teams as WINNERS!`
             });
         }
 

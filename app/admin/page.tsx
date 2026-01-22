@@ -5,7 +5,7 @@ import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
 import {
     Activity, Bot, Users, FileQuestion, CheckCircle, Flag,
     RefreshCw, Shuffle, RotateCcw, Layers, AlertTriangle, Zap,
-    Play, Eye, ArrowRight
+    Play, Eye, ArrowRight, Crown
 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { ActionButton } from "@/components/admin/ActionButton";
@@ -118,7 +118,6 @@ export default function AdminDashboardOverview() {
         if (!activeRound) return;
         if (!confirm("Are you sure you want to REVEAL RESULTS? This cannot be undone.")) return;
 
-        // Trigger bot simulation for this turn
         // Trigger bot simulation for this turn
         const roundQuestions = questions
             .filter(q => q.roundId === activeRound.id)
@@ -236,6 +235,16 @@ export default function AdminDashboardOverview() {
                             {activeRound?.pausedAt && (
                                 <ActionButton onClick={resumeRound} icon={Play} label="Resume Hub" variant="success" />
                             )}
+                            <ActionButton
+                                onClick={() => handleAction("declareWinners", async () => {
+                                    if (!confirm("DECLARE WINNERS? This ends the game for active teams.")) return;
+                                    return api.gameAction("declareWinners");
+                                })}
+                                icon={Crown}
+                                label="Declare Winners"
+                                variant="warning"
+                                loading={actionLoading === "declareWinners"}
+                            />
                         </div>
                     </div>
                 </div>

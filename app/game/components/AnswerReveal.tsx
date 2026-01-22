@@ -218,7 +218,7 @@ function renderCorrectAnswer(
                                         )}>
                                             {isUserCorrect ? "✓" : "✗"}
                                         </span>
-                                        <span className="text-white/80 truncate">{statement.text}</span>
+                                        <span className="text-white/80 break-words">{statement.text}</span>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         {/* Your answer */}

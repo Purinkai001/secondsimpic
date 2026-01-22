@@ -208,7 +208,7 @@ export default function ConfigPage() {
                         <select
                             value={selectedTeamId}
                             onChange={(e) => setSelectedTeamId(e.target.value)}
-                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500/50 text-white appearance-none cursor-pointer truncate max-w-[200px] md:max-w-none"
+                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500/50 text-white appearance-none cursor-pointer break-words max-w-[200px] md:max-w-none"
                         >
                             <option value="" className="bg-[#0a0e1a]">Select a team...</option>
                             {teams.map((team) => (

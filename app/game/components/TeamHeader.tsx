@@ -16,7 +16,7 @@ export const TeamHeader = ({ team, onLogout, onRename }: TeamHeaderProps) => (
             </div>
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-xl md:text-2xl font-bold text-white leading-none truncate">{team?.name || "Loading..."}</h1>
+                    <h1 className="text-xl md:text-2xl font-bold text-white leading-none break-words">{team?.name || "Loading..."}</h1>
                     <button onClick={onRename} className="p-1 hover:bg-white/10 rounded transition-colors shrink-0">
                         <Edit2 className="w-3 h-3 text-white/40" />
                     </button>

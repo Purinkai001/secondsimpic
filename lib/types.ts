@@ -45,6 +45,7 @@ export type Question = {
     statements?: MTFStatement[];
     // For SAQ and Spot - correct answer (must match exactly)
     correctAnswer?: string;
+    alternateAnswers?: string[];
 };
 
 export type Answer = {
@@ -59,6 +60,8 @@ export type Answer = {
     timeSpent: number; // seconds spent answering
     submittedAt: number; // timestamp
     pendingGrading?: boolean;
+    mtfCorrectCount?: number;
+    mtfTotalCount?: number;
 };
 
 // Challenge alert for admin

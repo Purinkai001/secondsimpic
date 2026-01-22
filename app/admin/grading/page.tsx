@@ -16,7 +16,7 @@ export default function GradingPage() {
 
     const displayedAnswers = view === "pending"
         ? pendingAnswers
-        : allAnswers.filter((a) => a.pendingGrading === false && a.answer !== undefined); // Simple filter for graded
+        : allAnswers.filter((a) => a.isCorrect !== null && a.answer !== undefined); // Show anything with a made decision
 
     // Grouping by team
     const teamGroups = displayedAnswers.reduce((acc: any, answer) => {
