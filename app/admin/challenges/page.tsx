@@ -81,7 +81,7 @@ export default function ChallengesPage() {
                                         <span className="text-[10px] font-black uppercase tracking-widest">Contested Question</span>
                                     </div>
                                     <p className="text-2xl font-medium text-white/80 italic leading-relaxed bg-black/20 p-6 rounded-3xl border border-white/5">
-                                        "{challenge.questionText}"
+                                        &quot;{challenge.questionText}&quot;
                                     </p>
                                 </div>
 

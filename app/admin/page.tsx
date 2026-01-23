@@ -12,7 +12,6 @@ import { ActionButton } from "@/components/admin/ActionButton";
 import { RoundControl } from "@/components/admin/RoundControl";
 import { QuestionManager } from "@/components/admin/QuestionManager";
 import { EliminationPanel } from "@/components/admin/EliminationPanel";
-import { ChallengeAlerts } from "@/components/admin/ChallengeAlerts";
 import { api } from "@/lib/api";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";

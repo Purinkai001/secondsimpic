@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, getDocs, query, collection, orderBy, updateDoc, onSnapshot, where, limit, setDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { doc, getDoc, query, collection, orderBy, updateDoc, onSnapshot, where, limit, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, requiresManualGrading, ANSWER_REVEAL_DURATION } from "@/app/game/types";
 import { api } from "@/lib/api";
@@ -30,7 +30,6 @@ export function useGameRoom() {
     // Time tracking for scoring
     const questionStartTime = useRef<number | null>(null);
     const [timeSpent, setTimeSpent] = useState<number>(0);
-    const currentQuestionIndex = useRef<number>(-1);
     const gameStateRef = useRef<GameState>("waiting");
 
     useEffect(() => {

@@ -91,13 +91,7 @@ export function calculateScore(
     return Math.round(score); // Round to whole number
 }
 
-/**
- * Check if SAQ/Spot answer matches correctly (case-insensitive, trimmed)
- */
-export function checkSAQAnswer(userAnswer: string, correctAnswer: string): boolean {
-    const normalized = (s: string) => s.trim().toLowerCase();
-    return normalized(userAnswer) === normalized(correctAnswer);
-}
+
 
 
 /**

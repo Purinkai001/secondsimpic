@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
-import { Loader2, ArrowRight, Stethoscope, Sparkles, Zap, Trophy, Users, Brain, Heart, Activity } from "lucide-react";
+import { Loader2, ArrowRight, Stethoscope, Sparkles, Trophy, Users, Brain, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Components

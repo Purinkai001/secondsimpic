@@ -1,4 +1,4 @@
-import { Question, Round, Team, Answer, QuestionType } from "./types";
+import { Question, QuestionType } from "./types";
 import { auth } from "@/lib/firebase";
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
