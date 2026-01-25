@@ -12,12 +12,12 @@ interface LiveStandingsProps {
 export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveStandingsProps) {
     return (
         <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
                 <div className="p-2 bg-yellow-500/20 rounded-lg">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 Live Standings
-                <span className="text-sm font-normal text-white/50 ml-2">({activeTeamsCount} Active)</span>
+                <span className="text-sm font-normal text-muted ml-2">({activeTeamsCount} Active)</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 {GROUPS.map((g, gIdx) => {
@@ -28,12 +28,12 @@ export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveSta
                     return (
                         <motion.div
                             key={g}
-                            className="bg-white/5 border border-white/10 rounded-xl p-3"
+                            className="bg-surface-bg border border-surface-border rounded-xl p-3"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: gIdx * 0.05 }}
                         >
-                            <h3 className="font-bold text-center text-xs uppercase mb-3 text-blue-400">
+                            <h3 className="font-bold text-center text-xs uppercase mb-3 text-accent-blue">
                                 Group {g}
                             </h3>
                             <div className="space-y-1.5">
@@ -43,37 +43,37 @@ export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveSta
                                         className={cn(
                                             "text-xs flex justify-between items-center p-2 rounded-lg group transition-all",
                                             t.status === "eliminated"
-                                                ? "bg-red-500/10 text-red-400/50 line-through"
-                                                : "bg-white/5 hover:bg-white/10 text-white"
+                                                ? "bg-red-500/10 text-red-600/50 dark:text-red-400/50 line-through"
+                                                : "bg-surface-bg/50 hover:bg-surface-bg text-foreground border border-surface-border/50"
                                         )}
                                         whileHover={{ scale: t.status !== "eliminated" ? 1.02 : 1 }}
                                     >
-                                        <span className="break-words max-w-[80px] flex items-center gap-1.5 ">
+                                        <span className="overflow-x-auto whitespace-nowrap max-w-[80px] flex items-center gap-1.5 no-scrollbar">
                                             {idx === 0 && t.status === "active" && (
-                                                <Crown className="w-3 h-3 text-yellow-400" />
+                                                <Crown className="w-3 h-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
                                             )}
-                                            {t.isBot && <Bot className="w-3 h-3 text-purple-400" />}
+                                            {t.isBot && <Bot className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />}
                                             <span className={t.status === "eliminated" ? "" : "font-medium"}>
                                                 {t.name}
                                             </span>
                                         </span>
                                         <div className="flex items-center gap-1">
                                             {(t.streak || 0) > 0 && (
-                                                <span className="flex items-center text-orange-400">
+                                                <span className="flex items-center text-orange-600 dark:text-orange-400">
                                                     <Flame className="w-3 h-3" />
                                                     <span className="text-[10px]">{t.streak}</span>
                                                 </span>
                                             )}
                                             <span className={cn(
                                                 "font-bold min-w-[30px] text-right",
-                                                idx === 0 && t.status === "active" ? "text-yellow-400" : ""
+                                                idx === 0 && t.status === "active" ? "text-yellow-600 dark:text-yellow-400" : ""
                                             )}>
                                                 {t.score}
                                             </span>
                                             {onKickPlayer && (
                                                 <button
                                                     onClick={() => onKickPlayer(t.id, t.name)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded text-red-400 transition-all"
+                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded text-red-600 dark:text-red-400 transition-all"
                                                     title="Kick Player"
                                                 >
                                                     <Trash2 className="w-3 h-3" />
@@ -83,7 +83,7 @@ export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveSta
                                     </motion.div>
                                 ))}
                                 {groupTeams.length === 0 && (
-                                    <p className="text-white/20 text-[10px] text-center py-2">No teams</p>
+                                    <p className="text-muted text-[10px] text-center py-2">No teams</p>
                                 )}
                             </div>
                         </motion.div>

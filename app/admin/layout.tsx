@@ -36,10 +36,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
     if (loadingAuth) {
         return (
-            <div className="h-screen flex items-center justify-center bg-[#0a0e1a]">
+            <div className="h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
-                    <Loader2 className="animate-spin text-blue-500 w-12 h-12 mx-auto mb-4" />
-                    <p className="text-white/50">Loading admin panel...</p>
+                    <Loader2 className="animate-spin text-accent-blue w-12 h-12 mx-auto mb-4" />
+                    <p className="text-muted">Loading admin panel...</p>
                 </div>
             </div>
         );
@@ -48,15 +48,15 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (!user) return <AdminLogin />;
 
     return (
-        <div className="min-h-screen bg-[#0a0e1a] text-white flex">
+        <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
             {/* Sidebar */}
             {!isFullscreen && (
-                <aside className="w-64 border-r border-white/5 bg-black/20 backdrop-blur-xl flex flex-col sticky top-0 h-screen">
+                <aside className="w-64 border-r border-surface-border bg-surface-bg backdrop-blur-xl flex flex-col sticky top-0 h-screen">
                     <div className="p-6 flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                            <ShieldAlert className="w-5 h-5 text-white" />
+                        <div className="p-2 bg-gradient-to-br from-accent-blue to-accent-cyan rounded-lg">
+                            <ShieldAlert className="w-5 h-5 text-white dark:text-foreground" />
                         </div>
-                        <span className="font-bold text-lg">SIMPIC Admin</span>
+                        <span className="font-bold text-lg text-foreground">SIMPIC Admin</span>
                     </div>
 
                     <nav className="flex-1 px-4 py-4 space-y-1">
@@ -68,23 +68,23 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group border",
                                         isActive
-                                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                            : "hover:bg-white/5 text-white/50 hover:text-white"
+                                            ? "bg-accent-blue/10 text-accent-blue border-accent-blue/20"
+                                            : "hover:bg-surface-bg/80 text-muted hover:text-foreground border-transparent"
                                     )}
                                 >
-                                    <Icon className={cn("w-4 h-4", isActive ? "text-blue-400" : "group-hover:text-white")} />
+                                    <Icon className={cn("w-4 h-4", isActive ? "text-accent-blue" : "text-muted group-hover:text-foreground")} />
                                     <span className="font-medium">{item.label}</span>
                                 </Link>
                             );
                         })}
                     </nav>
 
-                    <div className="p-4 border-t border-white/5">
+                    <div className="p-4 border-t border-surface-border">
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted hover:text-red-500 hover:bg-red-500/10 transition-all"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -96,16 +96,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-h-screen">
                 {/* Top Header for User Info */}
-                <header className="px-8 py-4 flex justify-end items-center gap-4 bg-black/10 backdrop-blur-sm border-b border-white/5">
+                <header className="px-8 py-4 flex justify-end items-center gap-4 bg-surface-bg backdrop-blur-sm border-b border-surface-border">
                     <div className="flex items-center gap-3">
                         <div className="text-right">
-                            <p className="text-xs text-white/40 font-bold uppercase tracking-wider">Logged in as</p>
-                            <p className="text-sm font-medium text-blue-400">{user.email}</p>
+                            <p className="text-xs text-muted font-bold uppercase tracking-wider">Logged in as</p>
+                            <p className="text-sm font-medium text-accent-blue">{user.email}</p>
                         </div>
-                        <div className="h-8 w-px bg-white/10 mx-2" />
+                        <div className="h-8 w-px border-surface-border mx-2" />
                         <button
                             onClick={handleLogout}
-                            className="p-2 hover:bg-red-500/20 rounded-lg text-white/50 hover:text-red-400 transition-all"
+                            className="p-2 hover:bg-red-500/20 rounded-lg text-muted hover:text-red-400 transition-all"
                             title="Sign Out"
                         >
                             <LogOut className="w-5 h-5" />
@@ -113,7 +113,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     </div>
                 </header>
 
-                <main className={cn("flex-1", isFullscreen ? "p-0" : "p-8")}>
+                <main className={cn("flex-1 overflow-x-auto", isFullscreen ? "p-0" : "p-8")}>
                     {children}
                 </main>
             </div>
@@ -124,8 +124,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
         <Suspense fallback={
-            <div className="h-screen flex items-center justify-center bg-[#0a0e1a]">
-                <Loader2 className="animate-spin text-blue-500 w-12 h-12" />
+            <div className="h-screen flex items-center justify-center bg-background">
+                <Loader2 className="animate-spin text-accent-blue w-12 h-12" />
             </div>
         }>
             <LayoutContent>{children}</LayoutContent>

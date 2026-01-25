@@ -41,12 +41,12 @@ export function AdminLogin() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#0a0e1a] p-4 relative overflow-hidden">
+        <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-x-auto transition-colors duration-300">
             {/* Background effects */}
             <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-slate-900" />
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/20 via-accent-cyan/10 to-background" />
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent-blue/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl" />
             </div>
 
             {/* Grid overlay */}
@@ -54,8 +54,8 @@ export function AdminLogin() {
                 className="absolute inset-0 opacity-[0.02]"
                 style={{
                     backgroundImage: `
-                        linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                        linear-gradient(var(--foreground) 1px, transparent 1px),
+                        linear-gradient(90deg, var(--foreground) 1px, transparent 1px)
                     `,
                     backgroundSize: "50px 50px",
                 }}
@@ -72,20 +72,20 @@ export function AdminLogin() {
 
                 <form
                     onSubmit={handleLogin}
-                    className="relative bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-2xl space-y-6"
+                    className="relative bg-surface-bg backdrop-blur-2xl border border-surface-border p-8 rounded-3xl shadow-2xl space-y-6"
                 >
                     {/* Logo */}
                     <div className="flex flex-col items-center mb-6">
                         <motion.div
-                            className="p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl shadow-lg shadow-blue-500/20 mb-4"
+                            className="p-4 bg-gradient-to-br from-accent-blue to-accent-cyan rounded-2xl shadow-lg shadow-accent-blue/20 mb-4"
                             whileHover={{ scale: 1.05, rotate: 5 }}
                         >
                             <Lock className="w-8 h-8 text-white" />
                         </motion.div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                        <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-accent-blue bg-clip-text text-transparent">
                             Admin Access
                         </h1>
-                        <p className="text-white/40 text-sm mt-1">MedQuiz Arena Control Center</p>
+                        <p className="text-muted text-sm mt-1">MedQuiz Arena Control Center</p>
                     </div>
 
                     {/* Error message */}
@@ -103,25 +103,25 @@ export function AdminLogin() {
                     <div className="space-y-4">
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                <Mail className="w-4 h-4 text-white/30 group-focus-within:text-blue-400 transition-colors" />
+                                <Mail className="w-4 h-4 text-muted/30 group-focus-within:text-accent-blue transition-colors" />
                             </div>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 p-4 pl-11 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                className="w-full bg-surface-bg/50 border border-surface-border p-4 pl-11 rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/20 transition-all"
                                 placeholder="Email Address"
                             />
                         </div>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                <Key className="w-4 h-4 text-white/30 group-focus-within:text-blue-400 transition-colors" />
+                                <Key className="w-4 h-4 text-muted/30 group-focus-within:text-accent-blue transition-colors" />
                             </div>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 p-4 pl-11 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                className="w-full bg-surface-bg/50 border border-surface-border p-4 pl-11 rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/20 transition-all"
                                 placeholder="Password"
                             />
                         </div>
@@ -131,12 +131,12 @@ export function AdminLogin() {
                     <motion.button
                         disabled={loading}
                         type="submit"
-                        className="relative w-full overflow-hidden group"
+                        className="relative w-full overflow-x-auto group"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-accent-blue to-accent-cyan rounded-xl" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-accent-blue/80 to-accent-cyan/80 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="relative flex items-center justify-center gap-2 py-4 text-white font-bold">
                             {loading ? (
                                 <Loader2 className="animate-spin w-5 h-5" />
@@ -149,10 +149,10 @@ export function AdminLogin() {
                     {/* Divider */}
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-white/10"></span>
+                            <span className="w-full border-t border-surface-border"></span>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-[#0d1220] px-3 text-white/30">Or continue with</span>
+                            <span className="bg-background px-3 text-muted">Or continue with</span>
                         </div>
                     </div>
 
@@ -161,7 +161,7 @@ export function AdminLogin() {
                         type="button"
                         onClick={handleGoogleLogin}
                         disabled={loading}
-                        className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white p-4 rounded-xl font-semibold transition-all flex justify-center items-center gap-3 disabled:opacity-50"
+                        className="w-full bg-surface-bg hover:bg-surface-bg/80 border border-surface-border text-foreground p-4 rounded-xl font-semibold transition-all flex justify-center items-center gap-3 disabled:opacity-50"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                     >
@@ -177,7 +177,7 @@ export function AdminLogin() {
             </motion.div>
 
             {/* Footer */}
-            <div className="absolute bottom-6 text-white/20 text-xs">
+            <div className="absolute bottom-6 text-muted text-xs">
                 © 2025 MedSimpic Admin Panel
             </div>
         </div>

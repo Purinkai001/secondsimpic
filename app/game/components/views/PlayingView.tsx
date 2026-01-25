@@ -38,15 +38,15 @@ export const PlayingView = ({
             <div className="flex justify-between items-end mb-8 px-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-3">
-                        <span className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic border border-white/10 shadow-lg", labels.color)}>
+                        <span className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic border border-surface-border shadow-lg", labels.color)}>
                             {labels.label}
                         </span>
-                        <div className="h-4 w-[1px] bg-white/10" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 italic">
-                            Difficulty: <span className={cn("text-white", difficulty.color)}>{difficulty.label}</span>
+                        <div className="h-4 w-[1px] bg-surface-border" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted italic">
+                            Difficulty: <span className={cn("text-foreground", difficulty.color)}>{difficulty.label}</span>
                         </span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-white/20 uppercase tracking-widest pl-1">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted/40 uppercase tracking-widest pl-1">
                         <Activity className="w-3 h-3" />
                         Live Feed Status • Question Synchronized
                     </div>
@@ -54,8 +54,8 @@ export const PlayingView = ({
 
                 <div className="flex items-center gap-8">
                     <div className="text-right hidden sm:block">
-                        <p className="text-[10px] text-white/30 uppercase font-black tracking-widest mb-1">Response Time</p>
-                        <p className="text-2xl font-black italic tracking-tighter text-cyan-400 font-mono leading-none">
+                        <p className="text-[10px] text-muted uppercase font-black tracking-widest mb-1">Response Time</p>
+                        <p className="text-2xl font-black italic tracking-tighter text-accent-cyan font-mono leading-none">
                             {timeSpent.toFixed(1)}<span className="text-xs ml-0.5">s</span>
                         </p>
                     </div>
@@ -63,8 +63,8 @@ export const PlayingView = ({
                     <div className={cn(
                         "relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center border backdrop-blur-3xl transition-all duration-500 shadow-2xl",
                         (timeLeft || 0) < 10
-                            ? "bg-red-500/20 border-red-500/50 text-red-400 scale-110"
-                            : "bg-white/5 border-white/10 text-white"
+                            ? "bg-red-500/20 border-red-500/50 text-red-600 dark:text-red-400 scale-110"
+                            : "bg-surface-bg border-surface-border text-foreground"
                     )}>
                         <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Limit</p>
                         <span className="text-3xl font-black font-mono leading-none">{timeLeft}</span>
@@ -79,20 +79,20 @@ export const PlayingView = ({
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full bg-white/[0.02] border border-white/10 rounded-[4rem] p-12 shadow-2xl relative overflow-hidden group"
+                className="w-full bg-surface-bg border border-surface-border rounded-[4rem] p-12 shadow-2xl relative overflow-hidden group"
             >
                 <div className="absolute top-0 right-0 p-12 opacity-[0.02] transform rotate-12">
-                    <Brain className="w-64 h-64 text-white" />
+                    <Brain className="w-64 h-64 text-foreground" />
                 </div>
 
                 <div className="relative z-10 space-y-12">
-                    {/* DIAGNOSTIC OVERLAY - Only shows if imageUrl is missing but should be there, or to verify keys */}
+                    {/* DIAGNOSTIC OVERLAY */}
                     <div className="hidden">
                         DEBUG: {question.id} | Image: {question.imageUrl || 'MISSING'} | Keys: {Object.keys(question).join(', ')}
                     </div>
 
                     {question.imageUrl ? (
-                        <div className="relative w-full min-h-[300px] aspect-video rounded-[2.5rem] overflow-hidden border-4 border-dashed border-blue-500/50 shadow-2xl bg-black/40 group-hover:border-white/20 transition-all duration-700">
+                        <div className="relative w-full min-h-[300px] aspect-video rounded-[2.5rem] overflow-hidden border-4 border-dashed border-accent-blue/50 shadow-2xl bg-surface-bg/80 group-hover:border-accent-blue/30 transition-all duration-700">
                             <img
                                 src={question.imageUrl}
                                 alt="Case Illustration"
@@ -110,22 +110,20 @@ export const PlayingView = ({
                                     }
                                 }}
                             />
-                            <div className="absolute top-6 right-6 px-4 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full">
-                                <span className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            <div className="absolute top-6 right-6 px-4 py-2 bg-surface-bg/60 backdrop-blur-xl border border-surface-border rounded-full">
+                                <span className="text-muted text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                                     <ImageIcon className="w-3 h-3" /> Case Documentation
                                 </span>
                             </div>
                         </div>
-                    ) : (<div>
-
-                    </div>)}
+                    ) : (<div></div>)}
 
                     <div>
-                        <div className="flex items-center gap-2 mb-4 text-blue-400/60">
+                        <div className="flex items-center gap-2 mb-4 text-accent-blue">
                             <Zap className="w-4 h-4 fill-current" />
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">Proctor Inquiry</span>
                         </div>
-                        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black text-white leading-tight italic tracking-tight break-words hyphens-auto">
+                        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black text-foreground leading-tight italic tracking-tight break-words hyphens-auto uppercase">
                             {question.text || "Examine the clinical presentation and determine the most likely diagnosis."}
                         </h2>
                     </div>
@@ -141,18 +139,18 @@ export const PlayingView = ({
                                         className={cn(
                                             "group text-left p-4 md:p-6 rounded-2xl md:rounded-3xl border transition-all duration-300 relative overflow-hidden min-h-[5rem] flex items-center",
                                             mcqAnswer === idx
-                                                ? "bg-blue-500 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
-                                                : "bg-white/[0.03] border-white/5 text-white/60 hover:bg-white/10 hover:border-white/20"
+                                                ? "bg-accent-blue border-accent-blue shadow-[0_0_30px_rgba(59,130,246,0.2)] text-white"
+                                                : "bg-surface-bg border-surface-border text-muted hover:bg-surface-bg/80 hover:border-accent-blue/30"
                                         )}
                                     >
                                         <div className="flex items-center gap-4 md:gap-5 relative z-10 w-full">
                                             <div className={cn(
                                                 "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-lg md:text-xl italic transition-all duration-300 shrink-0",
-                                                mcqAnswer === idx ? "bg-white text-blue-600 shadow-xl" : "bg-white/5 text-white/20 group-hover:bg-white/10"
+                                                mcqAnswer === idx ? "bg-white text-accent-blue shadow-xl" : "bg-surface-bg border border-surface-border text-muted/50 group-hover:bg-surface-bg/50"
                                             )}>
                                                 {String.fromCharCode(65 + idx)}
                                             </div>
-                                            <span className={cn("text-base md:text-xl font-bold tracking-tight break-words hyphens-auto", mcqAnswer === idx ? "text-white" : "text-white/80")}>
+                                            <span className={cn("text-base md:text-xl font-bold tracking-tight break-words hyphens-auto", mcqAnswer === idx ? "text-white" : "text-foreground/80 group-hover:text-foreground")}>
                                                 {choice.text}
                                             </span>
                                         </div>
@@ -164,12 +162,12 @@ export const PlayingView = ({
                         {question.type === "mtf" && (
                             <div className="grid grid-cols-1 gap-4">
                                 {question.statements?.map((s, idx) => (
-                                    <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-3xl group/item hover:border-white/10 transition-all duration-300">
+                                    <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-surface-bg border border-surface-border rounded-3xl group/item hover:border-accent-blue/20 transition-all duration-300">
                                         <div className="flex items-center gap-5 mb-4 md:mb-0">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black italic text-white/20">
+                                            <div className="w-10 h-10 rounded-xl bg-surface-bg border border-surface-border flex items-center justify-center text-xs font-black italic text-muted/40">
                                                 {idx + 1}
                                             </div>
-                                            <span className="text-white/80 font-bold text-xl tracking-tight leading-snug">{s.text}</span>
+                                            <span className="text-foreground/80 font-bold text-xl tracking-tight leading-snug group-hover/item:text-foreground">{s.text}</span>
                                         </div>
                                         <div className="flex gap-3 shrink-0">
                                             <button
@@ -182,8 +180,8 @@ export const PlayingView = ({
                                                 className={cn(
                                                     "flex-1 md:flex-none px-8 py-3 rounded-2xl border text-[10px] font-black uppercase italic transition-all duration-300 tracking-widest",
                                                     mtfAnswers[idx] === true
-                                                        ? "bg-green-500 border-green-400 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]"
-                                                        : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                                                        ? "bg-green-600 border-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+                                                        : "bg-surface-bg border-surface-border text-muted hover:bg-surface-bg/80 hover:text-foreground"
                                                 )}
                                             >True</button>
                                             <button
@@ -196,8 +194,8 @@ export const PlayingView = ({
                                                 className={cn(
                                                     "flex-1 md:flex-none px-8 py-3 rounded-2xl border text-[10px] font-black uppercase italic transition-all duration-300 tracking-widest",
                                                     mtfAnswers[idx] === false
-                                                        ? "bg-red-500 border-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                                                        : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                                                        ? "bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                                                        : "bg-surface-bg border-surface-border text-muted hover:bg-surface-bg/80 hover:text-foreground"
                                                 )}
                                             >False</button>
                                         </div>
@@ -208,7 +206,7 @@ export const PlayingView = ({
 
                         {(question.type === "saq" || question.type === "spot") && (
                             <div className="relative group/input">
-                                <div className="absolute left-8 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-white/20 group-focus-within/input:text-blue-500 transition-all duration-500">
+                                <div className="absolute left-8 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-muted/20 group-focus-within/input:text-accent-blue transition-all duration-500">
                                     <Brain className="w-full h-full" />
                                 </div>
                                 <input
@@ -217,7 +215,7 @@ export const PlayingView = ({
                                     value={textAnswer}
                                     onChange={(e) => setTextAnswer(e.target.value)}
                                     placeholder="Enter clinical diagnosis..."
-                                    className="w-full bg-white/[0.02] border border-white/10 rounded-[2.5rem] py-8 pl-20 pr-10 text-2xl font-black text-white italic placeholder:text-white/5 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all duration-500 shadow-2xl"
+                                    className="w-full bg-surface-bg/50 border border-surface-border rounded-[2.5rem] py-8 pl-20 pr-10 text-2xl font-black text-foreground italic placeholder:text-muted/10 outline-none focus:border-accent-blue/50 focus:ring-4 focus:ring-accent-blue/10 transition-all duration-500 shadow-2xl"
                                 />
                             </div>
                         )}
@@ -228,13 +226,13 @@ export const PlayingView = ({
                             <button
                                 disabled={submitting}
                                 onClick={onSubmit}
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-8 rounded-[2.5rem] text-2xl uppercase italic tracking-[0.3em] shadow-2xl shadow-blue-500/20 flex items-center justify-center gap-4 transition-all duration-500 active:scale-95 disabled:opacity-50 overflow-hidden relative group/btn"
+                                className="w-full bg-gradient-to-r from-accent-blue to-indigo-600 hover:opacity-90 text-white font-black py-8 rounded-[2.5rem] text-2xl uppercase italic tracking-[0.3em] shadow-2xl shadow-accent-blue/20 flex items-center justify-center gap-4 transition-all duration-500 active:scale-95 disabled:opacity-50 overflow-hidden relative group/btn"
                             >
                                 <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000" />
                                 {submitting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Zap className="w-8 h-8 fill-current" />}
                                 Submit
                             </button>
-                            <p className="text-center text-[10px] font-bold text-white/10 uppercase tracking-[0.4em] mt-6">Secure Uplink Established • Encryption Active</p>
+                            <p className="text-center text-[10px] font-bold text-muted/20 uppercase tracking-[0.4em] mt-6">Secure Uplink Established • Encryption Active</p>
                         </div>
                     )}
                 </div>

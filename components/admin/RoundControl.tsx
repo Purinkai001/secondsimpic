@@ -26,9 +26,9 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
 
     return (
         <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <Play className="w-4 h-4 text-blue-400" />
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
+                <div className="p-2 bg-accent-blue/20 rounded-lg">
+                    <Play className="w-4 h-4 text-accent-blue" />
                 </div>
                 Round Control
             </h2>
@@ -50,21 +50,21 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                 isActive
                                     ? "bg-green-500/10 border-green-500/30"
                                     : isCompleted
-                                        ? "bg-white/5 border-white/5 opacity-60"
-                                        : "bg-white/5 border-white/10 hover:bg-white/10"
+                                        ? "bg-surface-bg/50 border-surface-border opacity-60"
+                                        : "bg-surface-bg border-surface-border hover:bg-surface-bg/80"
                             )}
                         >
                             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
                                 <div className="flex items-center gap-2 mb-2 xl:mb-0">
-                                    <span className="font-bold uppercase text-sm text-white">{r.id.replace("-", " ")}</span>
+                                    <span className="font-bold uppercase text-sm text-foreground">{r.id.replace("-", " ")}</span>
                                     <span
                                         className={cn(
                                             "text-xs px-2 py-0.5 rounded-full font-semibold",
                                             isActive
-                                                ? "bg-green-500/20 text-green-400"
+                                                ? "bg-green-500/20 text-green-500 dark:text-green-400"
                                                 : isCompleted
-                                                    ? "bg-blue-500/20 text-blue-400"
-                                                    : "bg-white/10 text-white/50"
+                                                    ? "bg-accent-blue/20 text-accent-blue"
+                                                    : "bg-surface-bg/80 text-muted"
                                         )}
                                     >
                                         {r.status}
@@ -106,8 +106,8 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                         className={cn(
                                             "flex-1 xl:flex-none justify-center text-xs px-3 py-1.5 rounded-lg font-semibold border transition-all whitespace-nowrap",
                                             selectedRoundId === r.id
-                                                ? "bg-blue-500 text-white border-blue-500"
-                                                : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10"
+                                                ? "bg-accent-blue text-white border-accent-blue"
+                                                : "bg-surface-bg text-muted border-surface-border hover:bg-surface-bg/80"
                                         )}
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
@@ -117,12 +117,12 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                 </div>
                             </div>
                             {startTime && (
-                                <div className="text-xs text-white/40 flex items-center gap-1 mt-2">
+                                <div className="text-xs text-muted/60 flex items-center gap-1 mt-2">
                                     <Calendar className="w-3 h-3" />
                                     {isScheduled ? `Starts at ${startTime}` : `Started at ${startTime}`}
                                 </div>
                             )}
-                            <div className="text-xs text-white/30 mt-1 flex items-center gap-2">
+                            <div className="text-xs text-muted/40 mt-1 flex items-center gap-2">
                                 <Clock className="w-3 h-3" />
                                 Timer: {r.questionTimer || 100}s per question | Q Index: {r.currentQuestionIndex || 0}
                             </div>

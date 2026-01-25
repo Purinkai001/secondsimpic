@@ -99,14 +99,14 @@ export default function ModifyScorePage() {
     return (
         <div className="space-y-8 pb-20">
             <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-accent-blue/60">
                     Modify Scores
                 </h1>
-                <p className="text-white/40 mt-1">Force modify team scores</p>
+                <p className="text-muted mt-1">Force modify team scores</p>
             </div>
 
-            <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-6">
-                <div className="flex items-center gap-2 text-white/40 text-xs uppercase font-bold tracking-widest">
+            <div className="bg-surface-bg border border-surface-border rounded-3xl p-6 space-y-6 shadow-sm">
+                <div className="flex items-center gap-2 text-muted text-xs uppercase font-bold tracking-widest">
                     <Target className="w-3 h-3" /> Modify Options
                 </div>
 
@@ -116,8 +116,8 @@ export default function ModifyScorePage() {
                         className={cn(
                             "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
                             mode === "set"
-                                ? "bg-blue-500 text-white"
-                                : "bg-white/5 text-white/60 hover:bg-white/10"
+                                ? "bg-accent-blue text-white shadow-lg shadow-accent-blue/20"
+                                : "bg-surface-bg border border-surface-border text-muted hover:bg-surface-bg/80"
                         )}
                     >
                         <Target className="w-4 h-4" /> Set To
@@ -127,8 +127,8 @@ export default function ModifyScorePage() {
                         className={cn(
                             "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
                             mode === "add"
-                                ? "bg-green-500 text-white"
-                                : "bg-white/5 text-white/60 hover:bg-white/10"
+                                ? "bg-green-600 text-white shadow-lg shadow-green-600/20"
+                                : "bg-surface-bg border border-surface-border text-muted hover:bg-surface-bg/80"
                         )}
                     >
                         <Plus className="w-4 h-4" /> Add
@@ -138,8 +138,8 @@ export default function ModifyScorePage() {
                         className={cn(
                             "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
                             mode === "subtract"
-                                ? "bg-red-500 text-white"
-                                : "bg-white/5 text-white/60 hover:bg-white/10"
+                                ? "bg-red-600 text-white shadow-lg shadow-red-600/20"
+                                : "bg-surface-bg border border-surface-border text-muted hover:bg-surface-bg/80"
                         )}
                     >
                         <Minus className="w-4 h-4" /> Subtract
@@ -147,19 +147,19 @@ export default function ModifyScorePage() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <label className="text-white/60 font-bold">Value:</label>
+                    <label className="text-muted font-bold">Value:</label>
                     <input
                         type="number"
                         value={value}
                         onChange={(e) => setValue(Number(e.target.value))}
-                        className="w-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-xl text-center"
+                        className="w-32 bg-surface-bg/50 border border-surface-border rounded-xl px-4 py-3 text-foreground font-black text-xl text-center focus:outline-none focus:border-accent-blue/30"
                     />
                 </div>
 
                 <button
                     onClick={handleSubmit}
                     disabled={loading || selectedIds.size === 0}
-                    className="w-full py-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl font-bold text-lg uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-cyan rounded-xl font-black text-lg uppercase tracking-widest text-white disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-accent-blue/10"
                 >
                     {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                     Apply to {selectedIds.size} Team{selectedIds.size !== 1 ? "s" : ""}
@@ -167,24 +167,24 @@ export default function ModifyScorePage() {
 
                 {result && (
                     <div className={cn(
-                        "p-4 rounded-xl text-center font-bold",
-                        result.startsWith("✓") ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                        "p-4 rounded-xl text-center font-bold animate-in fade-in slide-in-from-top-2",
+                        result.startsWith("✓") ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
                     )}>
                         {result}
                     </div>
                 )}
             </div>
 
-            <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-6">
+            <div className="bg-surface-bg border border-surface-border rounded-3xl p-6 space-y-6 shadow-sm">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-white/40 text-xs uppercase font-bold tracking-widest">
+                    <div className="flex items-center gap-2 text-muted text-xs uppercase font-bold tracking-widest">
                         <Users className="w-3 h-3" /> Select Teams ({selectedIds.size} selected)
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={selectAll} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white/60">
+                        <button onClick={selectAll} className="px-3 py-1 bg-surface-bg hover:bg-surface-bg/80 border border-surface-border rounded-lg text-xs font-bold text-muted transition-colors">
                             Select All
                         </button>
-                        <button onClick={deselectAll} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white/60">
+                        <button onClick={deselectAll} className="px-3 py-1 bg-surface-bg hover:bg-surface-bg/80 border border-surface-border rounded-lg text-xs font-bold text-muted transition-colors">
                             Deselect All
                         </button>
                     </div>
@@ -199,19 +199,19 @@ export default function ModifyScorePage() {
                     return (
                         <div key={div} className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-white/60 font-bold text-sm uppercase tracking-widest">
+                                <span className="text-muted font-black text-sm uppercase tracking-widest">
                                     Division {div} {div === 6 ? "(Graveyard)" : ""}
                                 </span>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => selectDivision(div)}
-                                        className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-bold text-white/40"
+                                        className="px-2 py-1 bg-surface-bg hover:bg-surface-bg/80 border border-surface-border rounded text-[10px] font-bold text-muted transition-colors"
                                     >
                                         Select
                                     </button>
                                     <button
                                         onClick={() => deselectDivision(div)}
-                                        className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-bold text-white/40"
+                                        className="px-2 py-1 bg-surface-bg hover:bg-surface-bg/80 border border-surface-border rounded text-[10px] font-bold text-muted transition-colors"
                                     >
                                         Deselect
                                     </button>
@@ -223,20 +223,20 @@ export default function ModifyScorePage() {
                                         key={team.id}
                                         onClick={() => toggleTeam(team.id)}
                                         className={cn(
-                                            "p-3 rounded-xl border transition-all text-left",
+                                            "p-3 rounded-xl border transition-all text-left group/card",
                                             selectedIds.has(team.id)
-                                                ? "bg-blue-500/20 border-blue-500/50 text-white"
-                                                : "bg-white/[0.02] border-white/5 text-white/60 hover:bg-white/5"
+                                                ? "bg-accent-blue/10 border-accent-blue text-foreground"
+                                                : "bg-surface-bg/50 border-surface-border text-muted hover:bg-surface-bg hover:border-accent-blue/30"
                                         )}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <span className="font-bold text-sm truncate">{team.name}</span>
-                                            {selectedIds.has(team.id) && <Check className="w-4 h-4 text-blue-400 shrink-0" />}
+                                            <span className={cn("font-bold text-sm truncate", selectedIds.has(team.id) ? "text-accent-blue" : "text-foreground/80 group-hover/card:text-foreground")}>{team.name}</span>
+                                            {selectedIds.has(team.id) && <Check className="w-4 h-4 text-accent-blue shrink-0" />}
                                         </div>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-xs text-white/40">Score:</span>
-                                            <span className="text-xs font-bold">{team.score}</span>
-                                            {team.isBot && <span className="text-[8px] px-1 bg-white/10 rounded">BOT</span>}
+                                            <span className="text-xs text-muted/40">Score:</span>
+                                            <span className="text-xs font-bold text-foreground/60">{team.score}</span>
+                                            {team.isBot && <span className="text-[8px] px-1 bg-muted/10 text-muted rounded">BOT</span>}
                                         </div>
                                     </button>
                                 ))}

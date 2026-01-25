@@ -73,28 +73,28 @@ export default function TrackingPage() {
         <div className="space-y-10 pb-20">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-white via-white to-amber-500 bg-clip-text text-transparent italic tracking-tight">
-                        LIVE TRACKING
+                    <h1 className="text-5xl font-black bg-gradient-to-r from-foreground via-foreground to-amber-500 bg-clip-text text-transparent italic tracking-tight uppercase">
+                        Live Tracking
                     </h1>
-                    <p className="text-white/40 mt-2 text-lg font-medium">Real-time connection monitoring</p>
+                    <p className="text-muted mt-2 text-lg font-medium">Real-time connection monitoring</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="px-6 py-3 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center gap-3">
-                        <Wifi className="w-5 h-5 text-green-500" />
+                        <Wifi className="w-5 h-5 text-green-600 dark:text-green-500" />
                         <div>
-                            <span className="text-xl font-black text-white">
+                            <span className="text-xl font-black text-foreground">
                                 {humanTeams.filter(t => getStatus(presence[t.id]?.lastSeen) === "online").length}
                             </span>
-                            <span className="text-[10px] uppercase font-bold text-green-500 ml-2">Online</span>
+                            <span className="text-[10px] uppercase font-bold text-green-600 dark:text-green-500 ml-2">Online</span>
                         </div>
                     </div>
                     <div className="px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3">
-                        <WifiOff className="w-5 h-5 text-red-500" />
+                        <WifiOff className="w-5 h-5 text-red-600 dark:text-red-500" />
                         <div>
-                            <span className="text-xl font-black text-white">
+                            <span className="text-xl font-black text-foreground">
                                 {humanTeams.filter(t => getStatus(presence[t.id]?.lastSeen) === "offline").length}
                             </span>
-                            <span className="text-[10px] uppercase font-bold text-red-500 ml-2">Offline</span>
+                            <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-500 ml-2">Offline</span>
                         </div>
                     </div>
                 </div>
@@ -111,32 +111,32 @@ export default function TrackingPage() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.05 }}
-                            className="bg-white/[0.03] border border-white/5 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6"
+                            className="bg-surface-bg border border-surface-border rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6"
                         >
                             <div className="flex items-center gap-6 flex-1">
                                 <div className={`w-3 h-3 rounded-full ${status === 'online' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : status === 'idle' ? 'bg-amber-500' : 'bg-red-500'}`} />
                                 <div>
-                                    <h3 className="text-xl font-bold text-white">{team.name}</h3>
-                                    <p className="text-xs text-white/30 uppercase tracking-widest font-bold">Group {team.group}</p>
+                                    <h3 className="text-xl font-bold text-foreground">{team.name}</h3>
+                                    <p className="text-xs text-muted/60 uppercase tracking-widest font-bold">Group {team.group}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-8 md:gap-12 flex-1 justify-end">
-                                <div className="flex items-center gap-3 text-white/50">
+                                <div className="flex items-center gap-3 text-muted">
                                     <Clock className="w-4 h-4" />
                                     <span className="text-sm font-medium tabular-nums">{formatTimeAgo(p?.lastSeen)}</span>
                                 </div>
 
-                                <div className="flex items-center gap-3 text-white/50 max-w-[200px] hidden md:flex">
+                                <div className="flex items-center gap-3 text-muted max-w-[200px] hidden md:flex">
                                     <Laptop className="w-4 h-4" />
                                     <span className="text-xs break-words" title={p?.userAgent || "Unknown"}>
                                         {p?.userAgent ? (p.userAgent.includes("Windows") ? "Windows" : p.userAgent.includes("Mac") ? "Mac" : p.userAgent.includes("iPhone") ? "iPhone" : "Device") : "Unknown"}
                                     </span>
                                 </div>
 
-                                <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 min-w-[100px] text-center">
-                                    <div className="text-[10px] uppercase font-bold text-white/30">Score</div>
-                                    <div className="text-xl font-black text-white tabular-nums">{team.score}</div>
+                                <div className="bg-surface-bg border border-surface-border px-4 py-2 rounded-xl min-w-[100px] text-center">
+                                    <div className="text-[10px] uppercase font-bold text-muted/60">Score</div>
+                                    <div className="text-xl font-black text-foreground tabular-nums">{team.score}</div>
                                 </div>
                             </div>
                         </motion.div>

@@ -32,7 +32,7 @@ export const ActionButton = ({
             onClick={onClick}
             disabled={disabled || loading}
             className={cn(
-                "relative overflow-hidden bg-gradient-to-r text-white px-4 py-2.5 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                "relative overflow-x-auto bg-gradient-to-r text-white px-4 py-2.5 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed",
                 variants[variant]
             )}
             whileHover={{ scale: disabled ? 1 : 1.02 }}

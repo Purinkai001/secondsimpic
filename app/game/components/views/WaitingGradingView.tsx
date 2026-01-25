@@ -12,54 +12,54 @@ interface WaitingGradingViewProps {
 
 export const WaitingGradingView = ({ result, timeLeft, question }: WaitingGradingViewProps) => (
     <div className="max-w-5xl mx-auto w-full px-4 space-y-12">
-        <div className="bg-white/[0.02] border border-white/10 rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+        <div className="bg-surface-bg border border-surface-border rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shadow-xl transition-colors duration-300">
             <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
                 <div className="relative shrink-0">
                     <motion.div
-                        className="absolute inset-0 bg-blue-500 blur-2xl opacity-20"
+                        className="absolute inset-0 bg-accent-blue blur-2xl opacity-20"
                         animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
                         transition={{ duration: 4, repeat: Infinity }}
                     />
-                    <div className="relative p-5 md:p-6 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-2xl">
-                        <Loader2 className="w-8 h-8 md:w-10 md:h-10 text-blue-500 animate-spin" />
+                    <div className="relative p-5 md:p-6 bg-surface-bg border border-surface-border rounded-2xl">
+                        <Loader2 className="w-8 h-8 md:w-10 md:h-10 text-accent-blue animate-spin" />
                     </div>
                 </div>
                 <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter italic leading-none mb-2">Evaluation In Progress</h2>
-                    <p className="text-blue-300/40 text-[10px] font-black uppercase tracking-widest">Verifying Clinical Records • Syncing Data</p>
+                    <h2 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-tighter italic leading-none mb-2">Evaluation In Progress</h2>
+                    <p className="text-accent-blue/60 text-[10px] font-black uppercase tracking-widest">Verifying Clinical Records • Syncing Data</p>
                 </div>
             </div>
 
             {timeLeft != null && (
-                <div className="w-full md:w-auto px-8 py-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl md:rounded-3xl flex flex-col items-center md:block text-center md:text-right">
-                    <span className="text-blue-400 font-black text-3xl tabular-nums leading-none">
+                <div className="w-full md:w-auto px-8 py-4 bg-accent-blue/10 border border-accent-blue/30 rounded-2xl md:rounded-3xl flex flex-col items-center md:block text-center md:text-right">
+                    <span className="text-accent-blue font-black text-3xl tabular-nums leading-none">
                         {timeLeft}s
                     </span>
-                    <span className="ml-0 md:ml-3 text-[10px] text-blue-300/40 uppercase font-black tracking-widest block transform md:-translate-y-1 mt-1 md:mt-0">Next Phase Sync</span>
+                    <span className="ml-0 md:ml-3 text-[10px] text-accent-blue/40 uppercase font-black tracking-widest block transform md:-translate-y-1 mt-1 md:mt-0">Next Phase Sync</span>
                 </div>
             )}
         </div>
 
         {question && (
-            <div className="opacity-40 grayscale-[0.5] transition-all hover:opacity-80">
+            <div className="opacity-40 grayscale-[0.5] transition-all hover:opacity-100 hover:grayscale-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     {question.imageUrl && (
-                        <div className="aspect-video rounded-3xl overflow-hidden border border-white/10 bg-black/40">
+                        <div className="aspect-video rounded-3xl overflow-hidden border border-surface-border bg-black/5">
                             <img src={question.imageUrl} className="w-full h-full object-contain" alt="Question" />
                         </div>
                     )}
                     <div className="space-y-4 text-left">
-                        <div className="flex items-center gap-2 text-blue-400/40">
+                        <div className="flex items-center gap-2 text-accent-blue/40">
                             <ScrollText className="w-4 h-4" />
                             <span className="text-[10px] font-black uppercase tracking-widest italic">Reference Document</span>
                         </div>
-                        <h3 className="text-2xl font-bold text-white leading-tight italic">{question.text}</h3>
+                        <h3 className="text-2xl font-bold text-foreground leading-tight italic">{question.text}</h3>
                         {result && (
-                            <div className="pt-6 border-t border-white/5 space-y-4">
-                                <span className="text-[8px] text-white/20 uppercase font-black tracking-widest block">Transmission Status</span>
+                            <div className="pt-6 border-t border-surface-border space-y-4">
+                                <span className="text-[8px] text-muted uppercase font-black tracking-widest block">Transmission Status</span>
                                 <div className="flex items-center gap-3">
-                                    <CheckCircle2 className={cn("w-5 h-5", result.pendingGrading ? "text-yellow-500/40" : "text-green-500")} />
-                                    <span className="text-sm font-bold text-white/60">
+                                    <CheckCircle2 className={cn("w-5 h-5", result.pendingGrading ? "text-accent-amber/40" : "text-green-500")} />
+                                    <span className="text-sm font-bold text-foreground/60">
                                         {result.pendingGrading ? "Metadata Uploaded - Pending Auth" : "Final Diagnosis Records Sealed"}
                                     </span>
                                 </div>

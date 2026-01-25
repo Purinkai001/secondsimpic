@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --card-bg: #ffffff;
+  --card-border: rgba(15, 23, 42, 0.1);
+  --muted-fg: #64748b;
+
+  --overlay-bg: rgba(255, 255, 255, 0.8);
+
+  --accent-primary: #3b82f6;
+  --accent-secondary: #06b6d4;
+
+  --surface: #ffffff;
+}
+
+.dark {
+  --background: #0a0e1a;
+  --foreground: #f8fafc;
+
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --muted-fg: #93c5fd99;
+  /* blue-300/60 approximation */
+  /* blue-300/60 */
+
+  --overlay-bg: rgba(10, 14, 26, 0.8);
+
+  --accent-primary: #3b82f6;
+  --accent-secondary: #06b6d4;
+
+  --surface: #0a0e1a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-surface-bg: var(--card-bg);
+  --color-surface-border: var(--card-border);
+  --color-surface-overlay: var(--overlay-bg);
+  --color-muted: var(--muted-fg);
+
+  --color-accent-blue: var(--accent-primary);
+  --color-accent-cyan: var(--accent-secondary);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Scrollbar for overflow-x-auto */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 10px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
 }

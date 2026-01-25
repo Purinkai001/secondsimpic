@@ -181,53 +181,53 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+                className="absolute inset-0 bg-background/90 dark:bg-black/90 backdrop-blur-xl"
             />
 
             <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+                className="relative w-full max-w-2xl bg-surface-bg border border-surface-border rounded-[2.5rem] overflow-x-auto shadow-2xl transition-colors duration-300"
             >
-                <div className="flex justify-between items-center p-8 border-b border-white/5 bg-white/5">
-                    <h2 className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
-                        <div className="p-2 bg-blue-500/20 rounded-xl">
-                            {editingQuestion ? <Plus className="w-5 h-5 text-blue-400 rotate-45" /> : <Plus className="w-5 h-5 text-blue-400" />}
+                <div className="flex justify-between items-center p-8 border-b border-surface-border bg-surface-bg/50">
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3 text-foreground">
+                        <div className="p-2 bg-accent-blue/20 rounded-xl">
+                            {editingQuestion ? <Plus className="w-5 h-5 text-accent-blue rotate-45" /> : <Plus className="w-5 h-5 text-accent-blue" />}
                         </div>
                         {editingQuestion ? "Modify Inquiry" : "Initiate Question"}
                     </h2>
-                    <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all group">
-                        <X className="w-6 h-6 text-white/20 group-hover:text-white" />
+                    <button onClick={onClose} className="p-3 hover:bg-surface-bg/80 rounded-2xl transition-all group">
+                        <X className="w-6 h-6 text-muted group-hover:text-foreground" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Target Phase</label>
+                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Target Phase</label>
                             <select
                                 value={roundId}
                                 onChange={(e) => setRoundId(e.target.value)}
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 focus:outline-none focus:border-blue-500/30 text-white font-bold appearance-none cursor-pointer"
+                                className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl px-5 py-4 focus:outline-none focus:border-accent-blue/30 text-foreground font-bold appearance-none cursor-pointer transition-colors"
                             >
-                                {[1, 2, 3, 4, 5].map(r => <option key={r} value={`round-${r}`} className="bg-[#0a0e1a] text-white">Round {r}</option>)}
+                                {[1, 2, 3, 4, 5].map(r => <option key={r} value={`round-${r}`} className="bg-surface-bg text-foreground">Round {r}</option>)}
                             </select>
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Sequence Order</label>
+                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Sequence Order</label>
                             <input
                                 type="number"
                                 value={order}
                                 onChange={(e) => setOrder(parseInt(e.target.value))}
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 focus:outline-none focus:border-blue-500/30 font-black text-xl text-blue-400"
+                                className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl px-5 py-4 focus:outline-none focus:border-accent-blue/30 font-black text-xl text-accent-blue transition-colors"
                             />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Classification</label>
+                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Classification</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {["mcq", "mtf", "saq", "spot"].map((t) => (
                                     <button
@@ -236,7 +236,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                         onClick={() => setType(t as QuestionType)}
                                         className={cn(
                                             "py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border italic",
-                                            type === t ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" : "bg-white/5 border-white/5 text-white/20 hover:bg-white/10"
+                                            type === t ? "bg-accent-blue border-accent-blue text-white shadow-lg shadow-accent-blue/20" : "bg-surface-bg/50 border-surface-border text-muted hover:bg-surface-bg/80"
                                         )}
                                     >
                                         {t === 'saq' ? 'Short Ans' : t}
@@ -245,7 +245,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                             </div>
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Challenge Level</label>
+                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Challenge Level</label>
                             <div className="grid grid-cols-3 gap-2">
                                 {["easy", "medium", "difficult"].map((d) => (
                                     <button
@@ -255,8 +255,8 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                         className={cn(
                                             "py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border italic",
                                             difficulty === d
-                                                ? (d === 'easy' ? 'bg-green-500 border-green-400 text-white' : d === 'medium' ? 'bg-amber-500 border-amber-400 text-white' : 'bg-red-500 border-red-400 text-white')
-                                                : "bg-white/5 border-white/5 text-white/20 hover:bg-white/10"
+                                                ? (d === 'easy' ? 'bg-green-600 border-green-500 text-white' : d === 'medium' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-red-600 border-red-500 text-white')
+                                                : "bg-surface-bg/50 border-surface-border text-muted hover:bg-surface-bg/80"
                                         )}
                                     >
                                         {d}
@@ -267,17 +267,17 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                     </div>
 
                     <div className="space-y-3">
-                        <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Content Specification</label>
+                        <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Content Specification</label>
                         <textarea
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             placeholder="Specify the inquiry parameters..."
-                            className="w-full bg-white/[0.03] border border-white/5 rounded-[2rem] px-6 py-5 focus:outline-none focus:border-blue-500/30 min-h-[120px] text-lg font-bold leading-relaxed resize-none"
+                            className="w-full bg-surface-bg/50 border border-surface-border rounded-[2rem] px-6 py-5 focus:outline-none focus:border-accent-blue/30 min-h-[120px] text-lg font-bold leading-relaxed resize-none text-foreground transition-colors"
                         />
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Visual Documentation</label>
+                        <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Visual Documentation</label>
                         <div className="flex gap-4">
                             <div className="relative flex-1 group">
                                 <input
@@ -285,9 +285,9 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                     value={imageUrl}
                                     onChange={(e) => setImageUrl(e.target.value)}
                                     placeholder="External Image Endpoint (Direct Link)..."
-                                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:border-blue-500/30 text-sm italic font-medium"
+                                    className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:border-accent-blue/30 text-sm italic font-medium text-foreground transition-colors placeholder:text-muted/30"
                                 />
-                                <ImageIcon className="absolute left-4 top-4.5 w-4 h-4 text-white/10 group-focus-within:text-blue-500 transition-colors" />
+                                <ImageIcon className="absolute left-4 top-4.5 w-4 h-4 text-muted/30 group-focus-within:text-accent-blue transition-colors" />
                             </div>
                             <input
                                 type="file"
@@ -300,19 +300,19 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploading}
-                                className="px-6 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
+                                className="px-6 bg-accent-blue/10 hover:bg-accent-blue/20 text-accent-blue border border-accent-blue/20 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
                             >
                                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                                 Upload
                             </button>
                         </div>
                         {imageUrl && (
-                            <div className="relative aspect-video rounded-3xl overflow-hidden border border-white/5 bg-black/40 group">
+                            <div className="relative aspect-video rounded-3xl overflow-hidden border border-surface-border bg-surface-bg/80 group">
                                 <img src={imageUrl} alt="Preview" className="w-full h-full object-contain" />
                                 <button
                                     type="button"
                                     onClick={() => setImageUrl("")}
-                                    className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-red-500 text-white rounded-xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"
+                                    className="absolute top-4 right-4 p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all shadow-xl"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -320,18 +320,18 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         )}
                     </div>
 
-                    <div className="pt-8 border-t border-white/5">
+                    <div className="pt-8 border-t border-surface-border">
                         {type === "mcq" && (
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Response Options ({choices.length}/6)</label>
+                                    <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Response Options ({choices.length}/6)</label>
                                     <button
                                         type="button"
                                         onClick={addChoice}
                                         disabled={choices.length >= 6}
                                         className={cn(
                                             "flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic",
-                                            choices.length >= 6 ? "bg-white/5 text-white/20 cursor-not-allowed" : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                            choices.length >= 6 ? "bg-surface-bg/50 text-muted cursor-not-allowed" : "bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 border border-accent-blue/20"
                                         )}
                                     >
                                         <Plus className="w-3 h-3" /> Add
@@ -345,15 +345,15 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                             className={cn(
                                                 "w-16 h-16 flex flex-col items-center justify-center rounded-2xl border transition-all shrink-0",
                                                 correctChoiceIndices.includes(idx)
-                                                    ? "bg-green-500 border-green-400 text-white shadow-lg shadow-green-500/20"
-                                                    : "bg-white/5 border-white/5 text-white/10 opacity-40 hover:opacity-100"
+                                                    ? "bg-green-600 border-green-500 text-white shadow-lg shadow-green-600/20"
+                                                    : "bg-surface-bg/50 border-surface-border text-muted opacity-40 hover:opacity-100"
                                             )}
                                         >
                                             <span className="text-[8px] font-black uppercase mb-1">Key</span>
                                             <Check className="w-6 h-6" />
                                         </button>
                                         <div className="relative flex-1">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black italic text-white/20">
+                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-bg border border-surface-border flex items-center justify-center font-black italic text-muted transition-colors">
                                                 {String.fromCharCode(65 + idx)}
                                             </div>
                                             <input
@@ -365,14 +365,14 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                                     setChoices(newChoices);
                                                 }}
                                                 placeholder={`Option Parameter ${idx + 1}`}
-                                                className="w-full h-16 bg-white/[0.03] border border-white/5 rounded-2xl pl-16 pr-6 focus:outline-none focus:border-blue-500/30 font-bold text-lg"
+                                                className="w-full h-16 bg-surface-bg/50 border border-surface-border rounded-2xl pl-16 pr-6 focus:outline-none focus:border-accent-blue/30 font-bold text-lg text-foreground transition-colors"
                                             />
                                         </div>
                                         {choices.length > 2 && (
                                             <button
                                                 type="button"
                                                 onClick={() => removeChoice(idx)}
-                                                className="w-12 h-16 flex items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                                                className="w-12 h-16 flex items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all shrink-0"
                                             >
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
@@ -385,14 +385,14 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         {type === "mtf" && (
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Binary Propositions ({statements.length}/8)</label>
+                                    <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Binary Propositions ({statements.length}/8)</label>
                                     <button
                                         type="button"
                                         onClick={addStatement}
                                         disabled={statements.length >= 8}
                                         className={cn(
                                             "flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic",
-                                            statements.length >= 8 ? "bg-white/5 text-white/20 cursor-not-allowed" : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                                            statements.length >= 8 ? "bg-surface-bg/50 text-muted cursor-not-allowed" : "bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 border border-accent-cyan/20"
                                         )}
                                     >
                                         <Plus className="w-3 h-3" /> Add
@@ -409,13 +409,13 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                             }}
                                             className={cn(
                                                 "w-28 text-[10px] font-black uppercase rounded-2xl border transition-all shrink-0 h-16 italic tracking-widest",
-                                                s.isTrue ? "bg-green-500/20 border-green-500/50 text-green-400" : "bg-red-500/20 border-red-500/50 text-red-400"
+                                                s.isTrue ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400" : "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
                                             )}
                                         >
                                             {s.isTrue ? "TRUE" : "FALSE"}
                                         </button>
                                         <div className="relative flex-1">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black italic text-white/20">
+                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-bg border border-surface-border flex items-center justify-center font-black italic text-muted transition-colors">
                                                 {idx + 1}
                                             </div>
                                             <input
@@ -427,14 +427,14 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                                     setStatements(newS);
                                                 }}
                                                 placeholder={`Clinical Statement ${idx + 1}`}
-                                                className="w-full h-16 bg-white/[0.03] border border-white/5 rounded-2xl pl-16 pr-6 focus:outline-none focus:border-blue-500/30 font-bold text-lg"
+                                                className="w-full h-16 bg-surface-bg/50 border border-surface-border rounded-2xl pl-16 pr-6 focus:outline-none focus:border-accent-blue/30 font-bold text-lg text-foreground transition-colors"
                                             />
                                         </div>
                                         {statements.length > 2 && (
                                             <button
                                                 type="button"
                                                 onClick={() => removeStatement(idx)}
-                                                className="w-12 h-16 flex items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                                                className="w-12 h-16 flex items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all shrink-0"
                                             >
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
@@ -447,9 +447,9 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         {(type === "saq" || type === "spot") && (
                             <div className="space-y-6">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Verification Protocol (Key)</label>
+                                    <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Verification Protocol (Key)</label>
                                     <div className="relative">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-blue-500/40">
+                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-accent-blue/40">
                                             <Check className="w-full h-full" />
                                         </div>
                                         <input
@@ -457,21 +457,21 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                             value={correctAnswer}
                                             onChange={(e) => setCorrectAnswer(e.target.value)}
                                             placeholder="Expected nomenclature/diagnosis..."
-                                            className="w-full h-20 bg-blue-500/5 border border-blue-500/20 rounded-3xl pl-16 pr-6 focus:outline-none focus:border-blue-500/50 font-black text-2xl text-blue-400 italic"
+                                            className="w-full h-20 bg-accent-blue/5 border border-accent-blue/20 rounded-3xl pl-16 pr-6 focus:outline-none focus:border-accent-blue/50 font-black text-2xl text-accent-blue italic transition-colors placeholder:text-accent-blue/20"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black italic">Alternative Acceptable Answers</label>
-                                        <span className="text-[10px] font-bold text-white/20">{alternateAnswers.split('\n').filter(s => s.trim().length > 0).length} Variants</span>
+                                        <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Alternative Acceptable Answers</label>
+                                        <span className="text-[10px] font-bold text-muted">{alternateAnswers.split('\n').filter(s => s.trim().length > 0).length} Variants</span>
                                     </div>
                                     <textarea
                                         value={alternateAnswers}
                                         onChange={(e) => setAlternateAnswers(e.target.value)}
                                         placeholder="Enter alternative correct answers, one per line..."
-                                        className="w-full bg-white/[0.03] border border-white/5 rounded-[2rem] px-6 py-5 focus:outline-none focus:border-blue-500/30 min-h-[150px] text-lg font-medium leading-relaxed resize-none text-white/70"
+                                        className="w-full bg-surface-bg/50 border border-surface-border rounded-[2rem] px-6 py-5 focus:outline-none focus:border-accent-blue/30 min-h-[150px] text-lg font-medium leading-relaxed resize-none text-foreground/70 transition-colors"
                                     />
                                 </div>
                             </div>
@@ -479,12 +479,12 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                     </div>
                 </form>
 
-                <div className="p-8 border-t border-white/5 bg-white/5 flex gap-4">
-                    <button type="button" onClick={onClose} className="flex-1 py-5 bg-white/5 hover:bg-white/10 rounded-3xl font-black uppercase text-[12px] tracking-widest transition-all">Cancel</button>
+                <div className="p-8 border-t border-surface-border bg-surface-bg/50 flex gap-4">
+                    <button type="button" onClick={onClose} className="flex-1 py-5 bg-surface-bg hover:bg-surface-bg/80 text-foreground border border-surface-border rounded-3xl font-black uppercase text-[12px] tracking-widest transition-all">Cancel</button>
                     <button
                         onClick={handleSubmit}
                         disabled={saving}
-                        className="flex-[2] py-5 bg-blue-600 hover:bg-blue-500 rounded-3xl font-black uppercase text-[12px] tracking-[0.2em] text-white transition-all flex items-center justify-center gap-3 shadow-2xl shadow-blue-500/20 active:scale-95"
+                        className="flex-[2] py-5 bg-accent-blue hover:bg-accent-blue/80 rounded-3xl font-black uppercase text-[12px] tracking-[0.2em] text-white transition-all flex items-center justify-center gap-3 shadow-2xl shadow-accent-blue/20 active:scale-95"
                     >
                         {saving ? <Loader2 className="w-6 h-6 animate-spin text-white/50" /> : <Check className="w-6 h-6" />}
                         {editingQuestion ? "Confirm" : "Confirm"}

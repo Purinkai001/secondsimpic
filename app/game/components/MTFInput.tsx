@@ -22,21 +22,21 @@ export function MTFInput({ question, answers, setAnswers, submitted }: MTFInputP
             {question.statements?.map((statement, idx) => (
                 <div
                     key={idx}
-                    className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10"
+                    className="flex items-center gap-4 p-4 bg-surface-bg/50 rounded-xl border border-surface-border transition-colors group/row hover:border-accent-blue/20"
                 >
-                    <span className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-sm shrink-0">
+                    <span className="w-8 h-8 rounded-full bg-accent-blue/10 flex items-center justify-center text-accent-blue font-black text-sm shrink-0 border border-accent-blue/20">
                         {idx + 1}
                     </span>
-                    <span className="flex-1 text-lg">{statement.text}</span>
+                    <span className="flex-1 text-lg text-foreground group-hover/row:text-foreground/90">{statement.text}</span>
                     <div className="flex gap-2 shrink-0">
                         <button
                             onClick={() => handleSetAnswer(idx, true)}
                             disabled={submitted}
                             className={cn(
-                                "px-4 py-2 rounded-lg font-bold transition-all",
+                                "px-4 py-2 rounded-lg font-black transition-all text-xs uppercase italic tracking-widest",
                                 answers[idx] === true
-                                    ? "bg-green-500 text-white"
-                                    : "bg-white/10 text-slate-400 hover:bg-white/20",
+                                    ? "bg-green-600 text-white shadow-lg shadow-green-600/20 outline outline-2 outline-green-500/50"
+                                    : "bg-surface-bg border border-surface-border text-muted hover:bg-surface-bg/80 hover:text-foreground",
                                 submitted && "opacity-60 cursor-not-allowed"
                             )}
                         >
@@ -46,10 +46,10 @@ export function MTFInput({ question, answers, setAnswers, submitted }: MTFInputP
                             onClick={() => handleSetAnswer(idx, false)}
                             disabled={submitted}
                             className={cn(
-                                "px-4 py-2 rounded-lg font-bold transition-all",
+                                "px-4 py-2 rounded-lg font-black transition-all text-xs uppercase italic tracking-widest",
                                 answers[idx] === false
-                                    ? "bg-red-500 text-white"
-                                    : "bg-white/10 text-slate-400 hover:bg-white/20",
+                                    ? "bg-red-600 text-white shadow-lg shadow-red-600/20 outline outline-2 outline-red-500/50"
+                                    : "bg-surface-bg border border-surface-border text-muted hover:bg-surface-bg/80 hover:text-foreground",
                                 submitted && "opacity-60 cursor-not-allowed"
                             )}
                         >

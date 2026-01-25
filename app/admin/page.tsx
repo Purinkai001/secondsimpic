@@ -166,8 +166,8 @@ export default function AdminDashboardOverview() {
         <div className="space-y-8">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Overview</h1>
-                    <p className="text-white/40 mt-1">Live session status and control hub</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-accent-blue bg-clip-text text-transparent">Overview</h1>
+                    <p className="text-muted mt-1">Live session status and control hub</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                     {activeRound && (
@@ -200,8 +200,8 @@ export default function AdminDashboardOverview() {
 
             <div className="grid grid-cols-12 gap-8">
                 <div className="col-span-12 lg:col-span-12 space-y-6">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-6">
-                        <div className="flex items-center gap-2 text-white/40 text-xs uppercase font-bold tracking-widest"><Zap className="w-3 h-3" /> Control Panel</div>
+                    <div className="bg-surface-bg border border-surface-border rounded-3xl p-6 space-y-6">
+                        <div className="flex items-center gap-2 text-muted text-xs uppercase font-bold tracking-widest"><Zap className="w-3 h-3" /> Control Panel</div>
                         <div className="flex flex-wrap gap-4">
                             <ActionButton onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
                             <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${30 - teams.length})`} loading={actionLoading === "fillbots"} />
@@ -269,19 +269,19 @@ export default function AdminDashboardOverview() {
                 </div>
 
                 <div className="col-span-12 lg:col-span-4 space-y-6">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
-                        <div className="flex items-center gap-2 text-white/40 text-xs uppercase font-bold tracking-widest"><AlertTriangle className="w-3 h-3" /> System Diagnostics</div>
+                    <div className="bg-surface-bg border border-surface-border rounded-3xl p-6 space-y-4">
+                        <div className="flex items-center gap-2 text-muted text-xs uppercase font-bold tracking-widest"><AlertTriangle className="w-3 h-3" /> System Diagnostics</div>
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                                <span className="text-sm text-white/60">Human Teams</span>
-                                <span className="font-bold">{humanCount}</span>
+                            <div className="flex justify-between items-center p-3 bg-surface-bg/50 rounded-xl border border-surface-border">
+                                <span className="text-sm text-muted">Human Teams</span>
+                                <span className="font-bold text-foreground">{humanCount}</span>
                             </div>
-                            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                                <span className="text-sm text-white/60">Bot Teams</span>
-                                <span className="font-bold">{botCount}</span>
+                            <div className="flex justify-between items-center p-3 bg-surface-bg/50 rounded-xl border border-surface-border">
+                                <span className="text-sm text-muted">Bot Teams</span>
+                                <span className="font-bold text-foreground">{botCount}</span>
                             </div>
-                            <button onClick={checkTies} className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-semibold transition-all">Check for Ties</button>
-                            <button onClick={simulateBotScores} className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-semibold transition-all">Simulate Bot Progress</button>
+                            <button onClick={checkTies} className="w-full py-3 bg-surface-bg/80 hover:bg-surface-bg border border-surface-border rounded-xl text-sm font-semibold transition-all text-foreground">Check for Ties</button>
+                            <button onClick={simulateBotScores} className="w-full py-3 bg-surface-bg/80 hover:bg-surface-bg border border-surface-border rounded-xl text-sm font-semibold transition-all text-foreground">Simulate Bot Progress</button>
                         </div>
                     </div>
                 </div>

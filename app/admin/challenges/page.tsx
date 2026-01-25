@@ -22,7 +22,7 @@ export default function ChallengesPage() {
         <div className="space-y-10 pb-20">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-white via-white to-pink-500 bg-clip-text text-transparent italic tracking-tight uppercase">
+                    <h1 className="text-5xl font-black bg-gradient-to-r from-foreground via-foreground to-pink-500 bg-clip-text text-transparent italic tracking-tight uppercase">
                         CHALLENGE QUEUE
                     </h1>
                     <p className="text-white/40 mt-2 text-lg font-medium">Contestant dispute and verification hub</p>

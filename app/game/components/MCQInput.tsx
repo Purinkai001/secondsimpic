@@ -21,18 +21,18 @@ export function MCQInput({ question, answer, setAnswer, submitted }: MCQInputPro
                     className={cn(
                         "p-6 rounded-xl text-left transition-all border-2 text-lg font-medium",
                         answer === idx
-                            ? "border-blue-500 bg-blue-500/10 text-white shadow-lg shadow-blue-500/20"
-                            : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-white/20",
+                            ? "border-accent-blue bg-accent-blue/10 text-accent-blue shadow-lg shadow-accent-blue/5"
+                            : "border-surface-border bg-surface-bg/50 text-foreground/70 hover:bg-surface-bg hover:border-accent-blue/20",
                         submitted && "opacity-60 cursor-not-allowed"
                     )}
                 >
                     <span className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 float-left transition-colors",
-                        answer === idx ? "bg-blue-500 text-white" : "bg-white/10 text-slate-400"
+                        answer === idx ? "bg-accent-blue text-white" : "bg-surface-bg border border-surface-border text-muted"
                     )}>
                         {String.fromCharCode(65 + idx)}
                     </span>
-                    {choice.text}
+                    <span className="text-foreground">{choice.text}</span>
                 </button>
             ))}
         </div>

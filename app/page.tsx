@@ -133,12 +133,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0e1a] flex flex-col items-center justify-center px-4 py-8 sm:p-6 md:p-8 text-white overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center px-4 py-8 sm:p-6 md:p-8 text-foreground overflow-x-auto relative transition-colors duration-300">
       {/* Animated Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/20 via-accent-cyan/10 to-background dark:from-accent-blue/40 dark:via-accent-cyan/20 dark:to-background" />
         <motion.div
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-20 dark:opacity-40"
           style={{
             background: "radial-gradient(ellipse at center, rgba(59, 130, 246, 0.4) 0%, transparent 60%)",
             x: parallaxX,
@@ -146,10 +146,10 @@ export default function LoginPage() {
           }}
         />
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.05] dark:opacity-[0.03]"
           style={{
             backgroundSize: "40px 40px",
-            backgroundImage: "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)"
+            backgroundImage: "linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)"
           }}
         />
       </div>
@@ -178,7 +178,7 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="mt-6 sm:mt-8 text-4xl sm:text-5xl md:text-7xl font-black bg-gradient-to-r from-white via-blue-200 to-cyan-200 bg-clip-text text-transparent tracking-tight"
+              className="mt-6 sm:mt-8 text-4xl sm:text-5xl md:text-7xl font-black bg-gradient-to-r from-foreground via-accent-blue to-accent-cyan bg-clip-text text-transparent tracking-tight uppercase italic"
             >
               SIMPIC
             </motion.h1>
@@ -186,7 +186,7 @@ export default function LoginPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
-              className="mt-3 sm:mt-4 text-base sm:text-xl text-blue-300/80 text-center"
+              className="mt-3 sm:mt-4 text-base sm:text-xl text-muted text-center"
             >
               The Ultimate Medical Challenge
             </motion.p>
@@ -211,7 +211,7 @@ export default function LoginPage() {
             {/* Card glow */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-cyan-500/30 rounded-[2rem] blur-2xl opacity-60" />
 
-            <div className="relative bg-white/[0.04] backdrop-blur-2xl border border-white/10 p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-2xl">
+            <div className="relative bg-surface-bg backdrop-blur-2xl border border-surface-border p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-2xl">
               {/* Header */}
               <div className="flex flex-col items-center mb-6 sm:mb-8">
                 <motion.div
@@ -219,18 +219,18 @@ export default function LoginPage() {
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Stethoscope className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                  <Stethoscope className="w-6 h-6 sm:w-8 sm:h-8 text-white dark:text-foreground" />
                 </motion.div>
-                <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-foreground to-accent-blue bg-clip-text text-transparent">
                   SIMPIC
                 </h1>
-                <p className="text-blue-300/60 text-xs sm:text-sm mt-1">Enter the competition</p>
+                <p className="text-muted text-xs sm:text-sm mt-1">Enter the competition</p>
               </div>
 
               <form onSubmit={handleJoin} className="space-y-4 sm:space-y-6">
                 {/* Team Name Input */}
                 <div className="space-y-2">
-                  <label className="text-[10px] sm:text-xs uppercase tracking-wider text-blue-300/80 font-semibold ml-1 flex items-center gap-2">
+                  <label className="text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold ml-1 flex items-center gap-2">
                     <Users className="w-3 h-3" /> Team Name
                   </label>
                   <input
@@ -239,16 +239,16 @@ export default function LoginPage() {
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
                     placeholder="Enter your team name..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 sm:py-4 placeholder-white/25 text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-base sm:text-lg"
+                    className="w-full bg-black/5 dark:bg-black/40 border border-surface-border rounded-xl px-4 py-3 sm:py-4 placeholder-foreground/25 text-foreground focus:outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/20 transition-all font-medium text-base sm:text-lg"
                     disabled={loading}
                   />
                 </div>
 
                 {/* Group Assignment Box */}
-                <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 border border-blue-500/20 rounded-xl p-4 sm:p-5">
-                  <div className="flex items-center justify-center gap-2 text-blue-300 mb-2">
-                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Group Assignment</span>
+                <div className="bg-accent-blue/5 border border-accent-blue/20 rounded-xl p-4 sm:p-5">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-accent-blue" />
+                    <span className="text-[10px] sm:text-xs uppercase tracking-wider font-bold text-accent-blue">Group Assignment</span>
                   </div>
                   <AnimatePresence mode="wait">
                     {assignedGroup ? (
@@ -263,7 +263,7 @@ export default function LoginPage() {
                         </div>
                       </motion.div>
                     ) : (
-                      <p className="text-white/40 text-xs sm:text-sm text-center">Randomly assigned upon entry</p>
+                      <p className="text-muted text-xs sm:text-sm text-center">Randomly assigned upon entry</p>
                     )}
                   </AnimatePresence>
                 </div>
@@ -304,7 +304,7 @@ export default function LoginPage() {
       </AnimatePresence>
 
       {/* Footer */}
-      <div className="absolute bottom-4 sm:bottom-6 text-white/25 text-[10px] sm:text-xs flex items-center gap-2">
+      <div className="absolute bottom-4 sm:bottom-6 text-muted text-[10px] sm:text-xs flex items-center gap-2">
         <Heart className="w-3 h-3 text-red-400/50" />
         <span>© 2025 MedSimpic. All rights reserved.</span>
       </div>

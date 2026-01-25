@@ -22,13 +22,13 @@ export function TextInput({ type, value, setValue, submitted }: TextInputProps) 
                 placeholder={isSpot ? "Identify the diagnosis..." : "Type your answer here..."}
                 disabled={submitted}
                 className={cn(
-                    "w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 text-lg",
-                    isSpot ? "focus:ring-orange-500" : "focus:ring-blue-500",
+                    "w-full bg-surface-bg/50 border border-surface-border rounded-xl p-4 text-foreground placeholder:text-muted/30 focus:outline-none focus:ring-2 text-lg transition-all",
+                    isSpot ? "focus:ring-accent-amber" : "focus:ring-accent-blue",
                     submitted && "opacity-60 cursor-not-allowed"
                 )}
                 autoComplete="off"
             />
-            <p className="text-white/40 text-sm text-center">
+            <p className="text-muted/60 text-sm text-center">
                 ⚠️ Admin will grade this answer manually. Timer will pause until grading is complete.
             </p>
         </div>

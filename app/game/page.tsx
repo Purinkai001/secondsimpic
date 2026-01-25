@@ -38,10 +38,10 @@ export default function GamePage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-[#0a0e1a] text-white">
+            <div className="flex items-center justify-center min-h-screen bg-background text-foreground transition-colors duration-300">
                 <div className="relative">
-                    <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-20 animate-pulse" />
-                    <Loader2 className="w-12 h-12 animate-spin text-blue-500 relative z-10" />
+                    <div className="absolute inset-0 bg-accent-blue blur-2xl opacity-20 animate-pulse" />
+                    <Loader2 className="w-12 h-12 animate-spin text-accent-blue relative z-10" />
                 </div>
             </div>
         );
@@ -49,23 +49,23 @@ export default function GamePage() {
 
     if (team?.status === "eliminated") {
         return (
-            <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4 overflow-hidden relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-red-900/20 via-transparent to-transparent" />
+            <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-x-auto relative transition-colors duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-transparent" />
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white/[0.03] backdrop-blur-2xl border border-red-500/30 p-12 rounded-[3rem] max-w-lg text-center shadow-2xl relative z-10"
+                    className="bg-surface-bg backdrop-blur-2xl border border-red-500/20 p-12 rounded-[3rem] max-w-lg text-center shadow-2xl relative z-10"
                 >
-                    <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/40">
+                    <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
                         <span className="text-4xl font-black text-red-500">!</span>
                     </div>
-                    <h1 className="text-4xl font-black text-white mb-4 italic tracking-tighter">ELIMINATED</h1>
-                    <p className="text-blue-300/60 text-lg mb-8 leading-relaxed">
+                    <h1 className="text-4xl font-black text-foreground mb-4 italic tracking-tighter">ELIMINATED</h1>
+                    <p className="text-muted text-lg mb-8 leading-relaxed">
                         The competition has reached its limit for your team. Thank you for your exceptional participation, <strong>{team.name}</strong>.
                     </p>
                     <button
                         onClick={() => router.push("/")}
-                        className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white/60 hover:text-white transition-all text-sm font-bold uppercase tracking-widest"
+                        className="px-8 py-3 bg-surface-bg hover:bg-surface-bg/80 border border-surface-border rounded-2xl text-muted hover:text-foreground transition-all text-sm font-bold uppercase tracking-widest"
                     >
                         Return to Hub
                     </button>
@@ -92,7 +92,7 @@ export default function GamePage() {
     }
 
     return (
-        <div className="min-h-[100dvh] bg-[#0a0e1a] text-white flex flex-col p-4 md:p-8 overflow-x-hidden relative">
+        <div className="min-h-[100dvh] bg-background text-foreground flex flex-col p-4 md:p-8 overflow-x-auto relative transition-colors duration-300">
             {/* Background decorative elements */}
             <BackgroundDecoration />
 

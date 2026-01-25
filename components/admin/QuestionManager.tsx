@@ -16,18 +16,18 @@ export function QuestionManager({ selectedRoundId, questions, onSetQuestion }: Q
 
     return (
         <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                    <FileQuestion className="w-4 h-4 text-cyan-400" />
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
+                <div className="p-2 bg-accent-cyan/20 rounded-lg">
+                    <FileQuestion className="w-4 h-4 text-accent-cyan" />
                 </div>
                 Questions
-                <span className="text-sm font-normal text-white/50 ml-1">({selectedRoundId})</span>
+                <span className="text-sm font-normal text-muted ml-1">({selectedRoundId})</span>
             </h2>
 
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                 <motion.button
                     onClick={() => onSetQuestion(selectedRoundId, null)}
-                    className="w-full text-left p-3 bg-amber-500/10 text-amber-400 text-sm border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-all flex items-center gap-2 font-semibold"
+                    className="w-full text-left p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-all flex items-center gap-2 font-semibold"
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                 >
@@ -38,43 +38,43 @@ export function QuestionManager({ selectedRoundId, questions, onSetQuestion }: Q
                 {roundQuestions.map((q, idx) => (
                     <motion.div
                         key={q.id}
-                        className="flex justify-between items-center p-3 hover:bg-white/5 border border-white/5 rounded-xl bg-white/[0.02] transition-all"
+                        className="flex justify-between items-center p-3 hover:bg-surface-bg border border-surface-border rounded-xl bg-surface-bg/50 transition-all"
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.03 }}
                     >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold text-white/50">
+                            <span className="w-6 h-6 bg-surface-bg border border-surface-border rounded-full flex items-center justify-center text-xs font-bold text-muted">
                                 {q.order}
                             </span>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <span className={cn(
                                         "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase",
-                                        q.type === "mcq" ? "bg-blue-500/20 text-blue-400" :
-                                            q.type === "mtf" ? "bg-purple-500/20 text-purple-400" :
-                                                q.type === "saq" ? "bg-green-500/20 text-green-400" :
-                                                    "bg-orange-500/20 text-orange-400"
+                                        q.type === "mcq" ? "bg-accent-blue/20 text-accent-blue" :
+                                            q.type === "mtf" ? "bg-accent-cyan/20 text-accent-cyan" :
+                                                q.type === "saq" ? "bg-green-500/20 text-green-600 dark:text-green-400" :
+                                                    "bg-orange-500/20 text-orange-600 dark:text-orange-400"
                                     )}>
                                         {q.type}
                                     </span>
                                     <span className={cn(
                                         "text-[10px] px-1.5 py-0.5 rounded font-bold",
-                                        q.difficulty === "easy" ? "bg-green-500/20 text-green-400" :
-                                            q.difficulty === "medium" ? "bg-yellow-500/20 text-yellow-400" :
-                                                "bg-red-500/20 text-red-400"
+                                        q.difficulty === "easy" ? "bg-green-500/20 text-green-600 dark:text-green-400" :
+                                            q.difficulty === "medium" ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" :
+                                                "bg-red-500/20 text-red-600 dark:text-red-400"
                                     )}>
                                         {q.difficulty}
                                     </span>
                                 </div>
-                                <p className="text-sm text-white/70 break-words">
+                                <p className="text-sm text-foreground/70 break-words">
                                     {q.text || "(Image question)"}
                                 </p>
                             </div>
                         </div>
                         <motion.button
                             onClick={() => onSetQuestion(selectedRoundId, q.id)}
-                            className="text-xs bg-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-colors font-semibold flex items-center gap-1 ml-2"
+                            className="text-xs bg-accent-blue/10 text-accent-blue px-3 py-1.5 rounded-lg hover:bg-accent-blue/20 transition-colors font-semibold flex items-center gap-1 ml-2 border border-accent-blue/20"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
@@ -85,8 +85,8 @@ export function QuestionManager({ selectedRoundId, questions, onSetQuestion }: Q
 
                 {roundQuestions.length === 0 && (
                     <div className="text-center py-6">
-                        <FileQuestion className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                        <p className="text-white/30 text-sm">No questions for this round</p>
+                        <FileQuestion className="w-8 h-8 text-muted/20 mx-auto mb-2" />
+                        <p className="text-muted text-sm">No questions for this round</p>
                     </div>
                 )}
             </div>
