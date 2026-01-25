@@ -181,7 +181,8 @@ export default function AdminDashboardOverview() {
                             <Users className="w-3 h-3 text-blue-400" />
                             <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">
                                 Answers: {allAnswers.filter(a => {
-                                    const currentQ = questions.find(q => q.roundId === activeRound.id && q.order === (activeRound.currentQuestionIndex || 0));
+                                    const roundQuestions = questions.filter(q => q.roundId === activeRound.id).sort((x, y) => x.order - y.order);
+                                    const currentQ = roundQuestions[activeRound.currentQuestionIndex || 0];
                                     return currentQ && a.questionId === currentQ.id;
                                 }).length} / {teams.filter(t => t.status === 'active').length}
                             </span>
@@ -216,11 +217,21 @@ export default function AdminDashboardOverview() {
                                 loading={actionLoading === "simulateTies"}
                             />
                             <ActionButton
-                                onClick={() => handleAction("triggerSuddenDeath", () => api.gameAction("triggerSuddenDeath"))}
+                                onClick={() => handleAction("suddenDeathAlert", async () => {
+                                    const data = await api.gameAction("triggerSuddenDeathAlert");
+                                    alert(data.message);
+                                })}
                                 icon={Zap}
-                                label="Sudden Death"
+                                label="Sudden Death Alert"
                                 variant="danger"
-                                loading={actionLoading === "triggerSuddenDeath"}
+                                loading={actionLoading === "suddenDeathAlert"}
+                            />
+                            <ActionButton
+                                onClick={() => handleAction("clearSuddenDeath", () => api.gameAction("clearSuddenDeathAlert"))}
+                                icon={RefreshCw}
+                                label="Clear Sudden Death"
+                                variant="primary"
+                                loading={actionLoading === "clearSuddenDeath"}
                             />
                             {activeRound && !activeRound.showResults && (
                                 <ActionButton onClick={revealResults} icon={Eye} label="Reveal Result" variant="primary" />

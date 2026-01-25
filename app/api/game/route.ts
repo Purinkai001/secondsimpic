@@ -38,21 +38,40 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, message: "Top teams tied." });
         }
 
-        if (action === "triggerSuddenDeath") {
-            const configSnap = await adminDb.collection("config").doc("gameConfig").get();
-            const configTimer = configSnap.exists ? configSnap.data()?.questionTimer : DEFAULT_QUESTION_TIMER;
+        if (action === "triggerSuddenDeathAlert") {
+            const { findTiedTeams } = await import("@/app/api/admin/check-score/route");
+            const { allTiedTeamIds } = await findTiedTeams();
 
-            const sdRoundRef = adminDb.collection("rounds").doc("round-sd");
-            await sdRoundRef.set({
-                id: "round-sd",
-                status: "active",
-                startTime: Date.now(),
-                currentQuestionIndex: 0,
-                questionTimer: configTimer || DEFAULT_QUESTION_TIMER,
-                isSuddenDeath: true
-            }, { merge: true });
+            if (allTiedTeamIds.length === 0) {
+                return NextResponse.json({ success: false, message: "No tied teams found." });
+            }
 
-            return NextResponse.json({ success: true, message: "Sudden Death Activated." });
+            const batch = adminDb.batch();
+            allTiedTeamIds.forEach(id => {
+                const ref = adminDb.collection("teams").doc(id);
+                batch.update(ref, { inSuddenDeath: true });
+            });
+            await batch.commit();
+
+            return NextResponse.json({
+                success: true,
+                message: `${allTiedTeamIds.length} teams marked for sudden death.`,
+                count: allTiedTeamIds.length
+            });
+        }
+
+        if (action === "clearSuddenDeathAlert") {
+            const teamsSnap = await adminDb.collection("teams").where("inSuddenDeath", "==", true).get();
+            const batch = adminDb.batch();
+            teamsSnap.docs.forEach(doc => {
+                batch.update(doc.ref, { inSuddenDeath: false });
+            });
+            await batch.commit();
+
+            return NextResponse.json({
+                success: true,
+                message: `Cleared sudden death from ${teamsSnap.size} teams.`
+            });
         }
 
         if (action === "initGame") {
@@ -74,18 +93,6 @@ export async function POST(request: Request) {
                 }, { merge: true });
             }
 
-            // Also reset Sudden Death
-            const sdRef = adminDb.collection("rounds").doc("round-sd");
-            batch.set(sdRef, {
-                id: "round-sd",
-                status: "waiting",
-                startTime: null,
-                currentQuestionIndex: 0,
-                questionTimer: configTimer || DEFAULT_QUESTION_TIMER,
-                showResults: false,
-                pausedAt: null,
-                totalPauseDuration: 0
-            }, { merge: true });
 
             await batch.commit();
 
@@ -111,7 +118,8 @@ export async function POST(request: Request) {
                     score: 0,
                     status: "active",
                     challengesRemaining: 2,
-                    streak: 0
+                    streak: 0,
+                    inSuddenDeath: false
                 });
             });
             await teamBatch.commit();
@@ -201,11 +209,6 @@ export async function POST(request: Request) {
 
             const batch = adminDb.batch();
 
-            // 3. Apply rotation: newGroup = (oldGroup + rank - 2) % 5 + 1
-            // Row 1 (rank 1): no shift
-            // Row 2 (rank 2): shift right by 1
-            // Row 3 (rank 3): shift right by 2
-            // etc.
             Object.entries(teamsByGroup).forEach(([groupStr, teams]) => {
                 const oldGroup = Number(groupStr);
                 teams.forEach((team, index) => {

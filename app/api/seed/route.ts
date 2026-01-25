@@ -242,18 +242,6 @@ export async function GET(request: Request) {
                     totalPauseDuration: 0
                 }, { merge: true });
             }
-            const sdRef = adminDb.collection("rounds").doc("round-sd");
-            batch.set(sdRef, {
-                id: "round-sd",
-                status: "waiting",
-                startTime: null,
-                currentQuestionIndex: 0,
-                questionTimer: DEFAULT_QUESTION_TIMER,
-                showResults: false,
-                pausedAt: null,
-                totalPauseDuration: 0
-            }, { merge: true });
-
             MEDICAL_QUESTIONS.forEach((q) => {
                 const qId = `q-${q.roundId}-${q.order}`;
                 const qRef = adminDb.collection("questions").doc(qId);

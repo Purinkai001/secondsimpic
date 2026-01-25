@@ -21,9 +21,8 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
     const [imageUrl, setImageUrl] = useState("");
     const [order, setOrder] = useState(1);
 
-    // MCQ specific (min 2, max 6)
     const [choices, setChoices] = useState([{ text: "" }, { text: "" }]);
-    const [correctChoiceIndex, setCorrectChoiceIndex] = useState(0);
+    const [correctChoiceIndices, setCorrectChoiceIndices] = useState<number[]>([0]);
 
     const addChoice = () => {
         if (choices.length < 6) {
@@ -35,12 +34,20 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
         if (choices.length > 2) {
             const newChoices = choices.filter((_, i) => i !== idx);
             setChoices(newChoices);
-            // Adjust correctChoiceIndex if needed
-            if (correctChoiceIndex === idx) {
-                setCorrectChoiceIndex(0);
-            } else if (correctChoiceIndex > idx) {
-                setCorrectChoiceIndex(correctChoiceIndex - 1);
+            const newIndices = correctChoiceIndices
+                .filter(i => i !== idx)
+                .map(i => (i > idx ? i - 1 : i));
+            setCorrectChoiceIndices(newIndices.length > 0 ? newIndices : [0]);
+        }
+    };
+
+    const toggleCorrectChoice = (idx: number) => {
+        if (correctChoiceIndices.includes(idx)) {
+            if (correctChoiceIndices.length > 1) {
+                setCorrectChoiceIndices(correctChoiceIndices.filter(i => i !== idx));
             }
+        } else {
+            setCorrectChoiceIndices([...correctChoiceIndices, idx].sort((a, b) => a - b));
         }
     };
 
@@ -81,7 +88,8 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
 
             if (editingQuestion.type === "mcq") {
                 setChoices(editingQuestion.choices || [{ text: "" }, { text: "" }]);
-                setCorrectChoiceIndex(editingQuestion.correctChoiceIndex || 0);
+                const indices = editingQuestion.correctChoiceIndices || (editingQuestion.correctChoiceIndex !== undefined ? [editingQuestion.correctChoiceIndex] : [0]);
+                setCorrectChoiceIndices(indices);
             } else if (editingQuestion.type === "mtf") {
                 setStatements(editingQuestion.statements || [
                     { text: "", isTrue: true },
@@ -101,7 +109,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
             setImageUrl("");
             setOrder(1);
             setChoices([{ text: "" }, { text: "" }]);
-            setCorrectChoiceIndex(0);
+            setCorrectChoiceIndices([0]);
             setStatements([
                 { text: "", isTrue: true },
                 { text: "", isTrue: false },
@@ -146,7 +154,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
 
             if (type === "mcq") {
                 questionData.choices = choices;
-                questionData.correctChoiceIndex = correctChoiceIndex;
+                questionData.correctChoiceIndices = correctChoiceIndices;
             } else if (type === "mtf") {
                 questionData.statements = statements;
             } else {
@@ -204,7 +212,6 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                 className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 focus:outline-none focus:border-blue-500/30 text-white font-bold appearance-none cursor-pointer"
                             >
                                 {[1, 2, 3, 4, 5].map(r => <option key={r} value={`round-${r}`} className="bg-[#0a0e1a] text-white">Round {r}</option>)}
-                                <option value="round-sd" className="bg-[#0a0e1a] text-white italic">Sudden Death</option>
                             </select>
                         </div>
                         <div className="space-y-3">
@@ -334,10 +341,10 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                     <div key={idx} className="flex gap-4 group">
                                         <button
                                             type="button"
-                                            onClick={() => setCorrectChoiceIndex(idx)}
+                                            onClick={() => toggleCorrectChoice(idx)}
                                             className={cn(
                                                 "w-16 h-16 flex flex-col items-center justify-center rounded-2xl border transition-all shrink-0",
-                                                correctChoiceIndex === idx
+                                                correctChoiceIndices.includes(idx)
                                                     ? "bg-green-500 border-green-400 text-white shadow-lg shadow-green-500/20"
                                                     : "bg-white/5 border-white/5 text-white/10 opacity-40 hover:opacity-100"
                                             )}
@@ -405,7 +412,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                                 s.isTrue ? "bg-green-500/20 border-green-500/50 text-green-400" : "bg-red-500/20 border-red-500/50 text-red-400"
                                             )}
                                         >
-                                            {s.isTrue ? "POSITIVE" : "NEGATIVE"}
+                                            {s.isTrue ? "TRUE" : "FALSE"}
                                         </button>
                                         <div className="relative flex-1">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black italic text-white/20">
@@ -473,14 +480,14 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 </form>
 
                 <div className="p-8 border-t border-white/5 bg-white/5 flex gap-4">
-                    <button type="button" onClick={onClose} className="flex-1 py-5 bg-white/5 hover:bg-white/10 rounded-3xl font-black uppercase text-[12px] tracking-widest transition-all">Abort</button>
+                    <button type="button" onClick={onClose} className="flex-1 py-5 bg-white/5 hover:bg-white/10 rounded-3xl font-black uppercase text-[12px] tracking-widest transition-all">Cancel</button>
                     <button
                         onClick={handleSubmit}
                         disabled={saving}
                         className="flex-[2] py-5 bg-blue-600 hover:bg-blue-500 rounded-3xl font-black uppercase text-[12px] tracking-[0.2em] text-white transition-all flex items-center justify-center gap-3 shadow-2xl shadow-blue-500/20 active:scale-95"
                     >
                         {saving ? <Loader2 className="w-6 h-6 animate-spin text-white/50" /> : <Check className="w-6 h-6" />}
-                        {editingQuestion ? "Seal Modification" : "Publish Inquiry"}
+                        {editingQuestion ? "Confirm" : "Confirm"}
                     </button>
                 </div>
             </motion.div>

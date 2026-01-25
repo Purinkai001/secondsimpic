@@ -151,46 +151,52 @@ function renderCorrectAnswer(
     }
 
     switch (correctData.type) {
-        case "mcq":
-            if (correctData.correctChoiceIndex === undefined || !correctData.choices) return null;
-            const correctIdx = correctData.correctChoiceIndex;
+        case "mcq": {
+            if (!correctData.choices) return null;
+            const correctIndices = correctData.correctChoiceIndices ||
+                (correctData.correctChoiceIndex !== undefined ? [correctData.correctChoiceIndex] : []);
+            if (correctIndices.length === 0) return null;
             return (
                 <div className="mt-6 space-y-3">
                     <p className="text-white/60 text-sm font-semibold">Correct Answer:</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {correctData.choices.map((choice, idx) => (
-                            <div
-                                key={idx}
-                                className={cn(
-                                    "p-4 rounded-xl border-2 flex items-center gap-3",
-                                    idx === correctIdx
-                                        ? "border-green-500 bg-green-500/10"
-                                        : userMcqAnswer === idx && idx !== correctIdx
-                                            ? "border-red-500 bg-red-500/10"
-                                            : "border-white/10 bg-white/5 opacity-50"
-                                )}
-                            >
-                                <span className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                                    idx === correctIdx
-                                        ? "bg-green-500 text-white"
-                                        : userMcqAnswer === idx && idx !== correctIdx
-                                            ? "bg-red-500 text-white"
-                                            : "bg-white/10 text-slate-400"
-                                )}>
-                                    {idx === correctIdx ? <CheckCircle2 className="w-4 h-4" /> : String.fromCharCode(65 + idx)}
-                                </span>
-                                <span className={cn(
-                                    "font-medium",
-                                    idx === correctIdx ? "text-green-400" : "text-white/60"
-                                )}>
-                                    {choice.text}
-                                </span>
-                            </div>
-                        ))}
+                        {correctData.choices.map((choice, idx) => {
+                            const isCorrectChoice = correctIndices.includes(idx);
+                            return (
+                                <div
+                                    key={idx}
+                                    className={cn(
+                                        "p-4 rounded-xl border-2 flex items-center gap-3",
+                                        isCorrectChoice
+                                            ? "border-green-500 bg-green-500/10"
+                                            : userMcqAnswer === idx && !isCorrectChoice
+                                                ? "border-red-500 bg-red-500/10"
+                                                : "border-white/10 bg-white/5 opacity-50"
+                                    )}
+                                >
+                                    <span className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                                        isCorrectChoice
+                                            ? "bg-green-500 text-white"
+                                            : userMcqAnswer === idx && !isCorrectChoice
+                                                ? "bg-red-500 text-white"
+                                                : "bg-white/10 text-slate-400"
+                                    )}>
+                                        {isCorrectChoice ? <CheckCircle2 className="w-4 h-4" /> : String.fromCharCode(65 + idx)}
+                                    </span>
+                                    <span className={cn(
+                                        "font-medium",
+                                        isCorrectChoice ? "text-green-400" : "text-white/60"
+                                    )}>
+                                        {choice.text}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             );
+        }
 
         case "mtf":
             if (!correctData.statements) return null;

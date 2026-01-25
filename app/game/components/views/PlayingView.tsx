@@ -81,11 +81,6 @@ export const PlayingView = ({
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full bg-white/[0.02] border border-white/10 rounded-[4rem] p-12 shadow-2xl relative overflow-hidden group"
             >
-                {question.roundId === 'round-sd' && (
-                    <div className="absolute top-0 left-0 right-0 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.5em] text-center italic shadow-2xl z-20 animate-pulse">
-                        Sudden Death Elimination • No Room for Error
-                    </div>
-                )}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.02] transform rotate-12">
                     <Brain className="w-64 h-64 text-white" />
                 </div>
@@ -121,11 +116,9 @@ export const PlayingView = ({
                                 </span>
                             </div>
                         </div>
-                    ) : (
-                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-[10px] text-yellow-500/60 font-mono">
-                            No imageUrl detected in question data object.
-                        </div>
-                    )}
+                    ) : (<div>
+
+                    </div>)}
 
                     <div>
                         <div className="flex items-center gap-2 mb-4 text-blue-400/60">

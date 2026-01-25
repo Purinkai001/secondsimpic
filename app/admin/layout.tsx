@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import {
     Loader2, ShieldAlert, LayoutDashboard, FileQuestion, Users,
-    History, Settings, CheckSquare, Flag, LogOut, Activity
+    History, Settings, CheckSquare, Flag, LogOut, Activity, Sliders
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
     { label: "History", href: "/admin/history", icon: History },
     { label: "Questions", href: "/admin/questions", icon: FileQuestion },
     { label: "Config", href: "/admin/config", icon: Settings },
+    { label: "Modify Scores", href: "/admin/modifyscore", icon: Sliders },
 ];
 
 function LayoutContent({ children }: { children: React.ReactNode }) {

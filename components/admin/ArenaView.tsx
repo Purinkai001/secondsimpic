@@ -33,9 +33,6 @@ export function ArenaView({
             {/* Header Overlay */}
             <div className="fixed top-8 left-8 right-8 z-[110] flex justify-between items-center pointer-events-none">
                 <div className="flex items-center gap-4 opacity-50">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                        <ShieldAlert className="w-5 h-5 text-white" />
-                    </div>
                     {isFullscreen && <span className="font-bold text-lg hidden sm:inline italic tracking-tight uppercase">SIMPIC ARENA</span>}
                 </div>
 
@@ -101,21 +98,6 @@ export function ArenaView({
                             timeLeft={timeLeft}
                             question={activeQuestion}
                         />
-                    )}
-
-                    {activeRound?.id === 'round-sd' && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 50 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="fixed top-0 left-0 right-0 py-3 bg-red-600/90 backdrop-blur-md text-white z-[120] flex items-center justify-center gap-8 shadow-2xl border-b border-red-500/50"
-                        >
-                            <span className="text-xl font-black italic tracking-[0.5em] animate-pulse">SUDDEN DEATH ELIMINATION</span>
-                            <div className="flex gap-2">
-                                {[...Array(3)].map((_, i) => (
-                                    <div key={i} className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: `${i * 0.2}s` }} />
-                                ))}
-                            </div>
-                        </motion.div>
                     )}
                 </AnimatePresence>
             </main>

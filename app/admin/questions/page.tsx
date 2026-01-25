@@ -49,7 +49,7 @@ export default function QuestionsPage() {
     };
 
     // Grouping logic
-    const rounds = ["round-1", "round-2", "round-3", "round-4", "round-5", "round-sd"];
+    const rounds = ["round-1", "round-2", "round-3", "round-4", "round-5"];
     const groupedQuestions = rounds.reduce((acc: Record<string, Question[]>, rid) => {
         acc[rid] = questions.filter(q => q.roundId === rid)
             .filter(q => (q.text || "").toLowerCase().includes(searchTerm.toLowerCase()))
@@ -81,7 +81,7 @@ export default function QuestionsPage() {
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold transition-all text-white shadow-lg shadow-blue-500/20 active:scale-95"
                     >
                         <Plus className="w-5 h-5" />
-                        <span>CREATE</span>
+                        <span>Add Questions</span>
                     </button>
                 </div>
             </div>

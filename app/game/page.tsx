@@ -14,7 +14,7 @@ import {
     AnswerRevealView,
     WaitingGradingView
 } from "./components";
-import { SettingsModal, WinnerCelebration } from "./components";
+import { SettingsModal, WinnerCelebration, SuddenDeathAlert } from "./components";
 import { PreloadImages } from "./components/PreloadImages";
 import { BackgroundDecoration } from "@/components/ui/BackgroundDecoration";
 
@@ -84,6 +84,11 @@ export default function GamePage() {
         const rankedFinalists = finalists.sort((a, b) => (b.score || 0) - (a.score || 0));
         const rank = rankedFinalists.findIndex(t => t.id === team.id) + 1;
         return <WinnerCelebration team={team} rank={rank || 1} />;
+    }
+
+    if (team?.inSuddenDeath) {
+        const tiedTeams = allTeams.filter(t => t.inSuddenDeath);
+        return <SuddenDeathAlert team={team} tiedTeams={tiedTeams} />;
     }
 
     return (

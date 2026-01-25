@@ -142,7 +142,14 @@ export function calculateAnswerScore(
     // 1. Determine Correctness
     switch (type) {
         case "mcq":
-            if (question.correctChoiceIndex !== undefined) {
+            if (question.correctChoiceIndices && question.correctChoiceIndices.length > 0) {
+                isCorrect = question.correctChoiceIndices.includes(answer);
+                correctAnswerData = {
+                    type: "mcq",
+                    correctChoiceIndices: question.correctChoiceIndices,
+                    choices: question.choices,
+                };
+            } else if (question.correctChoiceIndex !== undefined) {
                 isCorrect = answer === question.correctChoiceIndex;
                 correctAnswerData = {
                     type: "mcq",
@@ -161,10 +168,19 @@ export function calculateAnswerScore(
             }
             break;
         case "saq":
-        case "spot":
-            isCorrect = null; // Pending
-            correctAnswerData = { type, pendingGrading: true };
+        case "spot": {
+            const userTxt = String(answer || "").trim().toLowerCase();
+            const keyTxt = (question.correctAnswer || "").trim().toLowerCase();
+            let matches = keyTxt.length > 0 && userTxt === keyTxt;
+            if (!matches && question.alternateAnswers && Array.isArray(question.alternateAnswers)) {
+                matches = question.alternateAnswers.some(
+                    (a: string) => a.trim().toLowerCase() === userTxt
+                );
+            }
+            isCorrect = matches ? true : null;
+            correctAnswerData = { type, pendingGrading: !matches };
             break;
+        }
         default:
             isCorrect = null;
     }

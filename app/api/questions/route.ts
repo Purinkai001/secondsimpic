@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { question } = body; // Removed 'key'
+        const { question } = body;
 
         if (!question || !question.roundId || !question.type || !question.difficulty) {
             return NextResponse.json({ error: "Missing required fields: roundId, type, difficulty" }, { status: 400 });
@@ -57,16 +57,29 @@ export async function POST(request: Request) {
         const existingQs = await adminDb.collection("questions")
             .where("roundId", "==", question.roundId)
             .get();
-        const nextOrder = question.order || existingQs.size + 1;
-        const roundNumber = question.roundId.replace("round-", "");
-        const questionId = `q-round-${roundNumber}-${nextOrder}`;
 
-        const existingDoc = await adminDb.collection("questions").doc(questionId).get();
-        if (existingDoc.exists) {
-            return NextResponse.json({
-                error: `Question ${questionId} already exists.`
-            }, { status: 400 });
+        const desiredOrder = question.order || existingQs.size + 1;
+        const roundNumber = question.roundId.replace("round-", "");
+
+        const existingOrders = existingQs.docs.map(d => ({
+            ref: d.ref,
+            order: d.data().order as number
+        }));
+
+        const questionsToShift = existingOrders
+            .filter(q => q.order >= desiredOrder)
+            .sort((a, b) => b.order - a.order);
+
+        const batch = adminDb.batch();
+
+        for (const q of questionsToShift) {
+            batch.update(q.ref, { order: q.order + 1 });
         }
+
+        const maxOrder = existingOrders.length > 0
+            ? Math.max(...existingOrders.map(q => q.order))
+            : 0;
+        const questionId = `q-round-${roundNumber}-${maxOrder + 1}`;
 
         const questionRef = adminDb.collection("questions").doc(questionId);
         const questionData = {
@@ -75,20 +88,23 @@ export async function POST(request: Request) {
             text: question.text || "",
             type: question.type,
             difficulty: question.difficulty,
-            order: nextOrder,
+            order: desiredOrder,
             imageUrl: question.imageUrl || null,
             choices: question.choices || null,
             correctChoiceIndex: question.correctChoiceIndex ?? null,
+            correctChoiceIndices: question.correctChoiceIndices || null,
             statements: question.statements || null,
             correctAnswer: question.correctAnswer || null,
+            alternateAnswers: question.alternateAnswers || null,
         };
 
-        await questionRef.set(questionData);
+        batch.set(questionRef, questionData);
+        await batch.commit();
 
         return NextResponse.json({
             success: true,
             question: questionData,
-            message: `Question ${questionId} created successfully`
+            message: `Question ${questionId} created at order ${desiredOrder}`
         });
     } catch (error) {
         console.error("Error creating question:", error);

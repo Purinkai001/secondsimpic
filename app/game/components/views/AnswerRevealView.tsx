@@ -87,24 +87,31 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
                                 </div>
                             )}
 
-                            {result.correctAnswer.type === "mcq" && (
-                                <div className="space-y-3">
-                                    {result.correctAnswer.choices?.map((c, i) => (
-                                        <div key={i} className={cn(
-                                            "p-4 rounded-xl border flex items-center gap-4",
-                                            i === result.correctAnswer?.correctChoiceIndex
-                                                ? "bg-green-500/10 border-green-500/30 text-green-400"
-                                                : "bg-white/5 border-white/5 text-white/40"
-                                        )}>
-                                            <div className={cn(
-                                                "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold",
-                                                i === result.correctAnswer?.correctChoiceIndex ? "bg-green-500 text-black" : "bg-white/10"
-                                            )}>{String.fromCharCode(65 + i)}</div>
-                                            <span className="font-medium">{c.text}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            {result.correctAnswer.type === "mcq" && (() => {
+                                const correctIndices = result.correctAnswer?.correctChoiceIndices ||
+                                    (result.correctAnswer?.correctChoiceIndex !== undefined ? [result.correctAnswer.correctChoiceIndex] : []);
+                                return (
+                                    <div className="space-y-3">
+                                        {result.correctAnswer?.choices?.map((c, i) => {
+                                            const isCorrectChoice = correctIndices.includes(i);
+                                            return (
+                                                <div key={i} className={cn(
+                                                    "p-4 rounded-xl border flex items-center gap-4",
+                                                    isCorrectChoice
+                                                        ? "bg-green-500/10 border-green-500/30 text-green-400"
+                                                        : "bg-white/5 border-white/5 text-white/40"
+                                                )}>
+                                                    <div className={cn(
+                                                        "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold",
+                                                        isCorrectChoice ? "bg-green-500 text-black" : "bg-white/10"
+                                                    )}>{String.fromCharCode(65 + i)}</div>
+                                                    <span className="font-medium">{c.text}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
 
                             {result.correctAnswer.type === "mtf" && (
                                 <div className="space-y-2">

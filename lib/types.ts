@@ -5,8 +5,9 @@ export type Team = {
     score: number;
     status: "active" | "eliminated" | "winner";
     isBot?: boolean;
-    challengesRemaining: number; // 2 challenges per team across 5 turns
-    streak: number; // consecutive correct answers (0-4+)
+    challengesRemaining: number;
+    streak: number;
+    inSuddenDeath?: boolean;
 };
 
 export type Round = {
@@ -38,9 +39,9 @@ export type Question = {
     roundId: string;
     order: number;
     imageUrl?: string;
-    // For MCQ
     choices?: { text: string }[];
     correctChoiceIndex?: number;
+    correctChoiceIndices?: number[];
     // For MTF (Multiple True/False)
     statements?: MTFStatement[];
     // For SAQ and Spot - correct answer (must match exactly)
@@ -89,6 +90,7 @@ export type ScoreResult = {
 export type CorrectAnswerData = {
     type: QuestionType;
     correctChoiceIndex?: number;
+    correctChoiceIndices?: number[];
     choices?: { text: string }[];
     statements?: { text: string; isTrue: boolean }[];
     pendingGrading?: boolean;

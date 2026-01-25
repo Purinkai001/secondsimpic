@@ -74,9 +74,11 @@ export const LobbyView = ({ allTeams, team }: LobbyViewProps) => {
                                         layout
                                         className={cn(
                                             "min-h-[5rem] md:min-h-[6rem] h-auto p-4 md:p-5 rounded-2xl md:rounded-[2rem] border transition-all relative overflow-hidden flex flex-col justify-center",
-                                            t?.id === team?.id
-                                                ? "bg-blue-600/30 border-blue-500/50 ring-2 ring-blue-500/20 shadow-[0_0_40px_rgba(59,130,246,0.1)]"
-                                                : "bg-white/[0.03] border-white/5 hover:border-white/10"
+                                            t?.inSuddenDeath
+                                                ? "bg-red-600/20 border-red-500/50 ring-2 ring-red-500/30 shadow-[0_0_40px_rgba(239,68,68,0.2)] animate-pulse"
+                                                : t?.id === team?.id
+                                                    ? "bg-blue-600/30 border-blue-500/50 ring-2 ring-blue-500/20 shadow-[0_0_40px_rgba(59,130,246,0.1)]"
+                                                    : "bg-white/[0.03] border-white/5 hover:border-white/10"
                                         )}
                                     >
                                         {t ? (
@@ -122,6 +124,11 @@ export const LobbyView = ({ allTeams, team }: LobbyViewProps) => {
                                                 {t.status === 'eliminated' && (
                                                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
                                                         <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.5em] italic">Eliminated</span>
+                                                    </div>
+                                                )}
+                                                {t.inSuddenDeath && t.status !== 'eliminated' && (
+                                                    <div className="absolute top-0 left-0 px-2 py-1 bg-red-500 rounded-br-xl shadow-lg">
+                                                        <span className="text-[8px] font-black text-white uppercase tracking-widest">TIE</span>
                                                     </div>
                                                 )}
                                             </>

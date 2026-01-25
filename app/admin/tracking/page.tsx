@@ -29,13 +29,19 @@ export default function TrackingPage() {
 
     // Sync Presence
     useEffect(() => {
-        const unsub = onSnapshot(collection(db, "presence"), (snap) => {
-            const p: Record<string, Presence> = {};
-            snap.docs.forEach(d => {
-                p[d.id] = { teamId: d.id, ...d.data() } as Presence;
-            });
-            setPresence(p);
-        });
+        const unsub = onSnapshot(
+            collection(db, "presence"),
+            (snap) => {
+                const p: Record<string, Presence> = {};
+                snap.docs.forEach(d => {
+                    p[d.id] = { teamId: d.id, ...d.data() } as Presence;
+                });
+                setPresence(p);
+            },
+            (err) => {
+                console.error("Presence sync error:", err);
+            }
+        );
         return () => unsub();
     }, []);
 

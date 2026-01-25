@@ -108,9 +108,10 @@ export async function POST(request: Request) {
                         let mtfTotalCount = ans.mtfTotalCount;
 
                         if (isTargetQuestion) {
-                            // Re-evaluate Correctness
                             if (question.type === "mcq") {
-                                if (question.correctChoiceIndex !== undefined && typeof ans.answer === 'number') {
+                                if (question.correctChoiceIndices && question.correctChoiceIndices.length > 0 && typeof ans.answer === 'number') {
+                                    newIsCorrect = question.correctChoiceIndices.includes(ans.answer);
+                                } else if (question.correctChoiceIndex !== undefined && typeof ans.answer === 'number') {
                                     newIsCorrect = ans.answer === question.correctChoiceIndex;
                                 }
                             } else if (question.type === "mtf") {
