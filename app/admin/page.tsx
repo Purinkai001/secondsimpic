@@ -47,11 +47,6 @@ export default function AdminDashboardOverview() {
         return api.seedAction("removebots");
     });
 
-    const shuffleTeams = () => handleAction("shuffle", async () => {
-        if (!confirm("Shuffle all 30 teams?")) return;
-        return api.gameAction("shuffleTeams");
-    });
-
     const resetScoresForTurn3 = () => handleAction("resetScores", async () => {
         if (!confirm("Reset scores for Turn 3?")) return;
         return api.gameAction("resetScoresForTurn3");
@@ -97,10 +92,6 @@ export default function AdminDashboardOverview() {
 
     const setQuestion = async (roundId: string, qId: string | null) => {
         await updateDoc(doc(db, "rounds", roundId), { currentQuestionId: qId });
-    };
-
-    const dismissChallenge = async (challengeId: string) => {
-        await api.dismissChallenge(challengeId);
     };
 
     const pauseRound = async () => {
@@ -206,16 +197,8 @@ export default function AdminDashboardOverview() {
                             <ActionButton onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
                             <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${30 - teams.length})`} loading={actionLoading === "fillbots"} />
                             <ActionButton onClick={removeBots} icon={Bot} label="Remove Bots" variant="danger" loading={actionLoading === "removebots"} />
-                            <ActionButton onClick={shuffleTeams} icon={Shuffle} label="Shuffle" variant="success" loading={actionLoading === "shuffle"} />
                             <ActionButton onClick={resetScoresForTurn3} icon={RotateCcw} label="Reset Score" variant="warning" loading={actionLoading === "resetScores"} />
                             <ActionButton onClick={rearrangeDivisions} icon={Layers} label="Rearrange" variant="primary" loading={actionLoading === "rearrange"} />
-                            <ActionButton
-                                onClick={() => handleAction("simulateTies", () => api.gameAction("simulateTies"))}
-                                icon={AlertTriangle}
-                                label="Simulate Ties"
-                                variant="warning"
-                                loading={actionLoading === "simulateTies"}
-                            />
                             <ActionButton
                                 onClick={() => handleAction("suddenDeathAlert", async () => {
                                     const data = await api.gameAction("triggerSuddenDeathAlert");

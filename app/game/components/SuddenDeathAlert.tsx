@@ -112,7 +112,7 @@ export function SuddenDeathAlert({ team, tiedTeams = [] }: SuddenDeathAlertProps
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.3 }}
                 >
-                    Please wait for further instructions from the proctor.
+                    Please wait for further instructions
                 </motion.p>
 
                 <motion.div

@@ -131,6 +131,7 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
                         </div>
                     )}
 
+                    {/*
                     {!result.isCorrect && (
                         <button
                             onClick={onChallenge}
@@ -140,11 +141,12 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
                             Submit a Challenge Inquiry
                         </button>
                     )}
+                        */}
 
                     <div className="flex items-center justify-between pt-6 border-t border-surface-border/50">
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-3 text-accent-blue/80 font-black text-[10px] uppercase tracking-[0.2em] italic">
-                                <span>Awaiting Remote Sync</span>
+                            <div className="flex items-center gap-3 text-accent-blue/80 font-black text-[10px] uppercase">
+                                <span>Syncing</span>
                                 <div className="flex gap-1.5 Items-center">
                                     {[0, 1, 2].map(i => (
                                         <motion.div

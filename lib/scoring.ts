@@ -169,12 +169,12 @@ export function calculateAnswerScore(
             break;
         case "saq":
         case "spot": {
-            const userTxt = String(answer || "").trim().toLowerCase();
-            const keyTxt = (question.correctAnswer || "").trim().toLowerCase();
+            const userTxt = String(answer || "").trim();
+            const keyTxt = (question.correctAnswer || "").trim();
             let matches = keyTxt.length > 0 && userTxt === keyTxt;
             if (!matches && question.alternateAnswers && Array.isArray(question.alternateAnswers)) {
                 matches = question.alternateAnswers.some(
-                    (a: string) => a.trim().toLowerCase() === userTxt
+                    (a: string) => a.trim() === userTxt
                 );
             }
             isCorrect = matches ? true : null;

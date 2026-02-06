@@ -58,7 +58,7 @@ export default function GradingPage() {
         <div className="space-y-10 pb-20">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-foreground via-foreground to-amber-500 bg-clip-text text-transparent italic tracking-tight">
+                    <h1 className="text-4xl font-black bg-gradient-to-r from-foreground via-foreground to-amber-500 bg-clip-text text-transparent tracking-tight">
                         {view === "pending" ? "GRADING QUEUE" : "GRADING HISTORY"}
                     </h1>
                     <p className="text-muted mt-2 text-lg font-medium">Manual assessment hub for medical reasoning</p>

@@ -38,18 +38,15 @@ export const PlayingView = ({
             <div className="flex justify-between items-end mb-8 px-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-3">
-                        <span className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic border border-surface-border shadow-lg", labels.color)}>
+                        <span className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-surface-border shadow-lg", labels.color)}>
                             {labels.label}
                         </span>
                         <div className="h-4 w-[1px] bg-surface-border" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted italic">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
                             Difficulty: <span className={cn("text-foreground", difficulty.color)}>{difficulty.label}</span>
                         </span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted/40 uppercase tracking-widest pl-1">
-                        <Activity className="w-3 h-3" />
-                        Live Feed Status • Question Synchronized
-                    </div>
+
                 </div>
 
                 <div className="flex items-center gap-8">
@@ -110,20 +107,12 @@ export const PlayingView = ({
                                     }
                                 }}
                             />
-                            <div className="absolute top-6 right-6 px-4 py-2 bg-surface-bg/60 backdrop-blur-xl border border-surface-border rounded-full">
-                                <span className="text-muted text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                                    <ImageIcon className="w-3 h-3" /> Case Documentation
-                                </span>
-                            </div>
+
                         </div>
                     ) : (<div></div>)}
 
                     <div>
-                        <div className="flex items-center gap-2 mb-4 text-accent-blue">
-                            <Zap className="w-4 h-4 fill-current" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">Proctor Inquiry</span>
-                        </div>
-                        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black text-foreground leading-tight italic tracking-tight break-words hyphens-auto uppercase">
+                        <h2 className="text-2xl font-bold text-foreground leading-tight tracking-tight break-words hyphens-auto">
                             {question.text || "Examine the clinical presentation and determine the most likely diagnosis."}
                         </h2>
                     </div>
@@ -145,7 +134,7 @@ export const PlayingView = ({
                                     >
                                         <div className="flex items-center gap-4 md:gap-5 relative z-10 w-full">
                                             <div className={cn(
-                                                "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-lg md:text-xl italic transition-all duration-300 shrink-0",
+                                                "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 shrink-0",
                                                 mcqAnswer === idx ? "bg-white text-accent-blue shadow-xl" : "bg-surface-bg border border-surface-border text-muted/50 group-hover:bg-surface-bg/50"
                                             )}>
                                                 {String.fromCharCode(65 + idx)}
@@ -214,8 +203,8 @@ export const PlayingView = ({
                                     type="text"
                                     value={textAnswer}
                                     onChange={(e) => setTextAnswer(e.target.value)}
-                                    placeholder="Enter clinical diagnosis..."
-                                    className="w-full bg-surface-bg/50 border border-surface-border rounded-[2.5rem] py-8 pl-20 pr-10 text-2xl font-black text-foreground italic placeholder:text-muted/10 outline-none focus:border-accent-blue/50 focus:ring-4 focus:ring-accent-blue/10 transition-all duration-500 shadow-2xl"
+                                    placeholder="ANSWER HERE BOY"
+                                    className="w-full bg-surface-bg/50 border border-surface-border rounded-[2.5rem] py-8 pl-20 pr-10 text-2xl font-bold text-foreground placeholder:text-muted/10 outline-none focus:border-accent-blue/50 focus:ring-4 focus:ring-accent-blue/10 transition-all duration-500 shadow-2xl"
                                 />
                             </div>
                         )}
@@ -232,7 +221,6 @@ export const PlayingView = ({
                                 {submitting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Zap className="w-8 h-8 fill-current" />}
                                 Submit
                             </button>
-                            <p className="text-center text-[10px] font-bold text-muted/20 uppercase tracking-[0.4em] mt-6">Secure Uplink Established • Encryption Active</p>
                         </div>
                     )}
                 </div>

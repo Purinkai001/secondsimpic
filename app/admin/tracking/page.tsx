@@ -73,7 +73,7 @@ export default function TrackingPage() {
         <div className="space-y-10 pb-20">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-foreground via-foreground to-amber-500 bg-clip-text text-transparent italic tracking-tight uppercase">
+                    <h1 className="text-4xl font-black bg-gradient-to-r from-foreground via-foreground to-amber-500 bg-clip-text text-transparent tracking-tight uppercase">
                         Live Tracking
                     </h1>
                     <p className="text-muted mt-2 text-lg font-medium">Real-time connection monitoring</p>

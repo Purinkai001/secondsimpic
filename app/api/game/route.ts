@@ -25,18 +25,6 @@ export async function POST(request: Request) {
         const { action, roundNum } = body;
 
         // ===== INIT GAME =====
-        if (action === "simulateTies") {
-            const teamsSnap = await adminDb.collection("teams").where("status", "==", "active").orderBy("score", "desc").limit(3).get();
-            if (teamsSnap.size < 2) return NextResponse.json({ error: "Not enough active teams" }, { status: 400 });
-
-            const highestScore = teamsSnap.docs[0].data().score;
-            const batch = adminDb.batch();
-            teamsSnap.docs.forEach(doc => {
-                batch.update(doc.ref, { score: highestScore });
-            });
-            await batch.commit();
-            return NextResponse.json({ success: true, message: "Top teams tied." });
-        }
 
         if (action === "triggerSuddenDeathAlert") {
             const { findTiedTeams } = await import("@/app/api/admin/check-score/route");
@@ -127,39 +115,6 @@ export async function POST(request: Request) {
             return NextResponse.json({
                 success: true,
                 message: `Game reset! Cleared ${answersSnap.size} answers, ${challengesSnap.size} challenges, and reset ${teamsSnap.size} teams.`
-            });
-        }
-
-        // ===== SHUFFLE TEAMS =====
-        if (action === "shuffleTeams") {
-            const teamsSnap = await adminDb.collection("teams").get();
-            const teams = teamsSnap.docs;
-
-            if (teams.length !== 30) {
-                return NextResponse.json({
-                    error: `Need exactly 30 teams to shuffle. Currently have ${teams.length} teams.`
-                }, { status: 400 });
-            }
-
-            const shuffled = shuffleArray(teams);
-            const batch = adminDb.batch();
-
-            shuffled.forEach((doc, index) => {
-                const division = (index % 5) + 1;
-                batch.update(doc.ref, {
-                    group: division,
-                    score: 0,
-                    status: "active",
-                    challengesRemaining: 2,
-                    streak: 0
-                });
-            });
-
-            await batch.commit();
-
-            return NextResponse.json({
-                success: true,
-                message: "30 teams shuffled randomly into 5 divisions (6 teams each)."
             });
         }
 

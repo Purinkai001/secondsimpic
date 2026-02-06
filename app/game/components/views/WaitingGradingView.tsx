@@ -26,7 +26,7 @@ export const WaitingGradingView = ({ result, timeLeft, question }: WaitingGradin
                 </div>
                 <div>
                     <h2 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-tighter italic leading-none mb-2">Evaluation In Progress</h2>
-                    <p className="text-accent-blue/60 text-[10px] font-black uppercase tracking-widest">Verifying Clinical Records • Syncing Data</p>
+                    <p className="text-accent-blue/60 text-[10px] font-black uppercase tracking-widest">Verifying</p>
                 </div>
             </div>
 
@@ -35,32 +35,28 @@ export const WaitingGradingView = ({ result, timeLeft, question }: WaitingGradin
                     <span className="text-accent-blue font-black text-3xl tabular-nums leading-none">
                         {timeLeft}s
                     </span>
-                    <span className="ml-0 md:ml-3 text-[10px] text-accent-blue/40 uppercase font-black tracking-widest block transform md:-translate-y-1 mt-1 md:mt-0">Next Phase Sync</span>
+
                 </div>
             )}
         </div>
 
         {question && (
             <div className="opacity-40 grayscale-[0.5] transition-all hover:opacity-100 hover:grayscale-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div className="grid grid-cols-1 gap-8 items-start">
                     {question.imageUrl && (
                         <div className="aspect-video rounded-3xl overflow-hidden border border-surface-border bg-black/5">
                             <img src={question.imageUrl} className="w-full h-full object-contain" alt="Question" />
                         </div>
                     )}
                     <div className="space-y-4 text-left">
-                        <div className="flex items-center gap-2 text-accent-blue/40">
-                            <ScrollText className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest italic">Reference Document</span>
-                        </div>
-                        <h3 className="text-2xl font-bold text-foreground leading-tight italic">{question.text}</h3>
+                        <h3 className="text-2xl font-bold text-foreground leading-tight">{question.text}</h3>
                         {result && (
-                            <div className="pt-6 border-t border-surface-border space-y-4">
-                                <span className="text-[8px] text-muted uppercase font-black tracking-widest block">Transmission Status</span>
+                            <div className="pt-6 border-t space-y-4">
+                                <span className="text-[12px] text-muted uppercase font-black">Status</span>
                                 <div className="flex items-center gap-3">
                                     <CheckCircle2 className={cn("w-5 h-5", result.pendingGrading ? "text-accent-amber/40" : "text-green-500")} />
                                     <span className="text-sm font-bold text-foreground/60">
-                                        {result.pendingGrading ? "Metadata Uploaded - Pending Auth" : "Final Diagnosis Records Sealed"}
+                                        {result.pendingGrading ? "Grading your answer" : "Finished Grading"}
                                     </span>
                                 </div>
                             </div>

@@ -67,13 +67,18 @@ export async function POST(request: Request) {
         }));
 
         const questionsToShift = existingOrders
-            .filter(q => q.order >= desiredOrder)
-            .sort((a, b) => b.order - a.order);
+            .filter(q => q.order >= desiredOrder);
 
+        const shiftCount = questionsToShift.length;
+
+        questionsToShift.sort((a, b) => a.order - b.order);
+
+        console.log(questionsToShift)
         const batch = adminDb.batch();
 
+        let i = 1;
         for (const q of questionsToShift) {
-            batch.update(q.ref, { order: q.order + 1 });
+            batch.update(q.ref, { order: desiredOrder + i++ });
         }
 
         const maxOrder = existingOrders.length > 0
@@ -156,7 +161,29 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "questionId required" }, { status: 400 });
         }
 
-        await adminDb.collection("questions").doc(questionId).delete();
+        const questionRef = adminDb.collection("questions").doc(questionId);
+        const questionSnap = await adminDb.collection("questions").doc(questionId).get();
+        const roundId = questionSnap.data()?.roundId;
+        const order = questionSnap.data()?.order;
+
+        const questionsToShift = await adminDb.collection("questions")
+            .where("roundId", "==", roundId)
+            .where("order", ">=", order)
+            .get();
+
+        const batch = adminDb.batch();
+        batch.delete(questionRef)
+
+        questionsToShift.docs.forEach(doc => {
+            batch.update(doc.ref, {
+                order: doc.data().order - 1
+            })
+        })
+
+
+        await batch.commit();
+
+
 
         return NextResponse.json({
             success: true,
