@@ -447,7 +447,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         {(type === "saq" || type === "spot") && (
                             <div className="space-y-6">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Verification Protocol (Key)</label>
+                                    <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Answer Key</label>
                                     <div className="relative">
                                         <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-accent-blue/40">
                                             <Check className="w-full h-full" />
@@ -456,7 +456,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                                             required
                                             value={correctAnswer}
                                             onChange={(e) => setCorrectAnswer(e.target.value)}
-                                            placeholder="Expected nomenclature/diagnosis..."
+                                            placeholder="Answer Key"
                                             className="w-full h-20 bg-accent-blue/5 border border-accent-blue/20 rounded-3xl pl-16 pr-6 focus:outline-none focus:border-accent-blue/50 font-black text-2xl text-accent-blue italic transition-colors placeholder:text-accent-blue/20"
                                         />
                                     </div>

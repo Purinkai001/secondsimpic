@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, Loader2, Flame, Flag, HelpCircle } from "lucide-react";
+
+import { CheckCircle2, XCircle, Loader2, Flame, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Team, Question } from "@/lib/types";
 import { SubmissionResult, CorrectAnswerData } from "../types";

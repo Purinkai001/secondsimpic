@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc, query, collection, orderBy, updateDoc, onSnapshot, where, limit, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
-import { GameState, SubmissionResult, requiresManualGrading, ANSWER_REVEAL_DURATION } from "@/app/game/types";
+import { GameState, SubmissionResult, ANSWER_REVEAL_DURATION } from "@/app/game/types";
 import { api } from "@/lib/api";
 import { useServerTime } from "./useServerTime";
 

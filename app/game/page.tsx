@@ -23,7 +23,7 @@ export default function GamePage() {
     const [showSettings, setShowSettings] = useState(false);
 
     const {
-        loading, team, currentRound, currentQuestion, allTeams, roundQuestions,
+        loading, team, currentQuestion, allTeams, roundQuestions,
         mcqAnswer, setMcqAnswer, mtfAnswers, setMtfAnswers, textAnswer, setTextAnswer,
         gameState, timeLeft, countdownSeconds, answerRevealCountdown, timeSpent,
         submitted, submitting, lastResult,

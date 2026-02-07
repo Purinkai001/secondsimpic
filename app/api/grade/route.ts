@@ -30,7 +30,6 @@ export async function POST(request: Request) {
         const answerData = answerDoc.data()!;
 
         const oldPoints = answerData.points || 0;
-        const wasCorrect = answerData.isCorrect;
 
         const teamRef = adminDb.collection("teams").doc(answerData.teamId);
         const teamDoc = await teamRef.get();

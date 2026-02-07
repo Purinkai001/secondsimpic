@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Settings, X, Edit2, Loader2, LogOut } from "lucide-react";
 import { Team } from "@/lib/types";
 
@@ -74,7 +74,6 @@ export function SettingsModal({ team, isOpen, onClose, onRename, onLogout }: Set
                         <p className="text-xs text-gray-500 mb-2">Team ID: {team?.id}</p>
                         <p className="text-xs text-gray-500 mb-2">Group: {team?.group}</p>
                         <p className="text-xs text-gray-500 mb-2">Streak: {team?.streak || 0}</p>
-                        <p className="text-xs text-gray-500">Challenges Remaining: {team?.challengesRemaining ?? 2}</p>
                     </div>
 
                     <button
