@@ -27,10 +27,9 @@ export default function HistoryPage() {
         <div className="space-y-10 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-foreground via-foreground to-accent-blue bg-clip-text text-transparent italic tracking-tight uppercase">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-accent-blue bg-clip-text text-transparent tracking-tight uppercase">
                         Answer Log
                     </h1>
-                    <p className="text-muted mt-2 text-lg font-medium">Real-time audit trail of all submissions</p>
                 </div>
                 <div className="flex flex-wrap gap-4 w-full md:w-auto">
                     <div className="relative flex-1 md:w-64">

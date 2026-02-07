@@ -22,10 +22,9 @@ export default function ChallengesPage() {
         <div className="space-y-10 pb-20">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-foreground via-foreground to-pink-500 bg-clip-text text-transparent italic tracking-tight uppercase">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-pink-500 bg-clip-text text-transparent tracking-tight uppercase">
                         CHALLENGE QUEUE
                     </h1>
-                    <p className="text-white/40 mt-2 text-lg font-medium">Contestant dispute and verification hub</p>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="px-6 py-3 bg-pink-500/10 border border-pink-500/20 rounded-2xl flex items-center gap-4">

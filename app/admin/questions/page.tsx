@@ -61,7 +61,7 @@ export default function QuestionsPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>
-                    <h1 className="text-4xl font-black italic bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground to-accent-blue/60">
+                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground to-accent-blue/60">
                         QUESTION BANK
                     </h1>
                     <p className="text-muted mt-2 font-medium">Manage and organize competition items</p>
@@ -73,7 +73,7 @@ export default function QuestionsPage() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search questions..."
-                            className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-accent-blue/30 transition-all font-medium text-foreground placeholder:text-muted/20"
+                            className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-accent-blue/30 transition-all font-medium text-foreground placeholder:text-muted"
                         />
                     </div>
                     <button

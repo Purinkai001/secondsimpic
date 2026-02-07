@@ -198,7 +198,7 @@ export default function LoginPage() {
             >
               <FeatureCard icon={Brain} title="5 Rounds" delay={1.4} />
               <FeatureCard icon={Users} title="30 Teams" delay={1.6} />
-              <FeatureCard icon={Trophy} title="1 Winner" delay={1.8} />
+              <FeatureCard icon={Trophy} title="5 Winner" delay={1.8} />
             </motion.div>
           </motion.div>
         ) : (
@@ -221,7 +221,7 @@ export default function LoginPage() {
                 >
                   <Stethoscope className="w-6 h-6 sm:w-8 sm:h-8 text-white dark:text-foreground" />
                 </motion.div>
-                <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-foreground to-accent-blue bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl lg:text-6xl tracking-wider font-black bg-gradient-to-r from-foreground to-accent-blue bg-clip-text text-transparent">
                   SIMPIC
                 </h1>
                 <p className="text-muted text-xs sm:text-sm mt-1">Enter the competition</p>

@@ -29,8 +29,7 @@ export const LobbyView = ({ allTeams, team }: LobbyViewProps) => {
                     <div className="flex items-center gap-3">
                         <Trophy className="w-6 h-6 text-accent-blue" />
                         <div>
-                            <h2 className="text-xl font-black text-foreground italic uppercase tracking-tighter leading-none">Clinical Standings</h2>
-                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-accent-blue/50 mt-1">Live Division Ranking Engine</p>
+                            <h2 className="text-xl font-black text-foreground italic uppercase tracking-tighter leading-none">Standings</h2>
                         </div>
                     </div>
                 </div>
