@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
+import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import {
     Activity, Bot, Users, FileQuestion, CheckCircle, Flag,
     RefreshCw, Shuffle, RotateCcw, Layers, AlertTriangle, Zap,
@@ -272,3 +272,4 @@ export default function AdminDashboardOverview() {
         </div>
     );
 }
+

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, XCircle, AlertCircle, Info, ChevronRight, Trophy, Loader2 } from "lucide-react";
-import { SubmissionResult } from "../../types";
+import { SubmissionResult } from "@/lib/game/types/game";
 import { cn } from "@/lib/utils";
 
 interface AnswerRevealViewProps {

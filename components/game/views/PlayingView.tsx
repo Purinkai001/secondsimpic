@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Timer, Zap, Brain, Activity, Image as ImageIcon } from "lucide-react";
 import { Question, QuestionType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { QUESTION_TYPE_LABELS, DIFFICULTY_LABELS } from "../../types";
+import { QUESTION_TYPE_LABELS, DIFFICULTY_LABELS } from "@/lib/game/types/game";
 
 interface PlayingViewProps {
     question: Question | null;

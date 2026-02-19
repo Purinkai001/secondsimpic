@@ -1,6 +1,6 @@
 "use client";
 
-import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
+import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import { History, Download, User, Search, Filter, BookOpen } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -137,3 +137,4 @@ export default function HistoryPage() {
         </div>
     );
 }
+

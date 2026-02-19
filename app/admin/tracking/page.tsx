@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Team } from "@/lib/types";
 import { motion } from "framer-motion";
-import { Activity, Wifi, WifiOff, Clock, Laptop, ShieldCheck } from "lucide-react";
+import { Wifi, WifiOff, Clock, Laptop } from "lucide-react";
+import { useTeams } from "@/lib/hooks/useTeams";
 
 type Presence = {
     teamId: string;
@@ -15,17 +15,9 @@ type Presence = {
 };
 
 export default function TrackingPage() {
-    const [teams, setTeams] = useState<Team[]>([]);
+    const teams = useTeams();
     const [presence, setPresence] = useState<Record<string, Presence>>({});
     const [now, setNow] = useState(Date.now());
-
-    // Sync Teams
-    useEffect(() => {
-        const unsub = onSnapshot(collection(db, "teams"), (snap) => {
-            setTeams(snap.docs.map(d => ({ id: d.id, ...d.data() } as Team)));
-        });
-        return () => unsub();
-    }, []);
 
     // Sync Presence
     useEffect(() => {

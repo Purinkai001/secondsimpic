@@ -1,6 +1,6 @@
 "use client";
 
-import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
+import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import { api } from "@/lib/api";
 import { Flag, X, Clock, MessageSquare, User, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -109,3 +109,4 @@ export default function ChallengesPage() {
         </div>
     );
 }
+

@@ -1,13 +1,9 @@
 "use client";
 
-import { useGameConfig } from "@/lib/hooks/useGameConfig";
-import { StatCard } from "@/components/admin/StatCard";
+import { useGameConfig } from "@/lib/admin/hooks/useGameConfig";
 import { Clock, Users, ShieldCheck, Save, RefreshCw, Trash2, AlertTriangle, UserX } from "lucide-react";
-import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Team } from "@/lib/types";
+import { useState, useMemo } from "react";
+import { useTeams } from "@/lib/hooks/useTeams";
 
 export default function ConfigPage() {
     const { config, updateConfig, loading } = useGameConfig();
@@ -16,19 +12,11 @@ export default function ConfigPage() {
     const [resetting, setResetting] = useState(false);
     const [kicking, setKicking] = useState(false);
     const [kickingAll, setKickingAll] = useState(false);
-    const [teams, setTeams] = useState<Team[]>([]);
+    const allTeams = useTeams("name");
+    const teams = useMemo(() => [...allTeams].sort((a, b) => a.name.localeCompare(b.name)), [allTeams]);
     const [selectedTeamId, setSelectedTeamId] = useState("");
     const [confirmReset, setConfirmReset] = useState(false);
     const [confirmKickAll, setConfirmKickAll] = useState(false);
-
-    // Subscribe to teams for kick dropdown
-    useEffect(() => {
-        const unsub = onSnapshot(collection(db, "teams"), (snap) => {
-            const t = snap.docs.map(d => ({ id: d.id, ...d.data() } as Team));
-            setTeams(t.sort((a, b) => a.name.localeCompare(b.name)));
-        });
-        return () => unsub();
-    }, []);
 
     if (loading) return <div>Loading config...</div>;
 
@@ -246,4 +234,5 @@ export default function ConfigPage() {
         </div>
     );
 }
+
 

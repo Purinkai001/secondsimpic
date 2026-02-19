@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Team, Round, Question, Answer, Challenge } from "@/lib/types";
-import { api } from "@/lib/api";
+import { Round, Question, Answer, Challenge } from "@/lib/types";
+import { useTeams } from "@/lib/hooks/useTeams";
 
 export function useAdminDashboard() {
+    const teams = useTeams("score");
     const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-    const [teams, setTeams] = useState<Team[]>([]);
     const [rounds, setRounds] = useState<Round[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [pendingAnswers, setPendingAnswers] = useState<Answer[]>([]);
@@ -14,11 +14,6 @@ export function useAdminDashboard() {
     const [challenges, setChallenges] = useState<Challenge[]>([]);
 
     useEffect(() => {
-        const unsubTeams = onSnapshot(query(collection(db, "teams"), orderBy("score", "desc")), (snap) => {
-            setTeams(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team)));
-            setLastUpdate(new Date());
-        }, (err) => console.error("Teams sync error:", err));
-
         const unsubRounds = onSnapshot(collection(db, "rounds"), (snap) => {
             setRounds(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Round)));
             setLastUpdate(new Date());
@@ -48,7 +43,6 @@ export function useAdminDashboard() {
         });
 
         return () => {
-            unsubTeams();
             unsubRounds();
             unsubQuestions();
             unsubAnswers();

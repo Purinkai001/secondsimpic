@@ -1,7 +1,6 @@
 import { QuestionType } from "@/lib/types";
 
-export type { CorrectAnswerData, SubmissionResult } from "@/lib/types";
-
+// Answer reveal duration in seconds
 export const ANSWER_REVEAL_DURATION = 5;
 
 export const QUESTION_TYPE_LABELS: Record<QuestionType, { label: string; color: string }> = {
@@ -15,10 +14,4 @@ export const DIFFICULTY_LABELS = {
     easy: { label: "Easy", color: "bg-green-600", points: 1 },
     medium: { label: "Medium", color: "bg-yellow-600", points: 2 },
     difficult: { label: "Difficult", color: "bg-red-600", points: 3 },
-};
-
-export type GameState = "waiting" | "countdown" | "playing" | "answer_reveal" | "waiting_grading";
-
-export const requiresManualGrading = (type: QuestionType): boolean => {
-    return type === "saq" || type === "spot";
 };

@@ -127,3 +127,11 @@ export const GROUPS = [1, 2, 3, 4, 5];
 export const MAX_TEAMS_PER_GROUP = 6;
 export const TOTAL_TEAMS = 30;
 export const DEFAULT_QUESTION_TIMER = 90; // seconds
+
+// Game state machine
+export type GameState = "waiting" | "countdown" | "playing" | "answer_reveal" | "waiting_grading";
+
+// Whether a question type requires manual grading
+export const requiresManualGrading = (type: QuestionType): boolean => {
+    return type === "saq" || type === "spot";
+};

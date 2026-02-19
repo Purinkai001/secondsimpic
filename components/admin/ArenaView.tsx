@@ -1,11 +1,11 @@
 "use client";
 
 import { Team, Question, Round } from "@/lib/types";
-import { GameState } from "@/app/game/types";
+import { GameState } from "@/lib/game/types/game";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Maximize2, Minimize2, Activity, ShieldAlert } from "lucide-react";
-import { LobbyView, CountdownView, PlayingView, AnswerRevealView, WaitingGradingView } from "@/app/game/components";
+import { LobbyView, CountdownView, PlayingView, AnswerRevealView, WaitingGradingView } from "@/components/game";
 
 interface ArenaViewProps {
     teams: Team[];

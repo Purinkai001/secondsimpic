@@ -1,4 +1,4 @@
-import { Difficulty, ScoreResult } from "./types";
+import { Difficulty, ScoreResult } from "@/lib/types";
 
 /**
  * Calculate the speed factor based on time spent answering
@@ -91,9 +91,6 @@ export function calculateScore(
     return Math.round(score); // Round to whole number
 }
 
-
-
-
 /**
  * Check MTF partial score
  */
@@ -119,8 +116,6 @@ export function checkMTFPartial(userAnswers: boolean[], correctAnswers: boolean[
         allCorrect: correctCount === correctAnswers.length,
     };
 }
-
-
 
 /**
  * Centralized logic to calculate score, streak, and correctness

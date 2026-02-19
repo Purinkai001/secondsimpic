@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Loader2, ScrollText, CheckCircle2 } from "lucide-react";
-import { SubmissionResult } from "../../types";
+import { SubmissionResult } from "@/lib/game/types/game";
 import { Question } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
+import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, AlertCircle, Image as ImageIcon, Plus, Trash2, Upload, Loader2, FileQuestion, Search, ChevronRight, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuestionModal } from "@/components/admin/QuestionModal";
+import { QuestionModal } from "@/components/admin/question-modal";
 import { api } from "@/lib/api";
 import { Question } from "@/lib/types";
 
@@ -190,3 +190,4 @@ export default function QuestionsPage() {
 const LocalImageIcon = ({ className }: { className?: string }) => (
     <ImageIcon className={className} />
 );
+

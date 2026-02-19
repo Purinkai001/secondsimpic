@@ -8,6 +8,3 @@ export * from "./views/WaitingGradingView";
 export * from "./SettingsModal";
 export * from "./WinnerCelebration";
 export * from "./SuddenDeathAlert";
-export * from "./MCQInput";
-export * from "./MTFInput";
-export * from "./TextInput";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard";
+import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import { api } from "@/lib/api";
 import { CheckSquare, ShieldCheck, User, BookOpen, Check, X, Users, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -201,3 +201,4 @@ export default function GradingPage() {
         </div>
     );
 }
+

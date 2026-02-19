@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { useGameRoom } from "@/lib/hooks/useGameRoom";
+import { useGameRoom } from "@/lib/game/hooks/useGameRoom";
 import {
     TeamHeader,
     GameFooter,
@@ -13,9 +13,9 @@ import {
     PlayingView,
     AnswerRevealView,
     WaitingGradingView
-} from "./components";
-import { SettingsModal, WinnerCelebration, SuddenDeathAlert } from "./components";
-import { PreloadImages } from "./components/PreloadImages";
+} from "@/components/game";
+import { SettingsModal, WinnerCelebration, SuddenDeathAlert } from "@/components/game";
+import { PreloadImages } from "@/components/game/PreloadImages";
 import { BackgroundDecoration } from "@/components/ui/BackgroundDecoration";
 
 export default function GamePage() {

@@ -34,3 +34,22 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Architecture Rules
+
+- `app/`: Next.js route entrypoints only (`page.tsx`, `layout.tsx`, `route.ts`). Keep these files thin and composition-focused.
+- `components/`: UI grouped by domain (`components/admin`, `components/game`, `components/landing`, `components/ui`).
+- `lib/`: domain/business logic grouped by area:
+  - `lib/admin/{hooks,services,types}`
+  - `lib/game/{hooks,services,types}`
+  - `lib/questions/{services,types}`
+  - `lib/challenges/{services,types}`
+  - `lib/shared/{api,firebase,constants,hooks}`
+- `utils/`: generic non-domain helpers (`formatters`, `validators`, `time`, `misc`).
+
+### Import boundaries
+
+- `app/*` may import from `components/*`, `lib/*`, `utils/*`.
+- `components/*` may import from `lib/*`, `utils/*`.
+- `lib/*` may import from `utils/*`.
+- Non-route code must not import from `app/*`.

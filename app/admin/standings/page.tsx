@@ -1,6 +1,6 @@
 "use client";
 
-import { useStandingsSync } from "@/lib/hooks/useStandingsSync";
+import { useStandingsSync } from "@/lib/admin/hooks/useStandingsSync";
 import { ArenaView } from "@/components/admin/ArenaView";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
@@ -53,3 +53,4 @@ export default function StandingsPage() {
         />
     );
 }
+

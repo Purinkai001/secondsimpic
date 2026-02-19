@@ -1,34 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-import { Team } from "@/lib/types";
+import { useState, useMemo } from "react";
+import { auth } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { Check, Minus, Plus, Target, Users, RefreshCw } from "lucide-react";
+import { useTeams } from "@/lib/hooks/useTeams";
 
 type ModifyMode = "set" | "add" | "subtract";
 
 export default function ModifyScorePage() {
-    const [teams, setTeams] = useState<Team[]>([]);
+    const rawTeams = useTeams();
+    const teams = useMemo(() => [...rawTeams].sort((a, b) => {
+        if (a.group !== b.group) return a.group - b.group;
+        return b.score - a.score;
+    }), [rawTeams]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [mode, setMode] = useState<ModifyMode>("set");
     const [value, setValue] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
-
-    useEffect(() => {
-        const unsub = onSnapshot(collection(db, "teams"), (snap) => {
-            const data = snap.docs
-                .map(d => ({ id: d.id, ...d.data() } as Team))
-                .sort((a, b) => {
-                    if (a.group !== b.group) return a.group - b.group;
-                    return b.score - a.score;
-                });
-            setTeams(data);
-        });
-        return () => unsub();
-    }, []);
 
     const toggleTeam = (id: string) => {
         setSelectedIds(prev => {

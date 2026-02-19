@@ -1,4 +1,3 @@
-
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
@@ -19,8 +18,6 @@ export async function verifyAdmin(request: Request) {
         // Filter out empty strings from split if any
         const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(e => e);
         const userEmail = decodedToken.email;
-
-
 
         if (!userEmail || !adminEmails.includes(userEmail)) {
             console.warn(`[AuthDebug] Unauthorized access attempt by: ${userEmail}. Not in whitelist.`);

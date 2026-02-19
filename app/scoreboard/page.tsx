@@ -1,6 +1,6 @@
 "use client";
 
-import { useStandingsSync } from "@/lib/hooks/useStandingsSync";
+import { useStandingsSync } from "@/lib/admin/hooks/useStandingsSync";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -138,3 +138,4 @@ export default function ScoreboardPage() {
         </div>
     );
 }
+
