@@ -21,11 +21,11 @@ export const TeamHeader = ({ team, onLogout, onRename }: TeamHeaderProps) => {
 
     return (
         <>
-            <footer className="fixed bottom-0 w-full flex justify-center items-center py-6 md:py-8 z-1">
+            <footer className="fixed bottom-0 w-full flex justify-center items-center py-6 md:py-8 z-10 pointer-events-none">
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-6"
+                    className="flex items-center gap-6 pointer-events-auto"
                 >
                     <span className="font-atsanee font-black text-3xl text-gold drop-shadow-lg">
                         TEAM {team?.name || "undefined"}

@@ -239,7 +239,7 @@ export const PlayingView = ({
 
 					{/* Submit Button */}
 					{!submitted && (
-						<div className="pt-2 w-full">
+						<div className="pt-2 w-full z-20">
 							<button
 								disabled={submitting}
 								onClick={onSubmit}

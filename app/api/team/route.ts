@@ -3,6 +3,10 @@ import { adminDb } from "@/lib/firebase-admin";
 import { verifyPlayer, playerUnauthorizedResponse } from "@/lib/auth-player";
 import { GROUPS, MAX_TEAMS_PER_GROUP, Team } from "@/lib/types";
 
+function normalizeTeamName(name: string) {
+    return name.trim().toLocaleLowerCase();
+}
+
 function pickGroup(teams: Team[], maxTeamsPerGroup: number) {
     const groupCounts = GROUPS.reduce<Record<number, number>>((acc, group) => {
         acc[group] = 0;
@@ -35,6 +39,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const teamName = String(body.teamName || "").trim();
+        const normalizedTeamName = normalizeTeamName(teamName);
 
         if (!teamName) {
             return NextResponse.json({ error: "Team name is required." }, { status: 400 });
@@ -49,12 +54,13 @@ export async function POST(request: Request) {
         const totalCapacity = maxTeamsPerGroup * GROUPS.length;
 
         const result = await adminDb.runTransaction(async (transaction) => {
-            const existingTeams = await transaction.get(
-                adminDb.collection("teams").where("name", "==", teamName).limit(1)
-            );
+            const allTeamsSnap = await transaction.get(adminDb.collection("teams"));
+            const existingTeam = allTeamsSnap.docs.find((doc) => {
+                const teamData = doc.data() as Team;
+                return normalizeTeamName(teamData.name) === normalizedTeamName;
+            });
 
-            if (!existingTeams.empty) {
-                const existingTeam = existingTeams.docs[0];
+            if (existingTeam) {
                 const teamData = existingTeam.data() as Team;
 
                 if (teamData.status === "eliminated") {
@@ -71,7 +77,6 @@ export async function POST(request: Request) {
                 };
             }
 
-            const allTeamsSnap = await transaction.get(adminDb.collection("teams"));
             if (allTeamsSnap.size >= totalCapacity) {
                 throw new Error("FULL");
             }
@@ -128,6 +133,7 @@ export async function PATCH(request: Request) {
         const body = await request.json();
         const teamId = String(body.teamId || "").trim();
         const newName = String(body.newName || "").trim();
+        const normalizedNewName = normalizeTeamName(newName);
 
         if (!teamId || !newName) {
             return NextResponse.json({ error: "teamId and newName are required." }, { status: 400 });
@@ -139,9 +145,9 @@ export async function PATCH(request: Request) {
 
         const result = await adminDb.runTransaction(async (transaction) => {
             const teamRef = adminDb.collection("teams").doc(teamId);
-            const [teamSnap, duplicateNameSnap] = await Promise.all([
+            const [teamSnap, allTeamsSnap] = await Promise.all([
                 transaction.get(teamRef),
-                transaction.get(adminDb.collection("teams").where("name", "==", newName).limit(1)),
+                transaction.get(adminDb.collection("teams")),
             ]);
 
             if (!teamSnap.exists) {
@@ -158,7 +164,16 @@ export async function PATCH(request: Request) {
                 transaction.update(teamRef, { ownerUid: decodedToken.uid });
             }
 
-            if (!duplicateNameSnap.empty && duplicateNameSnap.docs[0].id !== teamId) {
+            const duplicateTeam = allTeamsSnap.docs.find((doc) => {
+                if (doc.id === teamId) {
+                    return false;
+                }
+
+                const otherTeam = doc.data() as Team;
+                return normalizeTeamName(otherTeam.name) === normalizedNewName;
+            });
+
+            if (duplicateTeam) {
                 throw new Error("NAME_TAKEN");
             }
 
