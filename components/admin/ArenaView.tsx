@@ -77,6 +77,7 @@ export function ArenaView({
                     {gameState === "answer_reveal" && (
                         <AnswerRevealView
                             key="reveal"
+                            question={activeQuestion}
                             result={{
                                 isCorrect: true,
                                 points: 0,
