@@ -1,141 +1,348 @@
 "use client";
 
 import { useStandingsSync } from "@/lib/admin/hooks/useStandingsSync";
-import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Crown } from "lucide-react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
-import { BackgroundDecoration } from "@/components/ui/BackgroundDecoration";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { auth } from "@/lib/firebase";
+import BgSVG from "@/vectors/bgsvg";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+type VisualTeam = any & {
+	originalRank?: number;
+	isWrapping?: boolean;
+	renderKey?: string;
+};
 
 export default function ScoreboardPage() {
-    const { allTeams } = useStandingsSync();
+	const { allTeams } = useStandingsSync();
 
-    const groupedTeams = useMemo(() => {
-        // Initialize groups
-        const groups: Record<number, typeof allTeams> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+	const [phase, setPhase] = useState<"idle" | "phase1" | "phase2">("idle");
+	const [localTeams, setLocalTeams] = useState<VisualTeam[]>([]);
 
-        // Distribute teams
-        allTeams.forEach(t => {
-            const g = t.group || 1; // Default to 1 if undefined, though it should be defined
-            if (!groups[g]) groups[g] = [];
-            groups[g].push(t);
-        });
+	useEffect(() => {
+		if (phase === "idle") {
+			setLocalTeams((prevLocal) => {
+				if (!prevLocal || prevLocal.length === 0) {
+					return allTeams.map((t) => ({ ...t, renderKey: t.id }));
+				}
+				return allTeams.map((t) => {
+					const existing = prevLocal.find((p) => p.id === t.id);
+					return { ...t, renderKey: existing?.renderKey || t.id };
+				});
+			});
+		}
+	}, [allTeams, phase]);
 
-        // Sort each group
-        Object.keys(groups).forEach(key => {
-            const k = Number(key);
-            groups[k].sort((a, b) => (b.score || 0) - (a.score || 0));
-        });
+	const divisions = useMemo(() => {
+		return Array.from({ length: 5 }, (_, i) => {
+			const divNum = i + 1;
+			const teamsInDiv = localTeams.filter((t) => t.group === divNum);
 
-        return groups;
-    }, [allTeams]);
+			if (phase === "phase1") {
+				teamsInDiv.sort(
+					(a, b) => (a.originalRank || 0) - (b.originalRank || 0),
+				);
+			} else {
+				teamsInDiv.sort((a, b) => (b.score || 0) - (a.score || 0));
+			}
 
-    // Auto-scroll logic could go here, but for now let's just ensure it fits or scrolls naturally
+			return { divNum, teams: teamsInDiv };
+		});
+	}, [localTeams, phase]);
 
-    return (
-        <div className="min-h-screen bg-background text-foreground p-4 md:p-8 overflow-y-auto transition-colors duration-300">
-            {/* Background decorative elements */}
-            <BackgroundDecoration />
+	const savePositionsToDatabase = async (finalTeamsArray: VisualTeam[]) => {
+		try {
+			const user = auth.currentUser;
 
-            <div className="relative z-10 max-w-[1920px] mx-auto">
-                <div className="text-center mb-12">
-                    <h1 className="text-5xl md:text-7xl font-black text-foreground flex items-center justify-center gap-6 drop-shadow-2xl">
-                        <Trophy className="w-16 h-16 md:w-24 md:h-24 text-yellow-500 fill-yellow-500/20" />
-                        <span className="italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-yellow-600 via-orange-500 to-yellow-600 dark:from-yellow-300 dark:via-orange-400 dark:to-yellow-300">LIVE STANDINGS</span>
-                    </h1>
-                </div>
+			if (!user) {
+				console.error("No user logged in");
+				return;
+			}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                    {[1, 2, 3, 4, 5].map((group) => {
-                        const groupTeams = groupedTeams[group] || [];
+			const token = await user.getIdToken();
 
-                        return (
-                            <div key={group} className="bg-surface-bg border border-surface-border rounded-3xl p-6 backdrop-blur-md flex flex-col shadow-2xl transition-colors duration-300">
-                                <div className="text-center mb-8">
-                                    <div className="inline-block px-6 py-2 rounded-full bg-accent-blue/10 border border-accent-blue/20">
-                                        <h2 className="text-xl md:text-2xl font-black text-accent-blue uppercase tracking-[0.2em]">Group {group}</h2>
-                                    </div>
-                                </div>
+			const payload = finalTeamsArray.map((team) => ({
+				id: team.id,
+				group: team.group,
+			}));
 
-                                <div className="space-y-4">
-                                    <AnimatePresence mode="popLayout">
-                                        {groupTeams.map((team, index) => (
-                                            <motion.div
-                                                key={team.id}
-                                                layoutId={`team-${team.id}`}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.9 }}
-                                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                                className={cn(
-                                                    "relative flex items-center gap-3 p-3 md:p-4 rounded-2xl border transition-all duration-500 overflow-x-auto",
-                                                    team.status === "eliminated"
-                                                        ? "bg-red-500/5 dark:bg-red-950/20 border-red-500/10"
-                                                        : index === 0
-                                                            ? "bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30 shadow-[0_0_30px_rgba(234,179,8,0.05)]"
-                                                            : index === 1
-                                                                ? "bg-surface-bg border-surface-border"
-                                                                : index === 2
-                                                                    ? "bg-surface-bg border-surface-border/80"
-                                                                    : "bg-surface-bg border-surface-border/50"
-                                                )}
-                                            >
-                                                {/* Eliminated Overlay */}
-                                                {team.status === "eliminated" && (
-                                                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-background/60 dark:bg-black/60 backdrop-blur-[1px]">
-                                                        <span className="text-red-600 dark:text-red-500 font-black italic tracking-[0.3em] text-sm md:text-lg uppercase drop-shadow-md border-y-2 border-red-500/50 py-1 bg-surface-bg/80 dark:bg-black/40 w-full text-center">
-                                                            ELIMINATED
-                                                        </span>
-                                                    </div>
-                                                )}
+			const response = await fetch("/api/game", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					action: "updateTeamPositions",
+					teams: payload,
+				}),
+			});
 
-                                                {/* Rank Symbol */}
-                                                <div className={cn(
-                                                    "w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-sm md:text-lg shrink-0 shadow-lg relative z-10 transition-all",
-                                                    team.status === "eliminated" ? "opacity-20" : "opacity-100",
-                                                    index === 0 ? "bg-yellow-500 text-white dark:bg-yellow-400 dark:text-black shadow-yellow-500/20" :
-                                                        index === 1 ? "bg-slate-400 text-white dark:bg-slate-300 dark:text-slate-900 shadow-slate-400/10" :
-                                                            index === 2 ? "bg-orange-700 text-orange-100 shadow-orange-700/10" : "bg-surface-bg border border-surface-border text-muted"
-                                                )}>
-                                                    {index + 1}
-                                                </div>
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => null);
+				console.error(
+					"Failed to save positions. Status:",
+					response.status,
+					"Details:",
+					errorData,
+				);
+			} else {
+				console.log("Positions successfully locked in the database!");
+			}
+		} catch (error) {
+			console.error("Error saving positions:", error);
+		}
+	};
 
-                                                {/* Name Container */}
-                                                <div className="flex flex-col min-w-0 flex-1 relative z-10 transition-opacity" style={{ opacity: team.status === "eliminated" ? 0.3 : 1 }}>
-                                                    <span className={cn(
-                                                        "font-bold overflow-x-auto whitespace-nowrap text-sm md:text-lg tracking-tight leading-tight text-foreground",
-                                                        index === 0 ? "font-black" : "font-bold"
-                                                    )}>
-                                                        {team.name}
-                                                    </span>
-                                                </div>
+	const handleAdminShuffle = useCallback(async () => {
+		if (phase !== "idle") return;
 
-                                                {/* Score Display */}
-                                                <div className="shrink-0 text-right relative z-10 transition-opacity" style={{ opacity: team.status === "eliminated" ? 0.3 : 1 }}>
-                                                    <span className={cn(
-                                                        "font-black font-mono text-lg md:text-2xl block leading-none",
-                                                        index === 0 ? "text-yellow-600 dark:text-yellow-400" : "text-foreground"
-                                                    )}>
-                                                        {team.score || 0}
-                                                    </span>
-                                                </div>
+		const currentGroups: Record<number, VisualTeam[]> = {
+			1: [],
+			2: [],
+			3: [],
+			4: [],
+			5: [],
+		};
+		localTeams.forEach((t) => {
+			const g = t.group || 1;
+			currentGroups[g].push({ ...t });
+		});
 
-                                                {/* Crown Icon for Leader */}
-                                                {index === 0 && team.status !== "eliminated" && (
-                                                    <div className="absolute -top-3 -right-2 transform rotate-12 z-20 pointer-events-none">
-                                                        <Crown className="w-6 h-6 md:w-8 md:h-8 text-yellow-600 dark:text-yellow-400 fill-yellow-600/20 dark:fill-yellow-400 animate-bounce" />
-                                                    </div>
-                                                )}
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        </div>
-    );
+		const phase1Teams: VisualTeam[] = [];
+
+		Object.keys(currentGroups).forEach((key) => {
+			const divNum = Number(key);
+			const sortedTeams = currentGroups[divNum].sort(
+				(a, b) => (b.score || 0) - (a.score || 0),
+			);
+
+			sortedTeams.forEach((team, rankIndex) => {
+				const shiftAmount = rankIndex;
+				const newDiv = ((divNum - 1 + shiftAmount) % 5) + 1;
+
+				const isWrapping =
+					shiftAmount > 0 && divNum + shiftAmount > 7 && rankIndex != 5;
+
+				phase1Teams.push({
+					...team,
+					group: newDiv,
+					originalRank: rankIndex,
+					isWrapping,
+					renderKey: isWrapping ? `${team.id}-wrap-${Date.now()}` : team.id,
+				});
+			});
+		});
+
+		setLocalTeams(phase1Teams);
+		setPhase("phase1");
+
+		const finalTeams = phase1Teams.map((t) => ({
+			...t,
+			isWrapping: false,
+		}));
+
+		setTimeout(() => {
+			setLocalTeams(finalTeams);
+			setPhase("phase2");
+			savePositionsToDatabase(finalTeams);
+
+			setTimeout(() => {
+				setPhase("idle");
+			}, 1000);
+		}, 1000);
+	}, [phase, localTeams]);
+
+	const isInitialMount = useRef(true);
+	const lastTriggerRef = useRef(0);
+
+	useEffect(() => {
+		const unsub = onSnapshot(doc(db, "config", "gameConfig"), (docSnap) => {
+			const data = docSnap.data();
+			const newTrigger = data?.lastShuffleTrigger;
+
+			if (newTrigger && newTrigger !== lastTriggerRef.current) {
+				lastTriggerRef.current = newTrigger;
+
+				if (!isInitialMount.current) {
+					console.log(
+						"FIREBASE SIGNAL RECEIVED - TRIGGERING SHUFFLE ANIMATION",
+					);
+					handleAdminShuffle();
+				}
+			}
+			isInitialMount.current = false;
+		});
+
+		return () => unsub();
+	}, [handleAdminShuffle]);
+
+	return (
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			className="w-full px-8 md:pt-10 xl:pt-32"
+		>
+			<div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+				<BgSVG className="absolute top-1/2 left-1/2 min-w-full min-h-full -translate-x-1/2 -translate-y-1/2 object-cover" />
+			</div>
+			<div className="relative bg-shiny p-[3px] rounded-[30px] shadow-2xl overflow-hidden">
+				<div className="relative w-full h-full bg-myBackground rounded-[30px] p-6 flex flex-col">
+					<div className="text-center w-full xl:pt-6 relative">
+						<h1 className="text-[90px] lg:text-[140px] xl:text-[clamp(50px,15vw,210px)] font-atsanee font-black leading-[0.8] bg-shiny bg-clip-text text-transparent uppercase tracking-tight xl:tracking-wider">
+							Leaderboard
+						</h1>
+					</div>
+					<LayoutGroup id="scoreboard-shuffle">
+						<div className="grid grid-cols-1 md:grid-cols-5 xl:grid-cols-5 gap-8 z-10 mt-8">
+							{divisions.map(({ divNum, teams }) => {
+								// Count how many teams in this division have been eliminated
+								const eliminatedCount = teams.filter(
+									(t) => t?.status === "eliminated",
+								).length;
+
+								return (
+									<div key={divNum} className="space-y-4">
+										<div className="lg:py-2 xl:py-6 px-4 bg-gold text-center shadow-lg sticky top-0 z-20 rounded-t-xl">
+											<span className="font-atsanee md:text-xl xl:text-5xl font-black uppercase tracking-wide text-[#001439]">
+												Division {divNum}
+											</span>
+										</div>
+
+										{/* CSS Grid enforces rigid rows so our overlay perfectly covers exactly the slots needed */}
+										<div className="grid grid-cols-1 grid-rows-6 gap-3 relative">
+											<AnimatePresence mode="popLayout">
+												{Array.from({ length: 6 }).map((_, idx) => {
+													const t = teams[idx];
+
+													if (!t) {
+														return (
+															<motion.div
+																key={`empty-${divNum}-${idx}`}
+																initial={{ opacity: 1 }}
+																animate={{ opacity: 1 }}
+																exit={{ opacity: 0, scale: 0.95 }}
+																transition={{ duration: 0.2 }}
+																style={{ gridRow: idx + 1, gridColumn: 1 }} // Explicit grid placement
+																className="flex items-center justify-center w-full h-[68px] opacity-10 bg-[#001439] rounded-[16px]"
+															>
+																<div className="w-2 h-2 bg-white rounded-full" />
+															</motion.div>
+														);
+													}
+
+													const animDuration = 2.5 - idx * 0.5;
+													const isSuddenDeath = t.inSuddenDeath;
+
+													let borderStyle = "bg-[#00A3CC]/30 p-[4px]";
+													if (isSuddenDeath)
+														borderStyle = "bg-red-500 animate-pulse";
+													else if (idx === 0)
+														borderStyle =
+															"bg-[rgb(18,214,195)] shadow-[0_0_15px_rgba(18,214,195,0.4)]";
+													else if (idx === 1)
+														borderStyle =
+															"bg-[rgb(47,128,255)] shadow-[0_0_15px_rgba(47,128,255,0.4)]";
+													else if (idx === 2)
+														borderStyle =
+															"bg-[rgb(110,111,247)] shadow-[0_0_15px_rgba(110,111,247,0.4)]";
+													else if (idx === 3)
+														borderStyle =
+															"bg-[rgb(255,109,174)] shadow-[0_0_15px_rgba(255,109,174,0.4)]";
+													else if (idx === 4)
+														borderStyle =
+															"bg-[rgb(255,77,109)] shadow-[0_0_15px_rgba(255,77,109,0.4)]";
+													else if (idx === 5)
+														borderStyle =
+															"bg-[rgb(255,122,69)] shadow-[0_0_15px_rgba(255,122,69,0.4)]";
+
+													return (
+														<motion.div
+															layoutId={t.renderKey}
+															key={t.renderKey}
+															layout
+															initial={
+																t.isWrapping
+																	? { x: -800, opacity: 1 }
+																	: { opacity: 1 }
+															}
+															animate={{ x: 0, opacity: 1 }}
+															exit={
+																t.isWrapping
+																	? { x: 800, opacity: 0 }
+																	: {
+																			opacity: 0,
+																			transition: { duration: 0.2 },
+																		}
+															}
+															transition={{
+																layout: {
+																	type: "spring",
+																	stiffness: 45,
+																	damping: 15,
+																},
+																x: {
+																	duration: animDuration,
+																	ease: "easeInOut",
+																},
+																opacity: { duration: animDuration * 0.8 },
+															}}
+															style={{ gridRow: idx + 1, gridColumn: 1 }} // Explicit grid placement
+															className={cn(
+																"w-full relative p-[3px] rounded-[16px] transition-colors duration-500",
+																borderStyle,
+															)}
+														>
+															<div className="relative flex items-center justify-between px-5 py-4 rounded-[14px] bg-[#001439] h-full w-full overflow-hidden">
+																<span className="font-atsanee font-bold text-white md:text-sm xl:text-xl uppercase tracking-wider truncate mr-4">
+																	{t.name}
+																</span>
+																<span className="font-atsanee font-bold text-white md:text-sm xl:text-xl shrink-0">
+																	{t.score}
+																</span>
+
+																{/* TIE / Sudden Death badge */}
+																{isSuddenDeath && t.status !== "eliminated" && (
+																	<div className="absolute top-0 left-0 px-3 py-1 bg-red-600 rounded-br-[14px]">
+																		<span className="font-atsanee text-[12px] font-black text-white uppercase tracking-widest leading-none block pt-1">
+																			TIE
+																		</span>
+																	</div>
+																)}
+															</div>
+														</motion.div>
+													);
+												})}
+											</AnimatePresence>
+
+											{/* GIANT ELIMINATION OVERLAY */}
+											{eliminatedCount > 0 && (
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													transition={{ duration: 1 }}
+													style={{
+														gridRow: `${7 - eliminatedCount} / 7`,
+														gridColumn: 1,
+													}}
+													className="w-full h-full bg-[#001439]/80 backdrop-blur-md z-20 flex items-center justify-center rounded-[16px] border-2 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] pointer-events-none overflow-hidden px-2"
+												>
+													<span className="font-atsanee text-xl lg:text-2xl xl:text-3xl font-black text-red-500 uppercase tracking-widest italic drop-shadow-[0_0_10px_rgba(239,68,68,0.8)] text-center leading-tight w-full">
+														ELIMINATED
+													</span>
+												</motion.div>
+											)}
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					</LayoutGroup>
+				</div>
+			</div>
+		</motion.div>
+	);
 }
-

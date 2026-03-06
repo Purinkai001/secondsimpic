@@ -267,13 +267,12 @@ export function useGameRoom() {
     };
 
     const handleLogout = () => {
-        if (confirm("Are you sure you want to leave the game?")) {
-            localStorage.removeItem("medical_quiz_team_id");
-            localStorage.removeItem("medical_quiz_team_name");
-            localStorage.removeItem("medical_quiz_team_group");
-            localStorage.removeItem("ingame");
-            router.push("/");
-        }
+        localStorage.removeItem("medical_quiz_team_id");
+        localStorage.removeItem("medical_quiz_team_name");
+        localStorage.removeItem("medical_quiz_team_group");
+        localStorage.removeItem("ingame");
+        router.push("/");
+        
     };
 
     const handleRename = async (newName: string) => {

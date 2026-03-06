@@ -1,16 +1,23 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, AlertCircle, Info, ChevronRight, Trophy, Loader2 } from "lucide-react";
+import { BadgeCheck, XCircle, Loader2 } from "lucide-react";
+import Correct from "@/vectors/Correct";
 import { SubmissionResult } from "@/lib/game/types/game";
 import { cn } from "@/lib/utils";
+import { Question } from "@/lib/types";
 
 interface AnswerRevealViewProps {
     result: SubmissionResult | null;
     countdown: number;
     onChallenge: () => void;
+    question: Question | null;
 }
 
-export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevealViewProps) => {
+export const AnswerRevealView = ({ result, countdown, onChallenge, question }: AnswerRevealViewProps) => {
     const isProcessing = !result;
+    if (!question) return null;
+    const [, , turnNum, questionNum] = question.id.split('-');
+
+    
 
     // Fallback content if results are still loading/syncing
     if (isProcessing) {
@@ -26,88 +33,72 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
     }
 
     return (
-        <div className="max-w-4xl mx-auto w-full">
+        <div className="w-[90vw] pt-6">
+            <h1 className="font-atsanee text-8xl italic font-black bg-shiny bg-clip-text text-transparent uppercase tracking-widerfont-black text-center mb-6">
+                TURN {turnNum} QUESTION {questionNum} 
+            </h1>
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-surface-bg border border-surface-border rounded-[2.5rem] overflow-hidden shadow-2xl transition-colors duration-300"
+                className="bg-myBackground border-[3px] border-[#c8a951] rounded-[40px] overflow-hidden shadow-2xl transition-colors duration-300 w-full"
             >
-                <div className={cn(
-                    "p-8 md:p-12 text-center relative",
-                    result.isCorrect ? "bg-green-500/10 dark:bg-green-500/5" : "bg-red-500/10 dark:bg-red-500/5"
-                )}>
+                <div className="p-14 text-center flex flex-col items-center">
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", damping: 10 }}
-                        className="mb-6 flex justify-center"
+                        className="mb-4 flex justify-center"
                     >
                         {result.isCorrect ? (
-                            <CheckCircle2 className="w-24 h-24 text-green-600 dark:text-green-500 shadow-lg" />
+                            <Correct className="w-32 h-32 text-[#51FF48]"/>
                         ) : (
-                            <XCircle className="w-24 h-24 text-red-600 dark:text-red-500 shadow-lg" />
+                            <XCircle className="w-48 h-48 text-[#ff4444]" strokeWidth={2} />
                         )}
                     </motion.div>
 
+                    {/* Result Text */}
                     <h2 className={cn(
-                        "text-5xl font-black mb-4 uppercase italic tracking-tighter",
-                        result.isCorrect ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"
+                        "text-8xl font-atsanee font-black mb-4 tracking-wide",
+                        result.isCorrect ? "text-[#51FF48]" : "text-[#ff4444]"
                     )}>
-                        {result.message}
+                        {result.isCorrect ? "CORRECT" : "INCORRECT"}
                     </h2>
 
-                    <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-6 mt-8">
-                        <div className="bg-surface-bg border border-surface-border p-4 rounded-2xl md:bg-transparent md:p-0 md:border-none">
-                            <div className="text-[10px] text-muted uppercase font-black tracking-widest mb-1">Points Gained</div>
-                            <div className="text-3xl md:text-4xl font-black text-foreground">+{result.points}</div>
+                    {/* Stats Row */}
+                    <div className="flex flex-row justify-center items-center gap-8 mb-4 w-full">
+                        <div className="font-atsanee text-center px-2">
+                            <div className="text-xl text-gold font-bold uppercase mb-2">Points Gain</div>
+                            <div className="text-3xl font-black text-gold">+{result.points}</div>
                         </div>
-                        <div className="hidden md:block w-px h-12 bg-surface-border" />
-                        <div className="bg-surface-bg border border-surface-border p-4 rounded-2xl md:bg-transparent md:p-0 md:border-none">
-                            <div className="text-[10px] text-muted uppercase font-black tracking-widest mb-1">Current Streak</div>
-                            <div className="flex items-center justify-center gap-2">
-                                <Trophy className="w-5 h-5 text-yellow-500" />
-                                <div className="text-3xl md:text-4xl font-black text-foreground">{result.streak}</div>
-                            </div>
+                        <div className="font-atsanee text-center px-2">
+                            <div className="text-xl text-gold font-bold uppercase mb-2">Current Streak</div>
+                            <div className="text-3xl font-black text-gold">{result.streak}</div>
                         </div>
                     </div>
-                </div>
 
-                <div className="p-8 md:p-10 border-t border-surface-border space-y-6">
+                    {/* Correct Answer Box */}
                     {result.correctAnswer && (
-                        <div className="bg-surface-bg/50 rounded-3xl p-6 border border-surface-border space-y-6">
-                            <div className="flex items-center gap-2 mb-4 text-xs font-black uppercase tracking-widest text-muted">
-                                <Info className="w-4 h-4 text-accent-blue" />
-                                Response Comparison & Reference
-                            </div>
-
-                            {/* Reference Image */}
+                        <div className="border-[2px] border-[#c8a951] rounded-2xl p-6 w-full max-w-[100%] flex flex-col justify-center items-center bg-transparent mt-2">
+                            
+                            {/* Reference Image (Maintained functionality, styled to fit) */}
                             {(result as any).imageUrl && (
-                                <div className="aspect-video rounded-2xl overflow-hidden border border-surface-border bg-surface-bg/80 mb-6 group cursor-zoom-in">
+                                <div className="aspect-video rounded-xl overflow-hidden border border-[#c8a951] mb-6 max-w-lg w-full group cursor-zoom-in">
                                     <img src={(result as any).imageUrl} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" alt="Reference" />
                                 </div>
                             )}
 
+                            {/* MCQ Layout mapped to single display line as shown in image */}
                             {result.correctAnswer.type === "mcq" && (() => {
                                 const correctIndices = result.correctAnswer?.correctChoiceIndices ||
                                     (result.correctAnswer?.correctChoiceIndex !== undefined ? [result.correctAnswer.correctChoiceIndex] : []);
                                 return (
-                                    <div className="space-y-3">
+                                    <div className="text-white font-bold text-2xl text-center leading-relaxed">
                                         {result.correctAnswer?.choices?.map((c, i) => {
                                             const isCorrectChoice = correctIndices.includes(i);
+                                            if (!isCorrectChoice) return null;
                                             return (
-                                                <div key={i} className={cn(
-                                                    "p-4 rounded-xl border flex items-center gap-4 transition-all",
-                                                    isCorrectChoice
-                                                        ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
-                                                        : "bg-surface-bg border-surface-border text-muted"
-                                                )}>
-                                                    <div className={cn(
-                                                        "w-6 h-6 rounded flex items-center justify-center text-[10px] font-black italic",
-                                                        isCorrectChoice ? "bg-green-600 dark:bg-green-500 text-white dark:text-black" : "bg-surface-bg border border-surface-border text-muted/40"
-                                                    )}>{String.fromCharCode(65 + i)}</div>
-                                                    <span className={cn("font-bold tracking-tight", isCorrectChoice ? "text-green-700 dark:text-green-400" : "text-foreground/60")}>
-                                                        {c.text}
-                                                    </span>
+                                                <div key={i} className="text-gold font-atsanee mb-0">
+                                                    CORRECT ANSWER: <br /><span className="text-gold">{String.fromCharCode(65 + i)}. {c.text}</span>
                                                 </div>
                                             );
                                         })}
@@ -115,53 +106,25 @@ export const AnswerRevealView = ({ result, countdown, onChallenge }: AnswerRevea
                                 );
                             })()}
 
+                            {/* MTF Layout (Maintained functionality, styled to match the new minimal aesthetics) */}
                             {result.correctAnswer.type === "mtf" && (
-                                <div className="space-y-2">
+                                <div className="w-full space-y-3">
+                                    <div className="text-gold font-atsanee font-bold text-4xl text-center mb-4">CORRECT ANSWERS:</div>
                                     {result.correctAnswer.statements?.map((s, i) => (
-                                        <div key={i} className="flex justify-between items-center p-4 bg-surface-bg border border-surface-border rounded-xl group/row hover:border-accent-blue/20 transition-all">
-                                            <span className="font-bold text-foreground/80 group-hover/row:text-foreground">{s.text}</span>
-                                            <span className={cn(
-                                                "text-[10px] font-black uppercase px-3 py-1 rounded-full border tracking-widest italic",
-                                                s.isTrue ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                                            )}>{s.isTrue ? "True" : "False"}</span>
+                                        <div key={i} className="text-2xl flex font-atsanee justify-between items-center px-4 py-3 bg-white/5 rounded-lg border border-white/10 text-gold font-bold">
+                                            <span className="text-left">{s.text}</span>
+                                            <span className={s.isTrue ? "text-[#51FF48]" : "text-[#ff4444]"}>
+                                                {s.isTrue ? "TRUE" : "FALSE"}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
                     )}
-
-                    {/*
-                    {!result.isCorrect && (
-                        <button
-                            onClick={onChallenge}
-                            className="w-full py-4 rounded-2xl border border-surface-border bg-surface-bg/50 hover:bg-surface-bg hover:border-accent-blue/30 text-muted hover:text-foreground transition-all text-sm font-black uppercase italic tracking-widest flex items-center justify-center gap-2"
-                        >
-                            <AlertCircle className="w-4 h-4 text-accent-amber" />
-                            Submit a Challenge Inquiry
-                        </button>
-                    )}
-                        */}
-
-                    <div className="flex items-center justify-between pt-6 border-t border-surface-border/50">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-3 text-accent-blue/80 font-black text-[10px] uppercase">
-                                <span>Syncing</span>
-                                <div className="flex gap-1.5 Items-center">
-                                    {[0, 1, 2].map(i => (
-                                        <motion.div
-                                            key={i}
-                                            className="w-1 h-3 bg-accent-blue rounded-full"
-                                            animate={{ height: [8, 12, 8], opacity: [0.3, 1, 0.3] }}
-                                            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </motion.div>
+            
         </div>
     );
 };

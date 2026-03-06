@@ -1,69 +1,79 @@
 import { motion } from "framer-motion";
-import { Loader2, ScrollText, CheckCircle2 } from "lucide-react";
 import { SubmissionResult } from "@/lib/game/types/game";
 import { Question } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { time } from "console";
+import TlCorner from "@/vectors/TlCorner";
+import LineThai from "@/vectors/LineThai";
 
 interface WaitingGradingViewProps {
-    result: SubmissionResult | null;
-    timeLeft?: number | null;
-    question: Question | null;
+	result: SubmissionResult | null;
+	timeLeft?: number | null;
+	timeSpent?: number | null;
+	question: Question | null;
 }
 
-export const WaitingGradingView = ({ result, timeLeft, question }: WaitingGradingViewProps) => (
-    <div className="max-w-5xl mx-auto w-full px-4 space-y-12">
-        <div className="bg-surface-bg border border-surface-border rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shadow-xl transition-colors duration-300">
-            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                <div className="relative shrink-0">
-                    <motion.div
-                        className="absolute inset-0 bg-accent-blue blur-2xl opacity-20"
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
-                        transition={{ duration: 4, repeat: Infinity }}
-                    />
-                    <div className="relative p-5 md:p-6 bg-surface-bg border border-surface-border rounded-2xl">
-                        <Loader2 className="w-8 h-8 md:w-10 md:h-10 text-accent-blue animate-spin" />
-                    </div>
-                </div>
-                <div>
-                    <h2 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-tighter italic leading-none mb-2">Evaluation In Progress</h2>
-                    <p className="text-accent-blue/60 text-[10px] font-black uppercase tracking-widest">Verifying</p>
-                </div>
-            </div>
+export const WaitingGradingView = ({
+	result,
+	timeSpent,
+	timeLeft,
+	question,
+}: WaitingGradingViewProps) => {
 
-            {timeLeft != null && (
-                <div className="w-full md:w-auto px-8 py-4 bg-accent-blue/10 border border-accent-blue/30 rounded-2xl md:rounded-3xl flex flex-col items-center md:block text-center md:text-right">
-                    <span className="text-accent-blue font-black text-3xl tabular-nums leading-none">
-                        {timeLeft}s
-                    </span>
+	const displayTime = timeSpent != null ? (timeSpent >= 90 ? "90.00" : timeSpent) : "N/A";
 
-                </div>
-            )}
-        </div>
+	return (
+		<div className="w-[90vw]">
+			<div className="relative w-full bg-myBackground border-2 border-[#d4af37] rounded-[2rem] p-10 md:p-16 flex flex-col items-center justify-center shadow-2xl overflow-hidden min-h-[450px]">
+				<div className="absolute top-2 left-2 flex">
+					<TlCorner className="w-32 h-32 md:w-64 md:h-64 lg:w-96 lg:h-96" />
+				</div>
 
-        {question && (
-            <div className="opacity-40 grayscale-[0.5] transition-all hover:opacity-100 hover:grayscale-0">
-                <div className="grid grid-cols-1 gap-8 items-start">
-                    {question.imageUrl && (
-                        <div className="aspect-video rounded-3xl overflow-hidden border border-surface-border bg-black/5">
-                            <img src={question.imageUrl} className="w-full h-full object-contain" alt="Question" />
-                        </div>
-                    )}
-                    <div className="space-y-4 text-left">
-                        <h3 className="text-2xl font-bold text-foreground leading-tight">{question.text}</h3>
-                        {result && (
-                            <div className="pt-6 border-t space-y-4">
-                                <span className="text-[12px] text-muted uppercase font-black">Status</span>
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle2 className={cn("w-5 h-5", result.pendingGrading ? "text-accent-amber/40" : "text-green-500")} />
-                                    <span className="text-sm font-bold text-foreground/60">
-                                        {result.pendingGrading ? "Grading your answer" : "Finished Grading"}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
-    </div>
-);
+				<div className="absolute bottom-2 right-2 flex">
+					<TlCorner className="w-16 h-16 md:w-48 md:h-48 lg:w-84 lg:h-84 rotate-180" />
+				</div>
+
+				{/* Main Text Content */}
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					className="flex flex-col items-center text-center z-10 mt-24"
+				>
+					<h1 className="text-[200px] font-atsanee font-semibold leading-[0.8] bg-shiny bg-clip-text text-transparent drop-shadow-lg">
+						ANSWER <br /> SUBMITTED
+					</h1>
+				</motion.div>
+
+				<motion.div
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{ delay: 0.2 }}
+					className="absolute inset-0 top-36 z-10 flex items-center justify-center pointer-events-none"
+				>
+					<LineThai className="w-[80%] h-auto" />
+				</motion.div>
+
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ delay: 0.4 }}
+					className="flex flex-col items-center gap-4 z-10 mt-36"
+				>
+					<div className="text-center">
+						<p className="bg-shiny bg-clip-text text-transparent font-atsanee font-bold text-7xl">
+							Time used:
+						</p>
+						<p className="text-9xl font-atsanee font-bold italic bg-shiny bg-clip-text text-transparent">
+							{displayTime} seconds
+						</p>
+					</div>
+
+					{timeLeft != null && (
+						<p className="text-gold font-bold text-3xl font-atsanee mt-2">
+							Time Left: <span className="font-bold text-4xl">{timeLeft}s</span>
+						</p>
+					)}
+				</motion.div>
+			</div>
+		</div>
+	);
+};

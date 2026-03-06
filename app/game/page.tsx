@@ -17,6 +17,8 @@ import {
 import { SettingsModal, WinnerCelebration, SuddenDeathAlert } from "@/components/game";
 import { PreloadImages } from "@/components/game/PreloadImages";
 import { BackgroundDecoration } from "@/components/ui/BackgroundDecoration";
+import BgSVG from "@/vectors/bgsvg";
+import EliminationPage from "@/components/game/views/EliminationPage";
 
 export default function GamePage() {
     const router = useRouter();
@@ -39,16 +41,19 @@ export default function GamePage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-background text-foreground transition-colors duration-300">
+                <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
+                    <BgSVG className="w-full h-full object-cover" />
+                </div>
                 <div className="relative">
-                    <div className="absolute inset-0 bg-accent-blue blur-2xl opacity-20 animate-pulse" />
-                    <Loader2 className="w-12 h-12 animate-spin text-accent-blue relative z-10" />
+                    <h1 className="text-8xl font-atsanee italic font-black text-transparent bg-clip-text bg-shiny">Loading ...</h1>
                 </div>
             </div>
         );
     }
 
     if (team?.status === "eliminated") {
-        return (
+        return ( <EliminationPage /> );
+        {/*    
             <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-x-auto relative transition-colors duration-300">
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-transparent" />
                 <motion.div
@@ -71,7 +76,7 @@ export default function GamePage() {
                     </button>
                 </motion.div>
             </div>
-        );
+        */}
     }
 
     // Winner detection
@@ -92,66 +97,28 @@ export default function GamePage() {
     }
 
     return (
-        <div className="min-h-[100dvh] bg-background text-foreground flex flex-col p-4 md:p-8 overflow-x-auto relative transition-colors duration-300">
-            {/* Background decorative elements */}
-            <BackgroundDecoration />
+        <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-auto relative transition-colors duration-300">
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
+                <BgSVG className="w-full h-full object-cover" />
+            </div>
+            
+            <div className="w-full relative z-10 flex flex-col min-h-full">
+                <main className="flex-1 flex flex-col items-center justify-center py-4">
+                    <AnimatePresence mode="wait">
+                        {gameState === "waiting" && ( <LobbyView key="lobby" allTeams={allTeams} team={team} /> )}
+                        {gameState === "countdown" && ( <CountdownView key="countdown" seconds={countdownSeconds} /> )}
+                        {gameState === "playing" && ( <PlayingView key="playing" question={currentQuestion} timeLeft={timeLeft} timeSpent={timeSpent} mcqAnswer={mcqAnswer} setMcqAnswer={setMcqAnswer} mtfAnswers={mtfAnswers} setMtfAnswers={setMtfAnswers} textAnswer={textAnswer} setTextAnswer={setTextAnswer} submitted={submitted} submitting={submitting} onSubmit={() => handleSubmit()}/>)}
+                        {gameState === "answer_reveal" && ( <AnswerRevealView key="reveal" question={currentQuestion} result={lastResult} countdown={answerRevealCountdown} onChallenge={handleChallenge}/>)}
+                        {gameState === "waiting_grading" && ( <WaitingGradingView key="grading" result={lastResult} timeSpent={timeSpent} timeLeft={timeLeft} question={currentQuestion}/> )}
+                    </AnimatePresence>
+                </main>
 
-            <div className="max-w-6xl mx-auto w-full relative z-10 flex flex-col min-h-full">
                 <TeamHeader
                     team={team}
                     onLogout={handleLogout}
                     onRename={() => setShowSettings(true)}
                 />
-
-                <main className="flex-1 flex flex-col items-center justify-center py-8">
-                    <AnimatePresence mode="wait">
-                        {gameState === "waiting" && (
-                            <LobbyView key="lobby" allTeams={allTeams} team={team} />
-                        )}
-
-                        {gameState === "countdown" && (
-                            <CountdownView key="countdown" seconds={countdownSeconds} />
-                        )}
-
-                        {gameState === "playing" && (
-                            <PlayingView
-                                key="playing"
-                                question={currentQuestion}
-                                timeLeft={timeLeft}
-                                timeSpent={timeSpent}
-                                mcqAnswer={mcqAnswer}
-                                setMcqAnswer={setMcqAnswer}
-                                mtfAnswers={mtfAnswers}
-                                setMtfAnswers={setMtfAnswers}
-                                textAnswer={textAnswer}
-                                setTextAnswer={setTextAnswer}
-                                submitted={submitted}
-                                submitting={submitting}
-                                onSubmit={() => handleSubmit()}
-                            />
-                        )}
-
-                        {gameState === "answer_reveal" && (
-                            <AnswerRevealView
-                                key="reveal"
-                                result={lastResult}
-                                countdown={answerRevealCountdown}
-                                onChallenge={handleChallenge}
-                            />
-                        )}
-
-                        {gameState === "waiting_grading" && (
-                            <WaitingGradingView
-                                key="grading"
-                                result={lastResult}
-                                timeLeft={timeLeft}
-                                question={currentQuestion}
-                            />
-                        )}
-                    </AnimatePresence>
-                </main>
-
-                <GameFooter />
+                
                 <PreloadImages images={preloadUrls} />
             </div>
 

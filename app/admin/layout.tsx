@@ -105,7 +105,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+        <div className="min-h-screen bg-[#000000] text-foreground flex transition-colors duration-300">
             {/* Sidebar */}
             {!isFullscreen && (
                 <aside className="w-64 border-r border-surface-border bg-surface-bg backdrop-blur-xl flex flex-col sticky top-0 h-screen">

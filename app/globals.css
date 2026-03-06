@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Atsanee';
+  src: url('/fonts/ATSANEE LIGHT.TTF') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atsanee';
+  src: url('/fonts/ATSANEE.TTF') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atsanee';
+  src: url('/fonts/ATSANEE BOLD.TTF') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atsanee';
+  src: url('/fonts/ATSANEE LIGHTITALIC.TTF') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Atsanee';
+  src: url('/fonts/ATSANEE ITALIC.TTF') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Atsanee';
+  src: url('/fonts/ATSANEE BOLDITALIC.TTF') format('truetype');
+  font-weight: 700; 
+  font-style: italic;
+}
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -14,10 +59,18 @@
   --accent-secondary: #06b6d4;
 
   --surface: #ffffff;
+
+  --shiny: linear-gradient(90deg, #B8A25F, #FFF1D3, #B8A25F);
+  --myBackground: linear-gradient(0deg, #001237, #0B173B, #302B49);
+  --gold: #FFF1D3;
+  --simpic: linear-gradient(90deg, rgb(255, 122, 69), rgb(255, 77, 109), rgb(255, 109, 174), rgb(110, 111, 247), rgb(47, 128, 255), rgb(18, 214, 195));
+  --someBlue: linear-gradient(90deg, #5DE0E6, #004AAD);
+
+  --font-atsanee: 'Atsanee';
 }
 
 .dark {
-  --background: #0a0e1a;
+  --background: #001237;
   --foreground: #f8fafc;
 
   --card-bg: rgba(255, 255, 255, 0.04);
@@ -45,6 +98,16 @@
 
   --color-accent-blue: var(--accent-primary);
   --color-accent-cyan: var(--accent-secondary);
+  
+  --font-atsanee: var(--font-atsanee);
+
+  --background-image-shiny: var(--shiny);
+  --background-image-myBackground: var(--myBackground);
+  --color-gold: var(--gold);
+  --color-simpic: var(--simpic);
+  --background-image-simpic: var(--simpic);
+  --color-someBlue: var(--someBlue);
+  --background-image-someBlue: var(--someBlue);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
