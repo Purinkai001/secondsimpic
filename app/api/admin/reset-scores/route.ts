@@ -6,7 +6,7 @@ import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 export async function POST(request: Request) {
     try {
         await verifyAdmin(request);
-    } catch (e) {
+    } catch {
         return unauthorizedResponse();
     }
 
@@ -21,6 +21,8 @@ export async function POST(request: Request) {
         teamsSnapshot.docs.forEach((doc) => {
             batch.update(doc.ref, {
                 score: 0,
+                turnGain: 0,
+                carryInScore: 0,
                 streak: 0,
             });
         });

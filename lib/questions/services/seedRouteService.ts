@@ -219,7 +219,7 @@ const BOT_NAMES = [
 export async function GET(request: Request) {
     try {
         await verifyAdmin(request);
-    } catch (e) {
+    } catch {
         return unauthorizedResponse();
     }
 
@@ -240,7 +240,8 @@ export async function GET(request: Request) {
                     questionTimer: DEFAULT_QUESTION_TIMER,
                     showResults: false,
                     pausedAt: null,
-                    totalPauseDuration: 0
+                    totalPauseDuration: 0,
+                    scoreSeedApplied: false,
                 }, { merge: true });
             }
             MEDICAL_QUESTIONS.forEach((q) => {
@@ -277,6 +278,8 @@ export async function GET(request: Request) {
                         name: botName,
                         group: group,
                         score: 0,
+                        turnGain: 0,
+                        carryInScore: 0,
                         status: "active",
                         isBot: true,
                         challengesRemaining: 2,

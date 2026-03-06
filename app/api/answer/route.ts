@@ -184,6 +184,7 @@ export async function POST(request: Request) {
             if (scoreResult.points !== 0 || scoreResult.newStreak !== currentStreak) {
                 transaction.update(teamRef, {
                     score: FieldValue.increment(scoreResult.points),
+                    turnGain: FieldValue.increment(scoreResult.points),
                     streak: scoreResult.newStreak
                 });
             }

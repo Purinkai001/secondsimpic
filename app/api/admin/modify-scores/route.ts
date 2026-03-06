@@ -4,10 +4,14 @@ import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 type ModifyMode = "set" | "add" | "subtract";
 
+function roundToTwo(value: number) {
+    return Number(value.toFixed(2));
+}
+
 export async function POST(request: Request) {
     try {
         await verifyAdmin(request);
-    } catch (e) {
+    } catch {
         return unauthorizedResponse();
     }
 
@@ -42,6 +46,7 @@ export async function POST(request: Request) {
 
             const data = teamDoc.data()!;
             const oldScore = data.score || 0;
+            const carryInScore = data.carryInScore || 0;
             let newScore: number;
 
             switch (mode) {
@@ -56,9 +61,13 @@ export async function POST(request: Request) {
                     break;
             }
 
-            newScore = Math.max(0, newScore);
+            newScore = roundToTwo(Math.max(0, newScore));
+            const newTurnGain = roundToTwo(newScore - carryInScore);
 
-            batch.update(teamRef, { score: newScore });
+            batch.update(teamRef, {
+                score: newScore,
+                turnGain: newTurnGain,
+            });
             updates.push({ id: teamId, name: data.name, oldScore, newScore });
         }
 

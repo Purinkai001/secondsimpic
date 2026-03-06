@@ -8,7 +8,7 @@ import { FieldValue } from "firebase-admin/firestore";
 export async function POST(request: Request) {
     try {
         await verifyAdmin(request);
-    } catch (e) {
+    } catch {
         return unauthorizedResponse();
     }
 
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
 
         await teamRef.update({
             score: FieldValue.increment(pointsDelta),
+            turnGain: FieldValue.increment(pointsDelta),
             streak: newStreak,
         });
 

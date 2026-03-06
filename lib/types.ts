@@ -3,6 +3,8 @@ export type Team = {
     name: string;
     group: number;
     score: number;
+    turnGain: number;
+    carryInScore: number;
     status: "active" | "eliminated" | "winner";
     isBot?: boolean;
     challengesRemaining: number;
@@ -22,6 +24,7 @@ export type Round = {
     totalPauseDuration?: number; // accumulated pause time in ms
     showResults?: boolean; // whether to reveal the answer to contestants
     currentQuestionId?: string | null;
+    scoreSeedApplied?: boolean;
 };
 
 export type QuestionType = "mcq" | "mtf" | "saq" | "spot";

@@ -89,6 +89,8 @@ export async function POST(request: Request) {
                 name: teamName,
                 group,
                 score: 0,
+                turnGain: 0,
+                carryInScore: 0,
                 status: "active",
                 isBot: false,
                 challengesRemaining: 2,

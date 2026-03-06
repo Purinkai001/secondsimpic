@@ -4,19 +4,49 @@ import { DEFAULT_QUESTION_TIMER, TeamWithRef, TieInfo } from "@/lib/types";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 import { calculateScore } from "@/lib/scoring";
 
-function shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+function roundToTwo(value: number) {
+    return Number(value.toFixed(2));
+}
+
+function getRoundSeedScore(roundId: string, currentScore: number) {
+    switch (roundId) {
+        case "round-1":
+        case "round-4":
+            return 0;
+        case "round-2":
+        case "round-3":
+        case "round-5":
+            return roundToTwo(currentScore * 0.3);
+        default:
+            throw new Error(`Unsupported round id: ${roundId}`);
     }
-    return shuffled;
+}
+
+async function seedScoresForRound(roundId: string) {
+    const teamsSnap = await adminDb.collection("teams").get();
+    const batch = adminDb.batch();
+
+    teamsSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.status !== "active") {
+            return;
+        }
+
+        const carryInScore = getRoundSeedScore(roundId, Number(data.score) || 0);
+        batch.update(doc.ref, {
+            score: carryInScore,
+            carryInScore,
+            turnGain: 0,
+        });
+    });
+
+    await batch.commit();
 }
 
 export async function POST(request: Request) {
     try {
         await verifyAdmin(request);
-    } catch (e) {
+    } catch {
         return unauthorizedResponse();
     }
 
@@ -77,7 +107,8 @@ export async function POST(request: Request) {
                     questionTimer: configTimer || DEFAULT_QUESTION_TIMER,
                     showResults: false,
                     pausedAt: null,
-                    totalPauseDuration: 0
+                    totalPauseDuration: 0,
+                    scoreSeedApplied: false,
                 }, { merge: true });
             }
 
@@ -104,6 +135,8 @@ export async function POST(request: Request) {
             teamsSnap.docs.forEach(doc => {
                 teamBatch.update(doc.ref, {
                     score: 0,
+                    turnGain: 0,
+                    carryInScore: 0,
                     status: "active",
                     challengesRemaining: 2,
                     streak: 0,
@@ -126,7 +159,12 @@ export async function POST(request: Request) {
             teamsSnap.docs.forEach(doc => {
                 const data = doc.data();
                 if (data.status === "active") {
-                    batch.update(doc.ref, { score: 0, streak: 0 });
+                    batch.update(doc.ref, {
+                        score: 0,
+                        turnGain: 0,
+                        carryInScore: 0,
+                        streak: 0,
+                    });
                 }
             });
 
@@ -195,13 +233,21 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: "roundId and startTime required" }, { status: 400 });
             }
 
-            const firstQuestionSnap = await adminDb.collection("questions")
+            const roundRef = adminDb.collection("rounds").doc(roundId);
+            const [roundDoc, firstQuestionSnap] = await Promise.all([
+                roundRef.get(),
+                adminDb.collection("questions")
                 .where("roundId", "==", roundId)
                 .orderBy("order", "asc")
                 .limit(1)
-                .get();
+                .get()
+            ]);
 
-            await adminDb.collection("rounds").doc(roundId).set({
+            if (!roundDoc.exists || !roundDoc.data()?.scoreSeedApplied) {
+                await seedScoresForRound(roundId);
+            }
+
+            await roundRef.set({
                 status: "active",
                 startTime,
                 currentQuestionIndex: 0,
@@ -209,6 +255,7 @@ export async function POST(request: Request) {
                 totalPauseDuration: 0,
                 showResults: false,
                 currentQuestionId: firstQuestionSnap.empty ? null : firstQuestionSnap.docs[0].id,
+                scoreSeedApplied: true,
             }, { merge: true });
 
             return NextResponse.json({
@@ -223,13 +270,21 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: "roundId required" }, { status: 400 });
             }
 
-            const firstQuestionSnap = await adminDb.collection("questions")
+            const roundRef = adminDb.collection("rounds").doc(roundId);
+            const [roundDoc, firstQuestionSnap] = await Promise.all([
+                roundRef.get(),
+                adminDb.collection("questions")
                 .where("roundId", "==", roundId)
                 .orderBy("order", "asc")
                 .limit(1)
-                .get();
+                .get()
+            ]);
 
-            await adminDb.collection("rounds").doc(roundId).set({
+            if (!roundDoc.exists || !roundDoc.data()?.scoreSeedApplied) {
+                await seedScoresForRound(roundId);
+            }
+
+            await roundRef.set({
                 status: "active",
                 startTime: Date.now(),
                 currentQuestionIndex: 0,
@@ -237,6 +292,7 @@ export async function POST(request: Request) {
                 totalPauseDuration: 0,
                 showResults: false,
                 currentQuestionId: firstQuestionSnap.empty ? null : firstQuestionSnap.docs[0].id,
+                scoreSeedApplied: true,
             }, { merge: true });
 
             return NextResponse.json({
@@ -406,12 +462,14 @@ export async function POST(request: Request) {
                 if (data.isBot && data.status === "active") {
                     const isCorrect = Math.random() < 0.6;
                     let newScore = data.score || 0;
+                    let newTurnGain = data.turnGain || 0;
                     let newStreak = data.streak || 0;
 
                     if (isCorrect) {
                         const timeSpent = Math.floor(Math.random() * 40) + 5;
                         const points = calculateScore(diffValue, timeSpent, newStreak, true);
                         newScore += points;
+                        newTurnGain += points;
                         newStreak += 1;
                     } else {
                         newStreak = 0;
@@ -419,6 +477,7 @@ export async function POST(request: Request) {
 
                     batch.update(doc.ref, {
                         score: newScore,
+                        turnGain: newTurnGain,
                         streak: newStreak
                     });
                     botsUpdated++;
@@ -452,12 +511,14 @@ export async function POST(request: Request) {
                 if (data.isBot && data.status === "active") {
                     const isCorrect = Math.random() < 0.6;
                     let newScore = data.score || 0;
+                    let newTurnGain = data.turnGain || 0;
                     let newStreak = data.streak || 0;
 
                     if (isCorrect) {
                         const timeSpent = Math.floor(Math.random() * 40) + 5;
                         const points = calculateScore(diffValue, timeSpent, newStreak, true);
                         newScore += points;
+                        newTurnGain += points;
                         newStreak += 1;
                     } else {
                         newStreak = 0;
@@ -465,6 +526,7 @@ export async function POST(request: Request) {
 
                     batch.update(doc.ref, {
                         score: newScore,
+                        turnGain: newTurnGain,
                         streak: newStreak
                     });
                 }
