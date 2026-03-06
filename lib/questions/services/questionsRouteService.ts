@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
-import { Question } from "@/lib/types";
+import { DocumentRef, Question } from "@/lib/types";
+import { buildPublicQuestionData, buildQuestionKeyData, mergeQuestionWithKey } from "@/lib/question-data";
+
+type IndexedQuestion = {
+    id: string;
+    ref?: DocumentRef;
+    order?: number;
+} & Record<string, unknown>;
 
 // Helper: Re-indexes questions to ensure 1..N order
 async function reindexQuestions(
     roundId: string,
-    operation: (questions: any[]) => Promise<void> | void
+    operation: (questions: IndexedQuestion[]) => Promise<void> | void
 ) {
     const questionsRef = adminDb.collection("questions");
     const snapshot = await questionsRef.where("roundId", "==", roundId).get();
 
-    let questions = snapshot.docs.map(doc => ({
+    const questions = snapshot.docs.map(doc => ({
         id: doc.id,
         ref: doc.ref,
         ...doc.data()
-    })) as any[];
+    })) as IndexedQuestion[];
 
     questions.sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -42,6 +49,25 @@ async function reindexQuestions(
     return questions;
 }
 
+async function fetchFullQuestion(questionId: string) {
+    const questionRef = adminDb.collection("questions").doc(questionId);
+    const keyRef = adminDb.collection("questionKeys").doc(questionId);
+    const [questionSnap, keySnap] = await Promise.all([questionRef.get(), keyRef.get()]);
+
+    if (!questionSnap.exists) {
+        return null;
+    }
+
+    return {
+        ref: questionRef,
+        keyRef,
+        question: mergeQuestionWithKey(
+            { id: questionSnap.id, ...questionSnap.data() },
+            keySnap.exists ? keySnap.data() : null
+        ),
+    };
+}
+
 // GET: Fetch all questions
 export async function GET(request: Request) {
     try {
@@ -64,13 +90,23 @@ export async function GET(request: Request) {
             questionsSnap = await adminDb.collection("questions").get();
         }
 
-        const questions = questionsSnap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+        const questions = questionsSnap.docs.map(d => ({
+            id: d.id,
+            ...(d.data() as Record<string, unknown>),
+        })) as Array<{ id: string; order?: number } & Record<string, unknown>>;
+        questions.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+
+        const keySnaps = await Promise.all(
+            questions.map((question) => adminDb.collection("questionKeys").doc(question.id).get())
+        );
+
+        const fullQuestions = questions.map((question, index) =>
+            mergeQuestionWithKey(question, keySnaps[index].exists ? keySnaps[index].data() : null)
+        );
 
         return NextResponse.json({
             success: true,
-            questions
+            questions: fullQuestions
         });
     } catch (error) {
         console.error("Error fetching questions:", error);
@@ -116,31 +152,34 @@ export async function POST(request: Request) {
             });
         }).then(finalList => {
             const q = finalList.find(q => q.id === questionId);
-            if (q) finalOrder = q.order;
+            if (q) finalOrder = q.order ?? 1;
         });
 
         const questionRef = adminDb.collection("questions").doc(questionId);
-        const questionData = {
+        const fullQuestion: Question = {
             id: questionId,
             roundId: question.roundId,
             text: question.text || "",
             type: question.type,
             difficulty: question.difficulty,
             order: finalOrder,
-            imageUrl: question.imageUrl || null,
-            choices: question.choices || null,
-            correctChoiceIndex: question.correctChoiceIndex ?? null,
-            correctChoiceIndices: question.correctChoiceIndices || null,
-            statements: question.statements || null,
-            correctAnswer: question.correctAnswer || null,
-            alternateAnswers: question.alternateAnswers || null,
+            imageUrl: question.imageUrl || undefined,
+            choices: question.choices || undefined,
+            correctChoiceIndex: question.correctChoiceIndex ?? undefined,
+            correctChoiceIndices: question.correctChoiceIndices || undefined,
+            statements: question.statements || undefined,
+            correctAnswer: question.correctAnswer || undefined,
+            alternateAnswers: question.alternateAnswers || undefined,
         };
 
-        await questionRef.set(questionData);
+        await Promise.all([
+            questionRef.set(buildPublicQuestionData(fullQuestion)),
+            adminDb.collection("questionKeys").doc(questionId).set(buildQuestionKeyData(fullQuestion))
+        ]);
 
         return NextResponse.json({
             success: true,
-            question: questionData,
+            question: fullQuestion,
             message: `Question ${questionId} created at order ${finalOrder}`
         });
     } catch (error) {
@@ -190,23 +229,27 @@ export async function PUT(request: Request) {
                 });
             }
 
-            const { order, ...otherUpdates } = updates;
-            if (Object.keys(otherUpdates).length > 0) {
-                await adminDb.collection("questions").doc(questionId).update(otherUpdates);
+            delete updates.order;
+        }
+
+        if (Object.keys(updates).length > 0) {
+            const existing = await fetchFullQuestion(questionId);
+            if (!existing) {
+                return NextResponse.json({
+                    success: true,
+                    message: "Question not found (update ignored)"
+                });
             }
 
-        } else {
-            try {
-                await adminDb.collection("questions").doc(questionId).update(updates);
-            } catch (error: any) {
-                if (error.code === 5 || error.message?.includes('NOT_FOUND')) {
-                    return NextResponse.json({
-                        success: true,
-                        message: "Question not found (update ignored)"
-                    });
-                }
-                throw error;
-            }
+            const nextQuestion: Question = {
+                ...existing.question,
+                ...updates,
+            };
+
+            await Promise.all([
+                existing.ref.set(buildPublicQuestionData(nextQuestion)),
+                existing.keyRef.set(buildQuestionKeyData(nextQuestion))
+            ]);
         }
 
         return NextResponse.json({
@@ -236,6 +279,7 @@ export async function DELETE(request: Request) {
         }
 
         const questionRef = adminDb.collection("questions").doc(questionId);
+        const questionKeyRef = adminDb.collection("questionKeys").doc(questionId);
         const questionSnap = await adminDb.collection("questions").doc(questionId).get();
 
         if (!questionSnap.exists) {
@@ -256,7 +300,10 @@ export async function DELETE(request: Request) {
             });
         }
 
-        await questionRef.delete();
+        await Promise.all([
+            questionRef.delete(),
+            questionKeyRef.delete()
+        ]);
 
         return NextResponse.json({
             success: true,

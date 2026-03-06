@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
 
 // POST: Kick a specific team or all teams
 export async function POST(request: Request) {
+    try {
+        await verifyAdmin(request);
+    } catch {
+        return unauthorizedResponse();
+    }
+
     try {
         const body = await request.json();
         const { teamId, kickAll } = body;

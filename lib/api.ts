@@ -1,12 +1,33 @@
 import { Question, QuestionType } from "@/lib/types";
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
+
+async function getAuthenticatedUser(): Promise<User> {
+    if (auth.currentUser) {
+        return auth.currentUser;
+    }
+
+    return await new Promise<User>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            unsubscribe();
+            reject(new Error("Authentication timed out"));
+        }, 5000);
+
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                return;
+            }
+
+            clearTimeout(timeout);
+            unsubscribe();
+            resolve(user);
+        });
+    });
+}
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
-    // Ensure auth is ready
-    const user = auth.currentUser;
+    const user = await getAuthenticatedUser();
     if (!user) {
-        // Double check if we might be in loading state? 
-        // For admin usage, we expect them to be logged in.
         throw new Error("Not authenticated. Please log in.");
     }
 
@@ -29,6 +50,42 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 export const api = {
+    joinTeam: (teamName: string) =>
+        fetchWithAuth("/api/team", {
+            method: "POST",
+            body: JSON.stringify({ teamName }),
+        }),
+
+    renameTeam: (teamId: string, newName: string) =>
+        fetchWithAuth("/api/team", {
+            method: "PATCH",
+            body: JSON.stringify({ teamId, newName }),
+        }),
+
+    verifyAdminSession: () => fetchWithAuth("/api/admin/session"),
+
+    updateGameConfig: (config: Record<string, unknown>) =>
+        fetchWithAuth("/api/admin/config", {
+            method: "PATCH",
+            body: JSON.stringify(config),
+        }),
+
+    resetScores: () =>
+        fetchWithAuth("/api/admin/reset-scores", {
+            method: "POST",
+        }),
+
+    kickTeam: (teamId: string) =>
+        fetchWithAuth("/api/admin/kick", {
+            method: "POST",
+            body: JSON.stringify({ teamId }),
+        }),
+
+    kickAllTeams: () =>
+        fetchWithAuth("/api/admin/kick", {
+            method: "POST",
+            body: JSON.stringify({ kickAll: true }),
+        }),
 
     // Game/Admin Action APIs
     gameAction: (action: string, body: Record<string, unknown> = {}) =>
@@ -39,24 +96,18 @@ export const api = {
 
     // Answer APIs (Student facing - No change to logic, just separation)
     submitAnswer: async (teamId: string, questionId: string, roundId: string, answer: string | number | (boolean | null)[], type: QuestionType, timeSpent: number) => {
-        const res = await fetch("/api/answer", {
+        const data = await fetchWithAuth("/api/answer", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ teamId, questionId, roundId, answer, type, timeSpent }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Submission failed");
         return data;
     },
 
-    submitChallenge: async (teamId: string, teamName: string, questionId: string, questionText: string, roundId: string) => {
-        const res = await fetch("/api/challenge", {
+    submitChallenge: async (teamId: string, questionId: string, questionText: string, roundId: string) => {
+        const data = await fetchWithAuth("/api/challenge", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ teamId, teamName, questionId, questionText, roundId }),
+            body: JSON.stringify({ teamId, questionId, questionText, roundId }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Challenge failed");
         return data;
     },
 
@@ -69,7 +120,7 @@ export const api = {
 
 
     // Question APIs
-    getQuestions: (roundId: string) => fetchWithAuth(`/api/questions?roundId=${roundId}`),
+    getQuestions: (roundId?: string) => fetchWithAuth(roundId ? `/api/questions?roundId=${roundId}` : "/api/questions"),
 
     createQuestion: (question: Partial<Question>) =>
         fetchWithAuth("/api/questions", {

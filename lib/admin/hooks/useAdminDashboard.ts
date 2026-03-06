@@ -3,6 +3,7 @@ import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Round, Question, Answer, Challenge } from "@/lib/types";
 import { useTeams } from "@/lib/hooks/useTeams";
+import { api } from "@/lib/api";
 
 export function useAdminDashboard() {
     const teams = useTeams("score");
@@ -14,14 +15,23 @@ export function useAdminDashboard() {
     const [challenges, setChallenges] = useState<Challenge[]>([]);
 
     useEffect(() => {
+        let cancelled = false;
+
         const unsubRounds = onSnapshot(collection(db, "rounds"), (snap) => {
             setRounds(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Round)));
             setLastUpdate(new Date());
         }, (err) => console.error("Rounds sync error:", err));
 
-        const unsubQuestions = onSnapshot(query(collection(db, "questions"), orderBy("order", "asc")), (snap) => {
-            setQuestions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question)));
-            setLastUpdate(new Date());
+        const unsubQuestions = onSnapshot(query(collection(db, "questions"), orderBy("order", "asc")), async () => {
+            try {
+                const data = await api.getQuestions();
+                if (!cancelled) {
+                    setQuestions(data.questions as Question[]);
+                    setLastUpdate(new Date());
+                }
+            } catch (err) {
+                console.error("Questions sync error:", err);
+            }
         }, (err) => console.error("Questions sync error:", err));
 
         const unsubAnswers = onSnapshot(query(collection(db, "answers"), orderBy("submittedAt", "desc")), (snap) => {
@@ -43,6 +53,7 @@ export function useAdminDashboard() {
         });
 
         return () => {
+            cancelled = true;
             unsubRounds();
             unsubQuestions();
             unsubAnswers();

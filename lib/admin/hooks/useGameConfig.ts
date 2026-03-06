@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
+import { api } from "@/lib/api";
 
 export interface GameConfig {
     questionTimer: number;
@@ -27,9 +28,6 @@ export function useGameConfig() {
         const unsubscribe = onSnapshot(configRef, (snapshot) => {
             if (snapshot.exists()) {
                 setConfig(snapshot.data() as GameConfig);
-            } else {
-                // Initialize with defaults if doesn't exist
-                setDoc(configRef, DEFAULT_CONFIG);
             }
             setLoading(false);
         });
@@ -38,8 +36,7 @@ export function useGameConfig() {
     }, []);
 
     const updateConfig = async (newConfig: Partial<GameConfig>) => {
-        const configRef = doc(db, "config", "gameConfig");
-        await setDoc(configRef, { ...config, ...newConfig }, { merge: true });
+        await api.updateGameConfig({ ...config, ...newConfig });
     };
 
     return { config, updateConfig, loading };

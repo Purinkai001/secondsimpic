@@ -8,6 +8,7 @@ export type Team = {
     challengesRemaining: number;
     streak: number;
     inSuddenDeath?: boolean;
+    ownerUid?: string;
 };
 
 export type Round = {
@@ -20,6 +21,7 @@ export type Round = {
     pausedAt?: number | null; // timestamp when paused for grading
     totalPauseDuration?: number; // accumulated pause time in ms
     showResults?: boolean; // whether to reveal the answer to contestants
+    currentQuestionId?: string | null;
 };
 
 export type QuestionType = "mcq" | "mtf" | "saq" | "spot";
@@ -28,7 +30,7 @@ export type Difficulty = "easy" | "medium" | "difficult";
 // MTF statement structure
 export type MTFStatement = {
     text: string;
-    isTrue: boolean;
+    isTrue?: boolean;
 };
 
 export type Question = {
@@ -106,6 +108,8 @@ export type SubmissionResult = {
     pendingGrading?: boolean;
     mtfCorrectCount?: number;
     mtfTotalCount?: number;
+    imageUrl?: string | null;
+    questionText?: string;
 };
 
 // Firestore document reference type (used in API routes)

@@ -1,56 +1,99 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
+import { verifyPlayer, playerUnauthorizedResponse } from "@/lib/auth-player";
 
 // POST: Create a new challenge (from team) - PUBLIC (No Admin Auth required)
 export async function POST(request: Request) {
+    let decodedToken;
+
+    try {
+        decodedToken = await verifyPlayer(request);
+    } catch {
+        return playerUnauthorizedResponse();
+    }
+
     try {
         const body = await request.json();
-        const { teamId, teamName, questionId, questionText, roundId } = body;
+        const { teamId, questionId, questionText, roundId } = body;
 
-        if (!teamId || !teamName || !questionId || !questionText || !roundId) {
+        if (!teamId || !questionId || !questionText || !roundId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const teamRef = adminDb.collection("teams").doc(teamId);
-        const teamDoc = await teamRef.get();
+        const result = await adminDb.runTransaction(async (transaction) => {
+            const teamRef = adminDb.collection("teams").doc(teamId);
+            const questionRef = adminDb.collection("questions").doc(questionId);
+            const [teamDoc, questionDoc] = await Promise.all([
+                transaction.get(teamRef),
+                transaction.get(questionRef)
+            ]);
 
-        if (!teamDoc.exists) {
+            if (!teamDoc.exists || !questionDoc.exists || questionDoc.data()?.roundId !== roundId) {
+                throw new Error("NOT_FOUND");
+            }
+
+            const teamData = teamDoc.data()!;
+            if (teamData.status === "eliminated") {
+                throw new Error("ELIMINATED");
+            }
+
+            if (teamData.ownerUid && teamData.ownerUid !== decodedToken.uid) {
+                throw new Error("FORBIDDEN");
+            }
+
+            if (!teamData.ownerUid) {
+                transaction.update(teamRef, { ownerUid: decodedToken.uid });
+                teamData.ownerUid = decodedToken.uid;
+            }
+
+            const challengesRemaining = teamData.challengesRemaining ?? 2;
+            if (challengesRemaining <= 0) {
+                throw new Error("NO_CHALLENGES");
+            }
+
+            const challengeRef = adminDb.collection("challenges").doc();
+            transaction.set(challengeRef, {
+                id: challengeRef.id,
+                teamId,
+                teamName: teamData.name,
+                questionId,
+                questionText,
+                roundId,
+                createdAt: Date.now(),
+                dismissed: false
+            });
+
+            transaction.update(teamRef, {
+                challengesRemaining: challengesRemaining - 1
+            });
+
+            return {
+                success: true,
+                challengeId: challengeRef.id,
+                challengesRemaining: challengesRemaining - 1,
+                message: `Challenge submitted! You have ${challengesRemaining - 1} remains.`
+            };
+        });
+
+        return NextResponse.json(result);
+    } catch (error) {
+        if (error instanceof Error && error.message === "NOT_FOUND") {
             return NextResponse.json({ error: "Team not found" }, { status: 404 });
         }
 
-        const teamData = teamDoc.data()!;
-        const challengesRemaining = teamData.challengesRemaining ?? 2;
-
-        if (challengesRemaining <= 0) {
-            return NextResponse.json({
-                error: "No challenges remaining."
-            }, { status: 400 });
+        if (error instanceof Error && error.message === "FORBIDDEN") {
+            return NextResponse.json({ error: "Team is not owned by current player" }, { status: 403 });
         }
 
-        const challengeRef = adminDb.collection("challenges").doc();
-        await challengeRef.set({
-            id: challengeRef.id,
-            teamId,
-            teamName,
-            questionId,
-            questionText,
-            roundId,
-            createdAt: Date.now(),
-            dismissed: false
-        });
+        if (error instanceof Error && error.message === "ELIMINATED") {
+            return NextResponse.json({ error: "Team is eliminated" }, { status: 403 });
+        }
 
-        await teamRef.update({
-            challengesRemaining: challengesRemaining - 1
-        });
+        if (error instanceof Error && error.message === "NO_CHALLENGES") {
+            return NextResponse.json({ error: "No challenges remaining." }, { status: 400 });
+        }
 
-        return NextResponse.json({
-            success: true,
-            challengeId: challengeRef.id,
-            challengesRemaining: challengesRemaining - 1,
-            message: `Challenge submitted! You have ${challengesRemaining - 1} remains.`
-        });
-    } catch (error) {
         console.error("Error creating challenge:", error);
         return NextResponse.json({ error: "Failed to create challenge" }, { status: 500 });
     }

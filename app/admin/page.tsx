@@ -13,8 +13,6 @@ import { RoundControl } from "@/components/admin/RoundControl";
 import { QuestionManager } from "@/components/admin/QuestionManager";
 import { EliminationPanel } from "@/components/admin/EliminationPanel";
 import { api } from "@/lib/api";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export default function AdminDashboardOverview() {
     const {
@@ -25,7 +23,7 @@ export default function AdminDashboardOverview() {
     const [selectedRound, setSelectedRound] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-    const handleAction = async (name: string, fn: () => Promise<any>) => {
+    const handleAction = async (name: string, fn: () => Promise<unknown>) => {
         setActionLoading(name);
         try {
             await fn();
@@ -69,29 +67,19 @@ export default function AdminDashboardOverview() {
     });
 
     const scheduleRound = async (roundId: string, startTime: number) => {
-        await updateDoc(doc(db, "rounds", roundId), {
-            status: "active",
-            startTime,
-            currentQuestionIndex: 0
-        });
+        await api.gameAction("scheduleRound", { roundId, startTime });
     };
 
     const activateRound = async (roundId: string) => {
-        await updateDoc(doc(db, "rounds", roundId), {
-            status: "active",
-            startTime: Date.now(),
-            currentQuestionIndex: 0,
-            pausedAt: null,
-            totalPauseDuration: 0,
-        });
+        await api.gameAction("activateRound", { roundId });
     };
 
     const endRound = async (roundId: string) => {
-        await updateDoc(doc(db, "rounds", roundId), { status: "completed", startTime: null });
+        await api.gameAction("endRound", { roundId });
     };
 
     const setQuestion = async (roundId: string, qId: string | null) => {
-        await updateDoc(doc(db, "rounds", roundId), { currentQuestionId: qId });
+        await api.gameAction("setCurrentQuestion", { roundId, qId });
     };
 
     const pauseRound = async () => {
@@ -115,8 +103,7 @@ export default function AdminDashboardOverview() {
         const currentQ = roundQuestions[activeRound.currentQuestionIndex || 0];
         const difficulty = currentQ?.difficulty || "easy";
 
-        await api.gameAction("simulateBotScores", { difficulty });
-        await updateDoc(doc(db, "rounds", activeRound.id), { showResults: true });
+        await api.gameAction("revealResults", { roundId: activeRound.id, difficulty });
     };
 
     const nextQuestion = async () => {
@@ -131,20 +118,9 @@ export default function AdminDashboardOverview() {
 
         if (currentIndex >= roundQuestions.length - 1) {
             if (!confirm("This is the last question. End this round and return to lobby?")) return;
-            await updateDoc(doc(db, "rounds", activeRound.id), {
-                status: "completed",
-                startTime: null,
-                showResults: false,
-                pausedAt: null
-            });
+            await api.gameAction("endRound", { roundId: activeRound.id });
         } else {
-            await updateDoc(doc(db, "rounds", activeRound.id), {
-                currentQuestionIndex: currentIndex + 1,
-                showResults: false,
-                pausedAt: null,
-                startTime: Date.now(), // Reset start time for the next question
-                totalPauseDuration: 0
-            });
+            await api.gameAction("nextQuestion", { roundId: activeRound.id });
         }
     };
 

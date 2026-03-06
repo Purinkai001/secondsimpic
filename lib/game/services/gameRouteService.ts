@@ -189,6 +189,122 @@ export async function POST(request: Request) {
             });
         }
 
+        if (action === "scheduleRound") {
+            const { roundId, startTime } = body;
+            if (!roundId || typeof startTime !== "number") {
+                return NextResponse.json({ error: "roundId and startTime required" }, { status: 400 });
+            }
+
+            const firstQuestionSnap = await adminDb.collection("questions")
+                .where("roundId", "==", roundId)
+                .orderBy("order", "asc")
+                .limit(1)
+                .get();
+
+            await adminDb.collection("rounds").doc(roundId).set({
+                status: "active",
+                startTime,
+                currentQuestionIndex: 0,
+                pausedAt: null,
+                totalPauseDuration: 0,
+                showResults: false,
+                currentQuestionId: firstQuestionSnap.empty ? null : firstQuestionSnap.docs[0].id,
+            }, { merge: true });
+
+            return NextResponse.json({
+                success: true,
+                message: `${roundId} scheduled`
+            });
+        }
+
+        if (action === "activateRound") {
+            const { roundId } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            const firstQuestionSnap = await adminDb.collection("questions")
+                .where("roundId", "==", roundId)
+                .orderBy("order", "asc")
+                .limit(1)
+                .get();
+
+            await adminDb.collection("rounds").doc(roundId).set({
+                status: "active",
+                startTime: Date.now(),
+                currentQuestionIndex: 0,
+                pausedAt: null,
+                totalPauseDuration: 0,
+                showResults: false,
+                currentQuestionId: firstQuestionSnap.empty ? null : firstQuestionSnap.docs[0].id,
+            }, { merge: true });
+
+            return NextResponse.json({
+                success: true,
+                message: `${roundId} started`
+            });
+        }
+
+        if (action === "endRound") {
+            const { roundId } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            await adminDb.collection("rounds").doc(roundId).set({
+                status: "completed",
+                startTime: null,
+                showResults: false,
+                pausedAt: null,
+                totalPauseDuration: 0,
+                currentQuestionId: null,
+            }, { merge: true });
+
+            return NextResponse.json({
+                success: true,
+                message: `${roundId} ended`
+            });
+        }
+
+        if (action === "setCurrentQuestion") {
+            const { roundId, qId } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            if (!qId) {
+                await adminDb.collection("rounds").doc(roundId).set({
+                    currentQuestionId: null,
+                }, { merge: true });
+
+                return NextResponse.json({
+                    success: true,
+                    message: "Question cleared"
+                });
+            }
+
+            const questionDoc = await adminDb.collection("questions").doc(qId).get();
+            if (!questionDoc.exists || questionDoc.data()?.roundId !== roundId) {
+                return NextResponse.json({ error: "Question not found in this round" }, { status: 404 });
+            }
+
+            const order = questionDoc.data()?.order || 1;
+            await adminDb.collection("rounds").doc(roundId).set({
+                currentQuestionId: qId,
+                currentQuestionIndex: Math.max(0, order - 1),
+                startTime: Date.now(),
+                pausedAt: null,
+                totalPauseDuration: 0,
+                showResults: false,
+                status: "active",
+            }, { merge: true });
+
+            return NextResponse.json({
+                success: true,
+                message: "Question updated"
+            });
+        }
+
         // ===== ELIMINATION =====
         if (action === "runElimination") {
             if (!roundNum) {
@@ -275,7 +391,11 @@ export async function POST(request: Request) {
         // ===== SIMULATE BOT SCORES =====
         if (action === "simulateBotScores") {
             const { difficulty = "easy" } = body;
-            const diffValue = (difficulty === "hard" ? "difficult" : difficulty) as any;
+            const diffValue = difficulty === "hard"
+                ? "difficult"
+                : difficulty === "medium"
+                    ? "medium"
+                    : "easy";
 
             const teamsSnap = await adminDb.collection("teams").get();
             const batch = adminDb.batch();
@@ -310,6 +430,106 @@ export async function POST(request: Request) {
             return NextResponse.json({
                 success: true,
                 message: `Simulated realistic turn for ${botsUpdated} bots.`
+            });
+        }
+
+        if (action === "revealResults") {
+            const { roundId, difficulty = "easy" } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            const diffValue = difficulty === "hard"
+                ? "difficult"
+                : difficulty === "medium"
+                    ? "medium"
+                    : "easy";
+            const teamsSnap = await adminDb.collection("teams").get();
+            const batch = adminDb.batch();
+
+            teamsSnap.docs.forEach(doc => {
+                const data = doc.data();
+                if (data.isBot && data.status === "active") {
+                    const isCorrect = Math.random() < 0.6;
+                    let newScore = data.score || 0;
+                    let newStreak = data.streak || 0;
+
+                    if (isCorrect) {
+                        const timeSpent = Math.floor(Math.random() * 40) + 5;
+                        const points = calculateScore(diffValue, timeSpent, newStreak, true);
+                        newScore += points;
+                        newStreak += 1;
+                    } else {
+                        newStreak = 0;
+                    }
+
+                    batch.update(doc.ref, {
+                        score: newScore,
+                        streak: newStreak
+                    });
+                }
+            });
+
+            batch.update(adminDb.collection("rounds").doc(roundId), {
+                showResults: true,
+            });
+
+            await batch.commit();
+
+            return NextResponse.json({
+                success: true,
+                message: "Results revealed"
+            });
+        }
+
+        if (action === "nextQuestion") {
+            const { roundId } = body;
+            if (!roundId) {
+                return NextResponse.json({ error: "roundId required" }, { status: 400 });
+            }
+
+            const roundRef = adminDb.collection("rounds").doc(roundId);
+            const [roundDoc, questionsSnap] = await Promise.all([
+                roundRef.get(),
+                adminDb.collection("questions").where("roundId", "==", roundId).orderBy("order", "asc").get()
+            ]);
+
+            if (!roundDoc.exists) {
+                return NextResponse.json({ error: "Round not found" }, { status: 404 });
+            }
+
+            const roundData = roundDoc.data()!;
+            const currentIndex = roundData.currentQuestionIndex || 0;
+
+            if (currentIndex >= questionsSnap.size - 1) {
+                await roundRef.update({
+                    status: "completed",
+                    startTime: null,
+                    showResults: false,
+                    pausedAt: null,
+                    totalPauseDuration: 0,
+                    currentQuestionId: null,
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    message: "Round completed"
+                });
+            }
+
+            const nextQuestion = questionsSnap.docs[currentIndex + 1];
+            await roundRef.update({
+                currentQuestionIndex: currentIndex + 1,
+                currentQuestionId: nextQuestion.id,
+                showResults: false,
+                pausedAt: null,
+                startTime: Date.now(),
+                totalPauseDuration: 0
+            });
+
+            return NextResponse.json({
+                success: true,
+                message: "Moved to next question"
             });
         }
 

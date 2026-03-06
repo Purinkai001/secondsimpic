@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { api } from "@/lib/api";
 import { Loader2, ArrowRight, Stethoscope, Sparkles, Trophy, Users, Brain, Heart } from "lucide-react";
 
 import { FloatingParticles } from "@/components/landing/FloatingParticles";
@@ -66,68 +66,17 @@ export default function LoginPage() {
     try {
       if (!auth.currentUser) await signInAnonymously(auth);
 
-      const teamsRef = collection(db, "teams");
-      const nameQuery = query(teamsRef, where("name", "==", teamName.trim()));
-      const nameSnapshot = await getDocs(nameQuery);
+      const team = await api.joinTeam(teamName.trim());
+      setAssignedGroup(team.group);
 
-      if (!nameSnapshot.empty) {
-        const existingTeam = nameSnapshot.docs[0];
-        const teamData = existingTeam.data();
-
-        if (teamData.status === "eliminated") {
-          setError("This team has been eliminated.");
-          setLoading(false);
-          return;
-        }
-
-        localStorage.setItem("medical_quiz_team_id", existingTeam.id);
-        localStorage.setItem("medical_quiz_team_name", teamData.name);
-        localStorage.setItem("medical_quiz_team_group", teamData.group.toString());
-        router.push("/game");
-        return;
-      }
-
-      const allTeamsSnapshot = await getDocs(teamsRef);
-      if (allTeamsSnapshot.size >= 30) {
-        setError("All rooms are full.");
-        setLoading(false);
-        return;
-      }
-
-      const groupCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      allTeamsSnapshot.docs.forEach(doc => {
-        const team = doc.data();
-        if (team.group >= 1 && team.group <= 5) groupCounts[team.group]++;
-      });
-
-      const availableGroups = Object.entries(groupCounts)
-        .filter(([, count]) => count < 6)
-        .map(([group]) => parseInt(group));
-
-      const randomGroup = availableGroups.length > 0
-        ? availableGroups[Math.floor(Math.random() * availableGroups.length)]
-        : parseInt(Object.entries(groupCounts).sort((a, b) => a[1] - b[1])[0][0]);
-      setAssignedGroup(randomGroup);
-
-      const docRef = await addDoc(teamsRef, {
-        name: teamName.trim(),
-        group: randomGroup,
-        score: 0,
-        status: "active",
-        isBot: false,
-        challengesRemaining: 2,
-        streak: 0,
-        createdAt: new Date(),
-      });
-
-      localStorage.setItem("medical_quiz_team_id", docRef.id);
-      localStorage.setItem("medical_quiz_team_name", teamName.trim());
-      localStorage.setItem("medical_quiz_team_group", randomGroup.toString());
+      localStorage.setItem("medical_quiz_team_id", team.teamId);
+      localStorage.setItem("medical_quiz_team_name", team.name);
+      localStorage.setItem("medical_quiz_team_group", team.group.toString());
 
       setTimeout(() => router.push("/game"), 1500);
     } catch (err) {
       console.error("Join error:", err);
-      setError("Connection failed. Try again.");
+      setError(err instanceof Error ? err.message : "Connection failed. Try again.");
       setLoading(false);
     }
   };

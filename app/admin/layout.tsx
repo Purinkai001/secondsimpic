@@ -7,11 +7,12 @@ import {
     History, Settings, CheckSquare, Flag, LogOut, Activity, Sliders
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 const NAV_ITEMS = [
     { label: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -30,11 +31,49 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const handleLogout = () => signOut(auth);
+    const [checkingAccess, setCheckingAccess] = useState(true);
+    const [hasAdminAccess, setHasAdminAccess] = useState(false);
 
     // Fullscreen detection from search params hook (reactive)
     const isFullscreen = searchParams.get("fullscreen") === "true";
 
-    if (loadingAuth) {
+    useEffect(() => {
+        let cancelled = false;
+
+        const verifySession = async () => {
+            if (!user) {
+                if (!cancelled) {
+                    setHasAdminAccess(false);
+                    setCheckingAccess(false);
+                }
+                return;
+            }
+
+            setCheckingAccess(true);
+            try {
+                await api.verifyAdminSession();
+                if (!cancelled) {
+                    setHasAdminAccess(true);
+                }
+            } catch {
+                if (!cancelled) {
+                    setHasAdminAccess(false);
+                }
+            } finally {
+                if (!cancelled) {
+                    setCheckingAccess(false);
+                }
+            }
+        };
+
+        verifySession();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [user]);
+
+    if (loadingAuth || (user && checkingAccess)) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
@@ -46,6 +85,24 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     if (!user) return <AdminLogin />;
+
+    if (!hasAdminAccess) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-background px-4">
+                <div className="max-w-md text-center space-y-4 bg-surface-bg border border-surface-border rounded-3xl p-8">
+                    <ShieldAlert className="w-12 h-12 text-red-500 mx-auto" />
+                    <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
+                    <p className="text-muted">This account is signed in, but it is not whitelisted for admin access.</p>
+                    <button
+                        onClick={handleLogout}
+                        className="px-5 py-3 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-all"
+                    >
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">

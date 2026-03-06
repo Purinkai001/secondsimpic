@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { DEFAULT_QUESTION_TIMER } from "@/lib/types";
+import { DEFAULT_QUESTION_TIMER, Question } from "@/lib/types";
 import { verifyAdmin, unauthorizedResponse } from "@/lib/auth-admin";
+import { buildPublicQuestionData, buildQuestionKeyData } from "@/lib/question-data";
 
 const MEDICAL_QUESTIONS = [
     // ===== ROUND 1 (Turn 1) =====
@@ -245,7 +246,9 @@ export async function GET(request: Request) {
             MEDICAL_QUESTIONS.forEach((q) => {
                 const qId = `q-${q.roundId}-${q.order}`;
                 const qRef = adminDb.collection("questions").doc(qId);
-                batch.set(qRef, { ...q, id: qId });
+                const fullQuestion = { ...q, id: qId } as Question;
+                batch.set(qRef, buildPublicQuestionData(fullQuestion));
+                batch.set(adminDb.collection("questionKeys").doc(qId), buildQuestionKeyData(fullQuestion));
             });
 
             await batch.commit();

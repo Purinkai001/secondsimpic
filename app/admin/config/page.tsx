@@ -4,6 +4,7 @@ import { useGameConfig } from "@/lib/admin/hooks/useGameConfig";
 import { Clock, Users, ShieldCheck, Save, RefreshCw, Trash2, AlertTriangle, UserX } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useTeams } from "@/lib/hooks/useTeams";
+import { api } from "@/lib/api";
 
 export default function ConfigPage() {
     const { config, updateConfig, loading } = useGameConfig();
@@ -35,11 +36,10 @@ export default function ConfigPage() {
         }
         setResetting(true);
         try {
-            const res = await fetch("/api/admin/reset-scores", { method: "POST" });
-            const data = await res.json();
+            const data = await api.resetScores();
             alert(data.message || "Scores reset!");
         } catch (err) {
-            alert("Failed to reset scores");
+            alert(err instanceof Error ? err.message : "Failed to reset scores");
         } finally {
             setResetting(false);
             setConfirmReset(false);
@@ -50,16 +50,11 @@ export default function ConfigPage() {
         if (!selectedTeamId) return;
         setKicking(true);
         try {
-            const res = await fetch("/api/admin/kick", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ teamId: selectedTeamId }),
-            });
-            const data = await res.json();
+            const data = await api.kickTeam(selectedTeamId);
             alert(data.message || "Team kicked!");
             setSelectedTeamId("");
         } catch (err) {
-            alert("Failed to kick team");
+            alert(err instanceof Error ? err.message : "Failed to kick team");
         } finally {
             setKicking(false);
         }
@@ -72,15 +67,10 @@ export default function ConfigPage() {
         }
         setKickingAll(true);
         try {
-            const res = await fetch("/api/admin/kick", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ kickAll: true }),
-            });
-            const data = await res.json();
+            const data = await api.kickAllTeams();
             alert(data.message || "All teams kicked!");
         } catch (err) {
-            alert("Failed to kick all teams");
+            alert(err instanceof Error ? err.message : "Failed to kick all teams");
         } finally {
             setKickingAll(false);
             setConfirmKickAll(false);
@@ -220,14 +210,15 @@ export default function ConfigPage() {
             <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl space-y-4">
                 <p className="text-amber-400 text-sm flex items-center gap-2 font-bold">
                     <ShieldCheck className="w-5 h-5" />
-                    Firestore Security Rules Required
+                    Server-Enforced Admin Writes
                 </p>
                 <p className="text-foreground/60 text-xs leading-relaxed">
-                    If you see errors saving configuration, ensure your Firestore rules allow access to the <code className="bg-surface-bg/50 px-1 rounded text-accent-blue">config</code> collection. Copy the rules below into your Firebase Console:
+                    Configuration updates now go through the admin API and should remain blocked from direct browser writes in Firestore rules. If saving fails, verify the signed-in account is whitelisted in <code className="bg-surface-bg/50 px-1 rounded text-accent-blue">ADMIN_EMAILS</code>.
                 </p>
                 <pre className="bg-black/60 p-4 rounded-xl text-[10px] font-mono text-blue-300 border border-white/5 overflow-x-auto">
-                    {`match /config/{document} {
-  allow read, write: if request.auth != null;
+                    {`match /config/{document=**} {
+  allow read: if true;
+  allow write: if false;
 }`}
                 </pre>
             </div>

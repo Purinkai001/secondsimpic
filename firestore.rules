@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPrivilegedReader() {
+      return isSignedIn() &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function ownsTeam(teamId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)) &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /config/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /teams/{teamId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /questionKeys/{questionId} {
+      allow read, write: if false;
+    }
+
+    match /rounds/{roundId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /challenges/{challengeId} {
+      allow read: if isPrivilegedReader() || ownsTeam(resource.data.teamId);
+      allow create, update, delete: if false;
+    }
+
+    match /answers/{answerId} {
+      allow read: if isPrivilegedReader() || ownsTeam(resource.data.teamId);
+      allow create, update, delete: if false;
+    }
+
+    match /presence/{teamId} {
+      allow read: if true;
+      allow write: if ownsTeam(teamId);
+    }
+  }
+}

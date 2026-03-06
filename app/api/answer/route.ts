@@ -3,10 +3,50 @@ import { adminDb } from "@/lib/firebase-admin";
 import { calculateAnswerScore } from "@/lib/scoring";
 import { Difficulty, QuestionType } from "@/lib/types";
 import { FieldValue } from "firebase-admin/firestore";
+import { verifyPlayer, playerUnauthorizedResponse } from "@/lib/auth-player";
+import { mergeQuestionWithKey } from "@/lib/question-data";
 
-// Removed local checkMTFPartial in favor of library function
+type AnswerableQuestion = {
+    type?: QuestionType;
+    statements?: Array<{ text: string; isTrue?: boolean }>;
+    difficulty?: Difficulty;
+    order?: number;
+    roundId?: string;
+    imageUrl?: string | null;
+    text?: string;
+};
+
+function isValidAnswerPayload(question: AnswerableQuestion, type: QuestionType, answer: unknown) {
+    if (type !== question.type) {
+        return false;
+    }
+
+    if (type === "mcq") {
+        return typeof answer === "number" && Number.isInteger(answer);
+    }
+
+    if (type === "mtf") {
+        return Array.isArray(answer)
+            && answer.length === (question.statements?.length || 0)
+            && answer.every((value) => value === null || typeof value === "boolean");
+    }
+
+    if (type === "saq" || type === "spot") {
+        return typeof answer === "string";
+    }
+
+    return false;
+}
 
 export async function POST(request: Request) {
+    let decodedToken;
+
+    try {
+        decodedToken = await verifyPlayer(request);
+    } catch {
+        return playerUnauthorizedResponse();
+    }
+
     try {
         const body = await request.json();
         const { teamId, questionId, roundId, answer, type, timeSpent } = body;
@@ -15,17 +55,23 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
+        if (typeof timeSpent !== "number" || !Number.isFinite(timeSpent)) {
+            return NextResponse.json({ error: "timeSpent must be a number" }, { status: 400 });
+        }
+
         const result = await adminDb.runTransaction(async (transaction) => {
             const answerId = `${teamId}_${questionId}`;
             const answerRef = adminDb.collection("answers").doc(answerId);
             const teamRef = adminDb.collection("teams").doc(teamId);
             const questionRef = adminDb.collection("questions").doc(questionId);
+            const questionKeyRef = adminDb.collection("questionKeys").doc(questionId);
             const roundRef = adminDb.collection("rounds").doc(roundId);
 
-            const [answerDoc, teamDoc, questionDoc, roundDoc] = await Promise.all([
+            const [answerDoc, teamDoc, questionDoc, questionKeyDoc, roundDoc] = await Promise.all([
                 transaction.get(answerRef),
                 transaction.get(teamRef),
                 transaction.get(questionRef),
+                transaction.get(questionKeyRef),
                 transaction.get(roundRef)
             ]);
 
@@ -40,12 +86,41 @@ export async function POST(request: Request) {
 
             const teamData = teamDoc.data()!;
 
+            if (teamData.ownerUid && teamData.ownerUid !== decodedToken.uid) {
+                throw new Error("FORBIDDEN");
+            }
+
+            if (!teamData.ownerUid) {
+                transaction.update(teamRef, { ownerUid: decodedToken.uid });
+                teamData.ownerUid = decodedToken.uid;
+            }
+
             if (teamData.status === "eliminated") {
                 throw new Error("ELIMINATED");
             }
 
-            const question = questionDoc.data()!;
+            const question = mergeQuestionWithKey(
+                { id: questionDoc.id, ...questionDoc.data() },
+                questionKeyDoc.exists ? questionKeyDoc.data() : null
+            ) as AnswerableQuestion;
             const roundData = roundDoc.data()!;
+
+            if (roundData.status !== "active" || roundData.showResults || roundData.pausedAt) {
+                throw new Error("ROUND_CLOSED");
+            }
+
+            if (question.roundId !== roundId) {
+                throw new Error("QUESTION_MISMATCH");
+            }
+
+            const currentQuestionOrder = (roundData.currentQuestionIndex || 0) + 1;
+            if ((question.order || 0) !== currentQuestionOrder) {
+                throw new Error("QUESTION_NOT_ACTIVE");
+            }
+
+            if (!isValidAnswerPayload(question, type as QuestionType, answer)) {
+                throw new Error("INVALID_ANSWER");
+            }
 
             // 2. Validate Time (Grace period 5s)
             const GRACE_PERIOD_MS = 10000;
@@ -133,10 +208,11 @@ export async function POST(request: Request) {
                 points: scoreResult.points,
                 streak: scoreResult.newStreak,
                 message,
-                correctAnswer: scoreResult.correctAnswerData,
                 pendingGrading: scoreResult.isCorrect === null && type !== "mtf",
                 mtfCorrectCount: scoreResult.mtfStats?.correctCount,
                 mtfTotalCount: scoreResult.mtfStats?.totalCount,
+                imageUrl: question.imageUrl || null,
+                questionText: question.text || "",
             };
         });
 
@@ -150,11 +226,23 @@ export async function POST(request: Request) {
         if (message === "TIME_EXPIRED") {
             return NextResponse.json({ error: "Time expired for this question" }, { status: 403 });
         }
+        if (message === "FORBIDDEN") {
+            return NextResponse.json({ error: "Team is not owned by current player" }, { status: 403 });
+        }
         if (message === "NOT_FOUND") {
             return NextResponse.json({ error: "Resource not found" }, { status: 404 });
         }
         if (message === "ELIMINATED") {
             return NextResponse.json({ error: "Team is eliminated" }, { status: 403 });
+        }
+        if (message === "ROUND_CLOSED") {
+            return NextResponse.json({ error: "This round is not accepting answers" }, { status: 403 });
+        }
+        if (message === "QUESTION_MISMATCH" || message === "QUESTION_NOT_ACTIVE") {
+            return NextResponse.json({ error: "This question is not currently active" }, { status: 409 });
+        }
+        if (message === "INVALID_ANSWER") {
+            return NextResponse.json({ error: "Invalid answer payload" }, { status: 400 });
         }
         console.error("Error submitting answer:", error);
         return NextResponse.json({ error: "Failed to submit answer" }, { status: 500 });

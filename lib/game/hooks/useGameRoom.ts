@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, query, collection, orderBy, updateDoc, onSnapshot, where, limit, setDoc } from "firebase/firestore";
+import { doc, getDoc, query, collection, orderBy, onSnapshot, where, limit, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, ANSWER_REVEAL_DURATION } from "@/lib/game/types/game";
@@ -75,6 +75,13 @@ export function useGameRoom() {
         const teamDoc = await getDoc(doc(db, "teams", teamId));
         if (teamDoc.exists()) {
             const teamData = { ...teamDoc.data(), id: teamDoc.id } as Team;
+            if (!teamData.ownerUid) {
+                try {
+                    await api.joinTeam(teamData.name);
+                } catch (error) {
+                    console.error("Failed to claim legacy team ownership:", error);
+                }
+            }
             setTeam(teamData);
             return teamData;
         } else {
@@ -249,7 +256,7 @@ export function useGameRoom() {
         if (!confirm(`Challenge this question? You have ${team.challengesRemaining} remaining.`)) return;
 
         try {
-            const result = await api.submitChallenge(team.id, team.name, currentQuestion.id, currentQuestion.text, currentRound.id);
+            const result = await api.submitChallenge(team.id, currentQuestion.id, currentQuestion.text, currentRound.id);
             // Optimistic update
             setTeam({ ...team, challengesRemaining: result.challengesRemaining });
             alert(result.message);
@@ -271,7 +278,7 @@ export function useGameRoom() {
 
     const handleRename = async (newName: string) => {
         if (!team) return;
-        await updateDoc(doc(db, "teams", team.id), { name: newName });
+        await api.renameTeam(team.id, newName);
         localStorage.setItem("medical_quiz_team_name", newName);
         // Team snapshot will handle update
     };
@@ -371,7 +378,8 @@ export function useGameRoom() {
                     pendingGrading: ansData.isCorrect === null,
                     mtfCorrectCount: ansData.mtfCorrectCount,
                     mtfTotalCount: ansData.mtfTotalCount,
-                    correctAnswer: currentQuestion.type === "mcq" ? { type: "mcq", correctChoiceIndex: currentQuestion.correctChoiceIndex, choices: currentQuestion.choices } : (currentQuestion.type === "mtf" ? { type: "mtf", statements: currentQuestion.statements } : undefined)
+                    imageUrl: ansData.imageUrl || currentQuestion.imageUrl || null,
+                    questionText: ansData.questionText || currentQuestion.text || "",
                 });
             } else {
                 // Determine if we should really reset. If we are 'submitting', finding no document is expected briefly.
