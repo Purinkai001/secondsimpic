@@ -50,14 +50,9 @@ export default function AdminDashboardOverview() {
         return api.gameAction("resetScoresForTurn3");
     });
 
-
     const rearrangeDivisions = () => handleAction("rearrange", async () => {
-        if (!confirm("Trigger scoreboard shuffle animation?")) return;
-        
-        // Write a new timestamp to Firebase to signal the Scoreboard
-        await updateDoc(doc(db, "config", "gameConfig"), {
-            lastShuffleTrigger: Date.now()
-        });
+        if (!confirm("Rearrange divisions by score?")) return;
+        return api.gameAction("rearrangeDivisions");
     });
 
     const checkTies = () => handleAction("checkTies", async () => {
@@ -253,4 +248,3 @@ export default function AdminDashboardOverview() {
         </div>
     );
 }
-
