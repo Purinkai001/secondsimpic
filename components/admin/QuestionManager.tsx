@@ -1,7 +1,7 @@
 import { FileQuestion, ArrowRight, StopCircle } from "lucide-react";
 import { Question } from "@/lib/types";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { AdminBadge, AdminEmptyState, AdminPanel } from "./AdminPrimitives";
 
 interface QuestionManagerProps {
     selectedRoundId: string;
@@ -15,81 +15,73 @@ export function QuestionManager({ selectedRoundId, questions, onSetQuestion }: Q
         .sort((a, b) => a.order - b.order);
 
     return (
-        <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
-                <div className="p-2 bg-accent-cyan/20 rounded-lg">
-                    <FileQuestion className="w-4 h-4 text-accent-cyan" />
-                </div>
-                Questions
-                <span className="text-sm font-normal text-muted ml-1">({selectedRoundId})</span>
-            </h2>
-
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+        <AdminPanel
+            title="Question Rail"
+            description={`Queued prompts for ${selectedRoundId}. Push the visible question without changing the underlying data model.`}
+            icon={FileQuestion}
+        >
+            <div className="space-y-3">
                 <motion.button
                     onClick={() => onSetQuestion(selectedRoundId, null)}
-                    className="w-full text-left p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-all flex items-center gap-2 font-semibold"
+                    className="flex w-full items-center justify-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-3 font-atsanee text-lg font-black uppercase italic text-amber-100"
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                 >
-                    <StopCircle className="w-4 h-4" />
-                    Stop/Hide Question
+                    <StopCircle className="h-4 w-4" />
+                    Stop / Hide Question
                 </motion.button>
 
-                {roundQuestions.map((q, idx) => (
-                    <motion.div
-                        key={q.id}
-                        className="flex justify-between items-center p-3 hover:bg-surface-bg border border-surface-border rounded-xl bg-surface-bg/50 transition-all"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                    >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <span className="w-6 h-6 bg-surface-bg border border-surface-border rounded-full flex items-center justify-center text-xs font-bold text-muted">
-                                {q.order}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <span className={cn(
-                                        "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase",
-                                        q.type === "mcq" ? "bg-accent-blue/20 text-accent-blue" :
-                                            q.type === "mtf" ? "bg-accent-cyan/20 text-accent-cyan" :
-                                                q.type === "saq" ? "bg-green-500/20 text-green-600 dark:text-green-400" :
-                                                    "bg-orange-500/20 text-orange-600 dark:text-orange-400"
-                                    )}>
-                                        {q.type}
-                                    </span>
-                                    <span className={cn(
-                                        "text-[10px] px-1.5 py-0.5 rounded font-bold",
-                                        q.difficulty === "easy" ? "bg-green-500/20 text-green-600 dark:text-green-400" :
-                                            q.difficulty === "medium" ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" :
-                                                "bg-red-500/20 text-red-600 dark:text-red-400"
-                                    )}>
-                                        {q.difficulty}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-foreground/70 break-words">
-                                    {q.text || "(Image question)"}
-                                </p>
-                            </div>
-                        </div>
-                        <motion.button
-                            onClick={() => onSetQuestion(selectedRoundId, q.id)}
-                            className="text-xs bg-accent-blue/10 text-accent-blue px-3 py-1.5 rounded-lg hover:bg-accent-blue/20 transition-colors font-semibold flex items-center gap-1 ml-2 border border-accent-blue/20"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                <div className="custom-scrollbar max-h-96 space-y-3 overflow-y-auto pr-1">
+                    {roundQuestions.map((q, idx) => (
+                        <motion.div
+                            key={q.id}
+                            className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-4 transition-all hover:border-admin-cyan/20"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.03 }}
                         >
-                            Push <ArrowRight className="w-3 h-3" />
-                        </motion.button>
-                    </motion.div>
-                ))}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/12 bg-gold/8 text-xs font-black text-gold">
+                                            {q.order}
+                                        </span>
+                                        <AdminBadge tone="accent" className="px-3 py-1">
+                                            {q.type}
+                                        </AdminBadge>
+                                        <AdminBadge
+                                            tone={q.difficulty === "easy" ? "success" : q.difficulty === "medium" ? "warning" : "danger"}
+                                            className="px-3 py-1"
+                                        >
+                                            {q.difficulty}
+                                        </AdminBadge>
+                                    </div>
+                                    <p className="text-sm font-medium leading-relaxed text-white/82">
+                                        {q.text || "(Image question)"}
+                                    </p>
+                                </div>
+                                <motion.button
+                                    onClick={() => onSetQuestion(selectedRoundId, q.id)}
+                                    className="inline-flex shrink-0 items-center gap-2 rounded-full border border-admin-cyan/20 bg-admin-cyan/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-admin-cyan"
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                >
+                                    Push <ArrowRight className="h-3 w-3" />
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    ))}
 
-                {roundQuestions.length === 0 && (
-                    <div className="text-center py-6">
-                        <FileQuestion className="w-8 h-8 text-muted/20 mx-auto mb-2" />
-                        <p className="text-muted text-sm">No questions for this round</p>
-                    </div>
-                )}
+                    {roundQuestions.length === 0 && (
+                        <AdminEmptyState
+                            icon={FileQuestion}
+                            title="No Questions"
+                            description="This round has no queued questions yet."
+                            className="px-6 py-12"
+                        />
+                    )}
+                </div>
             </div>
-        </div>
+        </AdminPanel>
     );
 }

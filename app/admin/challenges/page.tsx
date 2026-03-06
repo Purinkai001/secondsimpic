@@ -2,13 +2,13 @@
 
 import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import { api } from "@/lib/api";
-import { Flag, X, Clock, MessageSquare, User, BookOpen } from "lucide-react";
+import { Flag, Clock, MessageSquare, User, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { AdminBadge, AdminEmptyState, AdminPageHeader } from "@/components/admin/AdminPrimitives";
 
 export default function ChallengesPage() {
     const { challenges } = useAdminDashboard();
-    const pendingChallenges = challenges.filter(c => !c.dismissed);
+    const pendingChallenges = challenges.filter((c) => !c.dismissed);
 
     const handleDismiss = async (challengeId: string) => {
         try {
@@ -19,78 +19,71 @@ export default function ChallengesPage() {
     };
 
     return (
-        <div className="space-y-10 pb-20">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-pink-500 bg-clip-text text-transparent tracking-tight uppercase">
-                        CHALLENGE QUEUE
-                    </h1>
-                </div>
-                <div className="flex items-center gap-6">
-                    <div className="px-6 py-3 bg-pink-500/10 border border-pink-500/20 rounded-2xl flex items-center gap-4">
-                        <Flag className="w-5 h-5 text-pink-500" />
-                        <div>
-                            <p className="text-2xl font-black leading-none">{pendingChallenges.length}</p>
-                            <p className="text-[10px] font-black uppercase text-pink-500/50 mt-1">Pending Alerts</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="space-y-8 pb-10">
+            <AdminPageHeader
+                eyebrow="Dispute Queue"
+                title="Challenge Queue"
+                description="Review contested prompts and dismiss processed alerts without altering the underlying workflow."
+                status={<AdminBadge tone="warning"><Flag className="h-3 w-3" />{pendingChallenges.length} Pending Alerts</AdminBadge>}
+            />
 
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 gap-6">
                 <AnimatePresence mode="popLayout">
                     {pendingChallenges.map((challenge, idx) => (
                         <motion.div
                             key={challenge.id}
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: 100 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="bg-white/[0.03] border border-white/5 rounded-[3rem] overflow-hidden group hover:border-pink-500/20 transition-all"
+                            exit={{ opacity: 0, x: 80 }}
+                            transition={{ delay: idx * 0.06 }}
+                            className="admin-panel overflow-hidden rounded-[2.75rem]"
                         >
-                            <div className="p-8 bg-white/5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-500/20">
-                                        <User className="w-7 h-7 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-3xl font-black text-white uppercase italic">{challenge.teamName}</h3>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{challenge.roundId}</span>
-                                            <div className="w-1 h-1 bg-white/10 rounded-full" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-pink-500 flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {new Date(challenge.createdAt).toLocaleTimeString()}
-                                            </span>
+                            <div className="border-b border-white/8 bg-white/[0.04] p-6 md:p-8">
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] border border-rose-300/20 bg-rose-300/10 text-rose-100">
+                                            <User className="h-7 w-7" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-atsanee text-4xl font-black uppercase italic text-gold">
+                                                {challenge.teamName}
+                                            </h3>
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                <AdminBadge className="px-3 py-1">{challenge.roundId}</AdminBadge>
+                                                <AdminBadge tone="warning" className="px-3 py-1">
+                                                    <Clock className="h-3 w-3" />
+                                                    {new Date(challenge.createdAt).toLocaleTimeString()}
+                                                </AdminBadge>
+                                            </div>
                                         </div>
                                     </div>
+                                    <button
+                                        onClick={() => handleDismiss(challenge.id)}
+                                        className="inline-flex items-center justify-center rounded-full border border-rose-300/20 bg-rose-300/10 px-6 py-3 font-atsanee text-xl font-black uppercase italic text-rose-100 transition-all hover:bg-rose-300/18"
+                                    >
+                                        Dismiss Alert
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => handleDismiss(challenge.id)}
-                                    className="px-8 py-4 bg-white/5 hover:bg-pink-500 text-white rounded-2xl border border-white/10 hover:border-pink-500 transition-all font-black text-xs uppercase tracking-widest active:scale-95"
-                                >
-                                    Dismiss Alert
-                                </button>
                             </div>
 
-                            <div className="p-8 space-y-6">
+                            <div className="space-y-6 p-6 md:p-8">
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-white/20">
-                                        <BookOpen className="w-4 h-4" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Contested Question</span>
+                                    <div className="flex items-center gap-2 text-admin-muted">
+                                        <BookOpen className="h-4 w-4 text-gold/70" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.24em]">Contested Question</span>
                                     </div>
-                                    <p className="text-2xl font-medium text-white/80 italic leading-relaxed bg-black/20 p-6 rounded-3xl border border-white/5">
+                                    <p className="rounded-[2rem] border border-white/8 bg-white/[0.04] p-6 text-2xl font-medium italic leading-relaxed text-white/85">
                                         &quot;{challenge.questionText}&quot;
                                     </p>
                                 </div>
 
-                                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/20">
-                                        Question ID: <span className="text-white/40">{challenge.questionId}</span>
+                                <div className="flex flex-col gap-3 border-t border-white/8 pt-5 md:flex-row md:items-center md:justify-between">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-admin-muted">
+                                        Question ID <span className="ml-2 text-white/55">{challenge.questionId}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-pink-500/40">
-                                        <MessageSquare className="w-4 h-4" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest italic">Manual Verification Required</span>
+                                    <div className="flex items-center gap-2 text-rose-100/70">
+                                        <MessageSquare className="h-4 w-4" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.24em]">Manual Verification Required</span>
                                     </div>
                                 </div>
                             </div>
@@ -99,14 +92,13 @@ export default function ChallengesPage() {
                 </AnimatePresence>
 
                 {pendingChallenges.length === 0 && (
-                    <div className="py-60 text-center bg-white/[0.02] border-4 border-dashed border-white/[0.03] rounded-[4rem]">
-                        <Flag className="w-24 h-24 text-pink-500/10 mx-auto mb-8" />
-                        <p className="text-4xl font-black text-white/20 italic uppercase tracking-wider">No Active Challenges</p>
-                        <p className="text-white/10 mt-2 font-medium">Clear diagnostics. All teams are synchronized.</p>
-                    </div>
+                    <AdminEmptyState
+                        icon={Flag}
+                        title="No Active Challenges"
+                        description="Challenge diagnostics are clear and all current disputes have been handled."
+                    />
                 )}
             </div>
         </div>
     );
 }
-

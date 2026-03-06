@@ -34,8 +34,8 @@ export default function StandingsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-[#060914]">
-                <div className="w-20 h-20 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+            <div className="admin-shell flex min-h-screen items-center justify-center bg-[#020817]">
+                <div className="h-20 w-20 rounded-full border-4 border-gold/20 border-t-gold animate-spin" />
             </div>
         );
     }

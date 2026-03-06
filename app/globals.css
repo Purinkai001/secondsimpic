@@ -65,6 +65,19 @@
   --gold: #FFF1D3;
   --simpic: linear-gradient(90deg, rgb(255, 122, 69), rgb(255, 77, 109), rgb(255, 109, 174), rgb(110, 111, 247), rgb(47, 128, 255), rgb(18, 214, 195));
   --someBlue: linear-gradient(90deg, #5DE0E6, #004AAD);
+  --admin-ceremony: radial-gradient(circle at top left, rgba(255, 241, 211, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(93, 224, 230, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(0, 18, 55, 0.96), rgba(7, 20, 60, 0.98) 45%, rgba(11, 23, 59, 1));
+  --admin-panel: linear-gradient(180deg, rgba(14, 28, 68, 0.9), rgba(5, 15, 44, 0.94));
+  --admin-panel-border: rgba(255, 241, 211, 0.16);
+  --admin-panel-strong-border: rgba(255, 241, 211, 0.32);
+  --admin-panel-glow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --admin-muted: rgba(226, 232, 240, 0.64);
+  --admin-blue: #73bcff;
+  --admin-cyan: #7ce8ef;
+  --admin-gold-soft: rgba(255, 241, 211, 0.16);
+  --admin-danger: #ff7d7d;
+  --admin-success: #6df0a9;
 
   --font-atsanee: 'Atsanee';
 }
@@ -108,7 +121,17 @@
   --background-image-simpic: var(--simpic);
   --color-someBlue: var(--someBlue);
   --background-image-someBlue: var(--someBlue);
-
+  --background-image-admin-ceremony: var(--admin-ceremony);
+  --background-image-admin-panel: var(--admin-panel);
+  --color-admin-panel-border: var(--admin-panel-border);
+  --color-admin-panel-strong-border: var(--admin-panel-strong-border);
+  --color-admin-muted: var(--admin-muted);
+  --color-admin-blue: var(--admin-blue);
+  --color-admin-cyan: var(--admin-cyan);
+  --color-admin-gold-soft: var(--admin-gold-soft);
+  --color-admin-danger: var(--admin-danger);
+  --color-admin-success: var(--admin-success);
+  
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -118,6 +141,65 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.admin-shell {
+  background-image: var(--admin-ceremony);
+}
+
+.admin-panel {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-panel-border);
+  box-shadow: var(--admin-panel-glow);
+  backdrop-filter: blur(18px);
+}
+
+.admin-panel-strong {
+  border-color: var(--admin-panel-strong-border);
+}
+
+.admin-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 241, 211, 0.14);
+  color: var(--foreground);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: rgba(124, 232, 239, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 232, 239, 0.12);
+}
+
+.admin-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.no-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 241, 211, 0.18);
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 232, 239, 0.4);
+}
+
+.no-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 /* Custom Scrollbar for overflow-x-auto */

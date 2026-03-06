@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion } from "framer-motion";
-import { Wifi, WifiOff, Clock, Laptop } from "lucide-react";
+import { Wifi, WifiOff, Clock, Laptop, Activity } from "lucide-react";
 import { useTeams } from "@/lib/hooks/useTeams";
+import { AdminBadge, AdminPageHeader } from "@/components/admin/AdminPrimitives";
 
 type Presence = {
     teamId: string;
@@ -19,13 +20,12 @@ export default function TrackingPage() {
     const [presence, setPresence] = useState<Record<string, Presence>>({});
     const [now, setNow] = useState(Date.now());
 
-    // Sync Presence
     useEffect(() => {
         const unsub = onSnapshot(
             collection(db, "presence"),
             (snap) => {
                 const p: Record<string, Presence> = {};
-                snap.docs.forEach(d => {
+                snap.docs.forEach((d) => {
                     p[d.id] = { teamId: d.id, ...d.data() } as Presence;
                 });
                 setPresence(p);
@@ -37,7 +37,6 @@ export default function TrackingPage() {
         return () => unsub();
     }, []);
 
-    // Live Timer
     useEffect(() => {
         const interval = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(interval);
@@ -46,8 +45,8 @@ export default function TrackingPage() {
     const getStatus = (lastSeen?: number) => {
         if (!lastSeen) return "offline";
         const diff = now - lastSeen;
-        if (diff < 60000) return "online"; // < 1 min
-        if (diff < 300000) return "idle"; // < 5 min
+        if (diff < 60000) return "online";
+        if (diff < 300000) return "idle";
         return "offline";
     };
 
@@ -59,38 +58,23 @@ export default function TrackingPage() {
         return `${Math.floor(diff / 3600)}h ago`;
     };
 
-    const humanTeams = teams.filter(t => !t.isBot);
+    const humanTeams = teams.filter((t) => !t.isBot);
+    const onlineCount = humanTeams.filter((t) => getStatus(presence[t.id]?.lastSeen) === "online").length;
+    const offlineCount = humanTeams.filter((t) => getStatus(presence[t.id]?.lastSeen) === "offline").length;
 
     return (
-        <div className="space-y-10 pb-20">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-black bg-gradient-to-r from-foreground via-foreground to-amber-500 bg-clip-text text-transparent tracking-tight uppercase">
-                        Live Tracking
-                    </h1>
-                    <p className="text-muted mt-2 text-lg font-medium">Real-time connection monitoring</p>
-                </div>
-                <div className="flex gap-4">
-                    <div className="px-6 py-3 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center gap-3">
-                        <Wifi className="w-5 h-5 text-green-600 dark:text-green-500" />
-                        <div>
-                            <span className="text-xl font-black text-foreground">
-                                {humanTeams.filter(t => getStatus(presence[t.id]?.lastSeen) === "online").length}
-                            </span>
-                            <span className="text-[10px] uppercase font-bold text-green-600 dark:text-green-500 ml-2">Online</span>
-                        </div>
+        <div className="space-y-8 pb-10">
+            <AdminPageHeader
+                eyebrow="Presence Feed"
+                title="Live Tracking"
+                description="Real-time connection monitoring for teams currently attached to the arena session."
+                status={
+                    <div className="flex flex-wrap gap-3">
+                        <AdminBadge tone="success"><Wifi className="h-3 w-3" />{onlineCount} Online</AdminBadge>
+                        <AdminBadge tone="danger"><WifiOff className="h-3 w-3" />{offlineCount} Offline</AdminBadge>
                     </div>
-                    <div className="px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3">
-                        <WifiOff className="w-5 h-5 text-red-600 dark:text-red-500" />
-                        <div>
-                            <span className="text-xl font-black text-foreground">
-                                {humanTeams.filter(t => getStatus(presence[t.id]?.lastSeen) === "offline").length}
-                            </span>
-                            <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-500 ml-2">Offline</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                }
+            />
 
             <div className="grid grid-cols-1 gap-4">
                 {humanTeams.map((team, idx) => {
@@ -102,33 +86,46 @@ export default function TrackingPage() {
                             key={team.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="bg-surface-bg border border-surface-border rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6"
+                            transition={{ delay: idx * 0.04 }}
+                            className="admin-panel rounded-[2rem] p-5"
                         >
-                            <div className="flex items-center gap-6 flex-1">
-                                <div className={`w-3 h-3 rounded-full ${status === 'online' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : status === 'idle' ? 'bg-amber-500' : 'bg-red-500'}`} />
-                                <div>
-                                    <h3 className="text-xl font-bold text-foreground">{team.name}</h3>
-                                    <p className="text-xs text-muted/60 uppercase tracking-widest font-bold">Group {team.group}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-8 md:gap-12 flex-1 justify-end">
-                                <div className="flex items-center gap-3 text-muted">
-                                    <Clock className="w-4 h-4" />
-                                    <span className="text-sm font-medium tabular-nums">{formatTimeAgo(p?.lastSeen)}</span>
+                            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                                <div className="flex items-center gap-5">
+                                    <div className={`h-4 w-4 rounded-full ${status === "online" ? "bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" : status === "idle" ? "bg-amber-300 shadow-[0_0_16px_rgba(252,211,77,0.6)]" : "bg-rose-400 shadow-[0_0_16px_rgba(251,113,133,0.55)]"}`} />
+                                    <div>
+                                        <h3 className="font-atsanee text-3xl font-black uppercase italic text-gold">{team.name}</h3>
+                                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.24em] text-admin-muted">
+                                            Group {team.group}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 text-muted max-w-[200px] hidden md:flex">
-                                    <Laptop className="w-4 h-4" />
-                                    <span className="text-xs break-words" title={p?.userAgent || "Unknown"}>
-                                        {p?.userAgent ? (p.userAgent.includes("Windows") ? "Windows" : p.userAgent.includes("Mac") ? "Mac" : p.userAgent.includes("iPhone") ? "iPhone" : "Device") : "Unknown"}
-                                    </span>
-                                </div>
+                                <div className="grid gap-3 md:grid-cols-3 xl:min-w-[640px]">
+                                    <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                                        <div className="mb-2 flex items-center gap-2 text-admin-muted">
+                                            <Clock className="h-4 w-4 text-admin-cyan" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.24em]">Last Seen</span>
+                                        </div>
+                                        <p className="text-lg font-black text-white/90 tabular-nums">{formatTimeAgo(p?.lastSeen)}</p>
+                                    </div>
 
-                                <div className="bg-surface-bg border border-surface-border px-4 py-2 rounded-xl min-w-[100px] text-center">
-                                    <div className="text-[10px] uppercase font-bold text-muted/60">Score</div>
-                                    <div className="text-xl font-black text-foreground tabular-nums">{team.score}</div>
+                                    <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                                        <div className="mb-2 flex items-center gap-2 text-admin-muted">
+                                            <Laptop className="h-4 w-4 text-gold/70" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.24em]">Device</span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-white/85" title={p?.userAgent || "Unknown"}>
+                                            {p?.userAgent ? (p.userAgent.includes("Windows") ? "Windows" : p.userAgent.includes("Mac") ? "Mac" : p.userAgent.includes("iPhone") ? "iPhone" : "Device") : "Unknown"}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                                        <div className="mb-2 flex items-center gap-2 text-admin-muted">
+                                            <Activity className="h-4 w-4 text-admin-cyan" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.24em]">Score</span>
+                                        </div>
+                                        <p className="font-atsanee text-3xl font-black italic text-gold tabular-nums">{team.score}</p>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

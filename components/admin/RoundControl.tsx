@@ -2,6 +2,7 @@ import { Play, Calendar, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Round } from "@/lib/types";
 import { motion } from "framer-motion";
+import { AdminBadge, AdminPanel } from "./AdminPrimitives";
 
 interface RoundControlProps {
     rounds: Round[];
@@ -13,29 +14,30 @@ interface RoundControlProps {
 }
 
 export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, selectedRoundId }: RoundControlProps) {
+    const getCurrentTime = () => new globalThis.Date().getTime();
+
     const scheduleRound = (roundId: string) => {
         const minutes = prompt("Start round in how many minutes?", "1");
         if (minutes) {
             const mins = parseInt(minutes, 10);
             if (!isNaN(mins) && mins > 0) {
-                const startTime = Date.now() + mins * 60 * 1000;
+                const startTime = getCurrentTime() + mins * 60 * 1000;
                 onSchedule(roundId, startTime);
             }
         }
     };
 
     return (
-        <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
-                <div className="p-2 bg-accent-blue/20 rounded-lg">
-                    <Play className="w-4 h-4 text-accent-blue" />
-                </div>
-                Round Control
-            </h2>
-            <div className="space-y-3">
+        <AdminPanel
+            title="Round Control"
+            description="Schedule, activate, and inspect round state from a single command surface."
+            icon={Play}
+            tone="accent"
+        >
+            <div className="space-y-4">
                 {rounds.map((r, idx) => {
                     const startTime = r.startTime ? new Date(r.startTime).toLocaleTimeString() : null;
-                    const isScheduled = r.startTime && r.startTime > Date.now();
+                    const isScheduled = r.startTime && r.startTime > getCurrentTime();
                     const isActive = r.status === "active";
                     const isCompleted = r.status === "completed";
 
@@ -46,46 +48,55 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.05 }}
                             className={cn(
-                                "p-4 rounded-xl border transition-all",
+                                "rounded-[1.5rem] border p-4 transition-all",
                                 isActive
-                                    ? "bg-green-500/10 border-green-500/30"
+                                    ? "border-emerald-300/20 bg-emerald-300/10"
                                     : isCompleted
-                                        ? "bg-surface-bg/50 border-surface-border opacity-60"
-                                        : "bg-surface-bg border-surface-border hover:bg-surface-bg/80"
+                                        ? "border-white/8 bg-white/[0.03] opacity-70"
+                                        : "border-white/8 bg-white/[0.04] hover:border-admin-cyan/20 hover:bg-white/[0.06]"
                             )}
                         >
-                            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
-                                <div className="flex items-center gap-2 mb-2 xl:mb-0">
-                                    <span className="font-bold uppercase text-sm text-foreground">{r.id.replace("-", " ")}</span>
-                                    <span
-                                        className={cn(
-                                            "text-xs px-2 py-0.5 rounded-full font-semibold",
-                                            isActive
-                                                ? "bg-green-500/20 text-green-500 dark:text-green-400"
-                                                : isCompleted
-                                                    ? "bg-accent-blue/20 text-accent-blue"
-                                                    : "bg-surface-bg/80 text-muted"
-                                        )}
-                                    >
-                                        {r.status}
-                                    </span>
+                            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <p className="font-atsanee text-2xl font-black uppercase italic text-gold">
+                                            {r.id.replace("-", " ")}
+                                        </p>
+                                        <AdminBadge
+                                            tone={isActive ? "success" : isCompleted ? "default" : "accent"}
+                                            className="px-3 py-1"
+                                        >
+                                            {r.status}
+                                        </AdminBadge>
+                                    </div>
+                                    {startTime && (
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-admin-muted">
+                                            <Calendar className="h-3 w-3 text-admin-cyan" />
+                                            {isScheduled ? `Starts at ${startTime}` : `Started at ${startTime}`}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-admin-muted">
+                                        <Clock className="h-3 w-3 text-gold" />
+                                        Timer: {r.questionTimer || 100}s per question | Q Index: {r.currentQuestionIndex || 0}
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+
+                                <div className="flex flex-wrap gap-2">
                                     {(r.status === "waiting" || r.status === "completed") && (
                                         <>
                                             <motion.button
                                                 onClick={() => scheduleRound(r.id)}
-                                                className="flex-1 xl:flex-none justify-center text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-lg shadow-amber-500/20 whitespace-nowrap"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
+                                                className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-amber-100 transition-all"
+                                                whileHover={{ scale: 1.03 }}
+                                                whileTap={{ scale: 0.97 }}
                                             >
-                                                <Calendar className="w-3 h-3" /> Schedule
+                                                Schedule
                                             </motion.button>
                                             <motion.button
                                                 onClick={() => onActivate(r.id)}
-                                                className="flex-1 xl:flex-none justify-center text-xs bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-green-500/20 whitespace-nowrap"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
+                                                className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-100 transition-all"
+                                                whileHover={{ scale: 1.03 }}
+                                                whileTap={{ scale: 0.97 }}
                                             >
                                                 {r.status === "completed" ? "Restart" : "Start Now"}
                                             </motion.button>
@@ -94,9 +105,9 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                     {r.status === "active" && (
                                         <motion.button
                                             onClick={() => onEnd(r.id)}
-                                            className="flex-1 xl:flex-none justify-center text-xs bg-gradient-to-r from-red-500 to-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow-lg shadow-red-500/20 whitespace-nowrap"
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
+                                            className="rounded-full border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-rose-100 transition-all"
+                                            whileHover={{ scale: 1.03 }}
+                                            whileTap={{ scale: 0.97 }}
                                         >
                                             End Round
                                         </motion.button>
@@ -104,32 +115,22 @@ export function RoundControl({ rounds, onSchedule, onActivate, onEnd, onSelect, 
                                     <motion.button
                                         onClick={() => onSelect(r.id)}
                                         className={cn(
-                                            "flex-1 xl:flex-none justify-center text-xs px-3 py-1.5 rounded-lg font-semibold border transition-all whitespace-nowrap",
+                                            "rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.2em] transition-all",
                                             selectedRoundId === r.id
-                                                ? "bg-accent-blue text-white border-accent-blue"
-                                                : "bg-surface-bg text-muted border-surface-border hover:bg-surface-bg/80"
+                                                ? "border-gold/20 bg-gold/10 text-gold"
+                                                : "border-white/10 bg-white/[0.04] text-admin-muted hover:border-admin-cyan/20 hover:text-white"
                                         )}
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
+                                        whileHover={{ scale: 1.03 }}
+                                        whileTap={{ scale: 0.97 }}
                                     >
                                         Details
                                     </motion.button>
                                 </div>
                             </div>
-                            {startTime && (
-                                <div className="text-xs text-muted/60 flex items-center gap-1 mt-2">
-                                    <Calendar className="w-3 h-3" />
-                                    {isScheduled ? `Starts at ${startTime}` : `Started at ${startTime}`}
-                                </div>
-                            )}
-                            <div className="text-xs text-muted/40 mt-1 flex items-center gap-2">
-                                <Clock className="w-3 h-3" />
-                                Timer: {r.questionTimer || 100}s per question | Q Index: {r.currentQuestionIndex || 0}
-                            </div>
                         </motion.div>
                     );
                 })}
             </div>
-        </div>
+        </AdminPanel>
     );
 }

@@ -1,5 +1,6 @@
 // Admin components barrel export
 export * from "./ActionButton";
+export * from "./AdminPrimitives";
 export * from "./AdminLogin";
 export * from "./AnswerHistory";
 export * from "./ArenaView";

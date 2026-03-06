@@ -2,6 +2,7 @@ import { Trophy, Trash2, Bot, Crown, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Team, GROUPS } from "@/lib/types";
 import { motion } from "framer-motion";
+import { AdminEmptyState, AdminPanel } from "./AdminPrimitives";
 
 interface LiveStandingsProps {
     teams: Team[];
@@ -11,15 +12,12 @@ interface LiveStandingsProps {
 
 export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveStandingsProps) {
     return (
-        <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
-                <div className="p-2 bg-yellow-500/20 rounded-lg">
-                    <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                Live Standings
-                <span className="text-sm font-normal text-muted ml-2">({activeTeamsCount} Active)</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <AdminPanel
+            title="Live Standings"
+            description={`${activeTeamsCount} active teams across all divisions.`}
+            icon={Trophy}
+        >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                 {GROUPS.map((g, gIdx) => {
                     const groupTeams = teams
                         .filter((t) => t.group === g)
@@ -28,68 +26,71 @@ export function LiveStandings({ teams, activeTeamsCount, onKickPlayer }: LiveSta
                     return (
                         <motion.div
                             key={g}
-                            className="bg-surface-bg border border-surface-border rounded-xl p-3"
+                            className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-4"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: gIdx * 0.05 }}
                         >
-                            <h3 className="font-bold text-center text-xs uppercase mb-3 text-accent-blue">
+                            <h3 className="text-center font-atsanee text-2xl font-black uppercase italic text-gold">
                                 Group {g}
                             </h3>
-                            <div className="space-y-1.5">
+                            <div className="mt-4 space-y-2">
                                 {groupTeams.map((t, idx) => (
                                     <motion.div
                                         key={t.id}
                                         className={cn(
-                                            "text-xs flex justify-between items-center p-2 rounded-lg group transition-all",
+                                            "group flex items-center justify-between rounded-[1rem] border p-3 text-xs transition-all",
                                             t.status === "eliminated"
-                                                ? "bg-red-500/10 text-red-600/50 dark:text-red-400/50 line-through"
-                                                : "bg-surface-bg/50 hover:bg-surface-bg text-foreground border border-surface-border/50"
+                                                ? "border-rose-300/14 bg-rose-300/10 text-rose-100/55 line-through"
+                                                : "border-white/8 bg-white/[0.03] text-white/85 hover:border-admin-cyan/18"
                                         )}
                                         whileHover={{ scale: t.status !== "eliminated" ? 1.02 : 1 }}
                                     >
-                                        <span className="overflow-x-auto whitespace-nowrap max-w-[80px] flex items-center gap-1.5 no-scrollbar">
+                                        <span className="no-scrollbar flex max-w-[120px] items-center gap-1.5 overflow-x-auto whitespace-nowrap">
                                             {idx === 0 && t.status === "active" && (
-                                                <Crown className="w-3 h-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                                                <Crown className="h-3 w-3 shrink-0 text-gold" />
                                             )}
-                                            {t.isBot && <Bot className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />}
-                                            <span className={t.status === "eliminated" ? "" : "font-medium"}>
-                                                {t.name}
-                                            </span>
+                                            {t.isBot && <Bot className="h-3 w-3 shrink-0 text-admin-cyan" />}
+                                            <span className={t.status === "eliminated" ? "" : "font-medium"}>{t.name}</span>
                                         </span>
                                         <div className="flex items-center gap-1">
                                             {(t.streak || 0) > 0 && (
-                                                <span className="flex items-center text-orange-600 dark:text-orange-400">
-                                                    <Flame className="w-3 h-3" />
+                                                <span className="flex items-center text-amber-100">
+                                                    <Flame className="h-3 w-3" />
                                                     <span className="text-[10px]">{t.streak}</span>
                                                 </span>
                                             )}
                                             <span className={cn(
-                                                "font-bold min-w-[30px] text-right",
-                                                idx === 0 && t.status === "active" ? "text-yellow-600 dark:text-yellow-400" : ""
+                                                "min-w-[30px] text-right font-bold",
+                                                idx === 0 && t.status === "active" ? "text-gold" : ""
                                             )}>
                                                 {t.score}
                                             </span>
                                             {onKickPlayer && (
                                                 <button
                                                     onClick={() => onKickPlayer(t.id, t.name)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded text-red-600 dark:text-red-400 transition-all"
+                                                    className="rounded p-1 text-rose-100 opacity-0 transition-all hover:bg-rose-300/18 group-hover:opacity-100"
                                                     title="Kick Player"
                                                 >
-                                                    <Trash2 className="w-3 h-3" />
+                                                    <Trash2 className="h-3 w-3" />
                                                 </button>
                                             )}
                                         </div>
                                     </motion.div>
                                 ))}
                                 {groupTeams.length === 0 && (
-                                    <p className="text-muted text-[10px] text-center py-2">No teams</p>
+                                    <AdminEmptyState
+                                        icon={Trophy}
+                                        title="No Teams"
+                                        description="No teams are assigned to this division yet."
+                                        className="px-4 py-8"
+                                    />
                                 )}
                             </div>
                         </motion.div>
                     );
                 })}
             </div>
-        </div>
+        </AdminPanel>
     );
 }

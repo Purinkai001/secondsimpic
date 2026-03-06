@@ -37,14 +37,14 @@ export function MCQChoicesEditor({ choices, correctChoiceIndices, setChoices, se
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Response Options ({choices.length}/6)</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Response Options ({choices.length}/6)</label>
                 <button
                     type="button"
                     onClick={addChoice}
                     disabled={choices.length >= 6}
                     className={cn(
-                        "flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic",
-                        choices.length >= 6 ? "bg-surface-bg/50 text-muted cursor-not-allowed" : "bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 border border-accent-blue/20"
+                        "flex items-center gap-1 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                        choices.length >= 6 ? "bg-white/[0.04] text-admin-muted cursor-not-allowed" : "border border-admin-cyan/20 bg-admin-cyan/10 text-admin-cyan hover:bg-admin-cyan/20"
                     )}
                 >
                     <Plus className="w-3 h-3" /> Add
@@ -56,17 +56,17 @@ export function MCQChoicesEditor({ choices, correctChoiceIndices, setChoices, se
                         type="button"
                         onClick={() => toggleCorrect(idx)}
                         className={cn(
-                            "w-16 h-16 flex flex-col items-center justify-center rounded-2xl border transition-all shrink-0",
+                            "h-16 w-16 shrink-0 rounded-[1.25rem] border transition-all",
                             correctChoiceIndices.includes(idx)
-                                ? "bg-green-600 border-green-500 text-white shadow-lg shadow-green-600/20"
-                                : "bg-surface-bg/50 border-surface-border text-muted opacity-40 hover:opacity-100"
+                                ? "border-emerald-300/20 bg-emerald-300/12 text-emerald-100 shadow-lg shadow-emerald-900/20"
+                                : "border-white/8 bg-white/[0.04] text-admin-muted opacity-50 hover:opacity-100"
                         )}
                     >
                         <span className="text-[8px] font-black uppercase mb-1">Key</span>
                         <Check className="w-6 h-6" />
                     </button>
                     <div className="relative flex-1">
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-bg border border-surface-border flex items-center justify-center font-black italic text-muted transition-colors">
+                        <div className="absolute left-6 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] font-black text-admin-muted transition-colors">
                             {String.fromCharCode(65 + idx)}
                         </div>
                         <input
@@ -78,14 +78,14 @@ export function MCQChoicesEditor({ choices, correctChoiceIndices, setChoices, se
                                 setChoices(newChoices);
                             }}
                             placeholder={`Option Parameter ${idx + 1}`}
-                            className="w-full h-16 bg-surface-bg/50 border border-surface-border rounded-2xl pl-16 pr-6 focus:outline-none focus:border-accent-blue/30 font-bold text-lg text-foreground transition-colors"
+                            className="admin-input h-16 w-full rounded-[1.25rem] pl-16 pr-6 text-lg font-bold"
                         />
                     </div>
                     {choices.length > 2 && (
                         <button
                             type="button"
                             onClick={() => removeChoice(idx)}
-                            className="w-12 h-16 flex items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                            className="flex h-16 w-12 shrink-0 items-center justify-center rounded-[1.25rem] border border-rose-300/20 bg-rose-300/10 text-rose-100 hover:bg-rose-300/20 transition-all"
                         >
                             <Trash2 className="w-5 h-5" />
                         </button>

@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Check, Plus, Loader2 } from "lucide-react";
+import { X, Check, Plus, Loader2, FileQuestion } from "lucide-react";
 import { QuestionType, Difficulty, MTFStatement, Question } from "@/lib/types";
 import { ImageUploader } from "./ImageUploader";
 import { MCQChoicesEditor } from "./MCQChoicesEditor";
 import { MTFStatementsEditor } from "./MTFStatementsEditor";
 import { SAQFields } from "./SAQFields";
 import { cn } from "@/lib/utils";
+import { AdminBadge } from "../AdminPrimitives";
+import TlCorner from "@/vectors/TlCorner";
+import BrCorner from "@/vectors/BrCorner";
 
 interface QuestionModalProps {
     isOpen: boolean;
@@ -54,11 +57,17 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 setAlternateAnswers((editingQuestion.alternateAnswers || []).join("\n"));
             }
         } else {
-            setType("mcq"); setDifficulty("easy"); setRoundId("round-1");
-            setText(""); setImageUrl(""); setOrder(1);
-            setChoices([{ text: "" }, { text: "" }]); setCorrectChoiceIndices([0]);
+            setType("mcq");
+            setDifficulty("easy");
+            setRoundId("round-1");
+            setText("");
+            setImageUrl("");
+            setOrder(1);
+            setChoices([{ text: "" }, { text: "" }]);
+            setCorrectChoiceIndices([0]);
             setStatements([{ text: "", isTrue: true }, { text: "", isTrue: false }]);
-            setCorrectAnswer(""); setAlternateAnswers("");
+            setCorrectAnswer("");
+            setAlternateAnswers("");
         }
     }, [editingQuestion, isOpen]);
 
@@ -76,7 +85,7 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                 questionData.statements = statements;
             } else {
                 questionData.correctAnswer = correctAnswer;
-                questionData.alternateAnswers = alternateAnswers.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+                questionData.alternateAnswers = alternateAnswers.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
             }
             await onSave(questionData);
         } catch (err) {
@@ -89,68 +98,97 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
     return (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
             <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-background/90 dark:bg-black/90 backdrop-blur-xl"
+                className="absolute inset-0 bg-[#020817]/90 backdrop-blur-xl"
             />
             <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                initial={{ scale: 0.92, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="relative w-full max-w-2xl bg-surface-bg border border-surface-border rounded-[2.5rem] overflow-x-auto shadow-2xl transition-colors duration-300"
+                exit={{ scale: 0.92, opacity: 0, y: 20 }}
+                className="admin-panel admin-panel-strong relative w-full max-w-4xl overflow-hidden rounded-[2.75rem]"
             >
-                <div className="flex justify-between items-center p-8 border-b border-surface-border bg-surface-bg/50">
-                    <h2 className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3 text-foreground">
-                        <div className="p-2 bg-accent-blue/20 rounded-xl">
-                            <Plus className={`w-5 h-5 text-accent-blue ${editingQuestion ? "rotate-45" : ""}`} />
-                        </div>
-                        {editingQuestion ? "Modify Inquiry" : "Initiate Question"}
-                    </h2>
-                    <button onClick={onClose} className="p-3 hover:bg-surface-bg/80 rounded-2xl transition-all group">
-                        <X className="w-6 h-6 text-muted group-hover:text-foreground" />
+                <div className="pointer-events-none absolute left-3 top-3 opacity-28">
+                    <TlCorner className="h-28 w-28" />
+                </div>
+                <div className="pointer-events-none absolute bottom-3 right-3 opacity-24">
+                    <BrCorner className="h-24 w-24" />
+                </div>
+
+                <div className="relative flex items-center justify-between border-b border-white/8 bg-white/[0.04] p-6 md:p-8">
+                    <div>
+                        <AdminBadge tone="accent">{editingQuestion ? "Modify Question" : "Create Question"}</AdminBadge>
+                        <h2 className="mt-4 flex items-center gap-3 font-atsanee text-4xl font-black uppercase italic text-gold">
+                            <div className="rounded-2xl border border-gold/15 bg-gold/10 p-2.5 text-gold">
+                                {editingQuestion ? <FileQuestion className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </div>
+                            {editingQuestion ? "Modify Inquiry" : "Initiate Question"}
+                        </h2>
+                    </div>
+                    <button onClick={onClose} className="rounded-full border border-white/10 bg-white/[0.04] p-3 text-admin-muted transition-all hover:text-white">
+                        <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
-                    {/* Round + Order */}
-                    <div className="grid grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="custom-scrollbar relative max-h-[75vh] space-y-8 overflow-y-auto p-6 md:p-8">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Target Phase</label>
-                            <select value={roundId} onChange={(e) => setRoundId(e.target.value)}
-                                className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl px-5 py-4 focus:outline-none focus:border-accent-blue/30 text-foreground font-bold appearance-none cursor-pointer transition-colors">
-                                {[1, 2, 3, 4, 5].map(r => <option key={r} value={`round-${r}`} className="bg-surface-bg text-foreground">Round {r}</option>)}
+                            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Target Phase</label>
+                            <select
+                                value={roundId}
+                                onChange={(e) => setRoundId(e.target.value)}
+                                className="admin-input w-full appearance-none rounded-[1.5rem] px-5 py-4 font-bold"
+                            >
+                                {[1, 2, 3, 4, 5].map((r) => <option key={r} value={`round-${r}`} className="bg-surface-bg text-foreground">Round {r}</option>)}
                             </select>
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Sequence Order</label>
-                            <input type="number" value={order} onChange={(e) => setOrder(parseInt(e.target.value))}
-                                className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl px-5 py-4 focus:outline-none focus:border-accent-blue/30 font-black text-xl text-accent-blue transition-colors" />
+                            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Sequence Order</label>
+                            <input
+                                type="number"
+                                value={order}
+                                onChange={(e) => setOrder(parseInt(e.target.value))}
+                                className="admin-input w-full rounded-[1.5rem] px-5 py-4 text-2xl font-black text-gold"
+                            />
                         </div>
                     </div>
 
-                    {/* Type + Difficulty */}
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Classification</label>
+                            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Classification</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {(["mcq", "mtf", "saq", "spot"] as QuestionType[]).map((t) => (
-                                    <button key={t} type="button" onClick={() => setType(t)}
-                                        className={cn("py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border italic",
-                                            type === t ? "bg-accent-blue border-accent-blue text-white shadow-lg shadow-accent-blue/20" : "bg-surface-bg/50 border-surface-border text-muted hover:bg-surface-bg/80")}>
-                                        {t === 'saq' ? 'Short Ans' : t}
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => setType(t)}
+                                        className={cn(
+                                            "rounded-[1rem] border px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] transition-all",
+                                            type === t ? "border-admin-cyan/20 bg-admin-cyan/12 text-admin-cyan" : "border-white/8 bg-white/[0.04] text-admin-muted hover:text-white"
+                                        )}
+                                    >
+                                        {t === "saq" ? "Short Ans" : t}
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Challenge Level</label>
+                            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Challenge Level</label>
                             <div className="grid grid-cols-3 gap-2">
                                 {(["easy", "medium", "difficult"] as Difficulty[]).map((d) => (
-                                    <button key={d} type="button" onClick={() => setDifficulty(d)}
-                                        className={cn("py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border italic",
+                                    <button
+                                        key={d}
+                                        type="button"
+                                        onClick={() => setDifficulty(d)}
+                                        className={cn(
+                                            "rounded-[1rem] border px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] transition-all",
                                             difficulty === d
-                                                ? (d === 'easy' ? 'bg-green-600 border-green-500 text-white' : d === 'medium' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-red-600 border-red-500 text-white')
-                                                : "bg-surface-bg/50 border-surface-border text-muted hover:bg-surface-bg/80")}>
+                                                ? (d === "easy" ? "border-emerald-300/20 bg-emerald-300/12 text-emerald-100" : d === "medium" ? "border-amber-300/20 bg-amber-300/12 text-amber-100" : "border-rose-300/20 bg-rose-300/12 text-rose-100")
+                                                : "border-white/8 bg-white/[0.04] text-admin-muted hover:text-white"
+                                        )}
+                                    >
                                         {d}
                                     </button>
                                 ))}
@@ -158,23 +196,25 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         </div>
                     </div>
 
-                    {/* Text */}
                     <div className="space-y-3">
-                        <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Content Specification</label>
-                        <textarea value={text} onChange={(e) => setText(e.target.value)}
+                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Content Specification</label>
+                        <textarea
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
                             placeholder="Specify the inquiry parameters..."
-                            className="w-full bg-surface-bg/50 border border-surface-border rounded-[2rem] px-6 py-5 focus:outline-none focus:border-accent-blue/30 min-h-[120px] text-lg font-bold leading-relaxed resize-none text-foreground transition-colors" />
+                            className="admin-input min-h-[140px] w-full rounded-[2rem] px-6 py-5 text-lg font-bold leading-relaxed resize-none"
+                        />
                     </div>
 
-                    {/* Image */}
                     <ImageUploader imageUrl={imageUrl} uploading={uploading} setImageUrl={setImageUrl} setUploading={setUploading} />
 
-                    {/* Type-specific editors */}
-                    <div className="pt-8 border-t border-surface-border">
+                    <div className="border-t border-white/8 pt-8">
                         {type === "mcq" && (
                             <MCQChoicesEditor
-                                choices={choices} correctChoiceIndices={correctChoiceIndices}
-                                setChoices={setChoices} setCorrectChoiceIndices={setCorrectChoiceIndices}
+                                choices={choices}
+                                correctChoiceIndices={correctChoiceIndices}
+                                setChoices={setChoices}
+                                setCorrectChoiceIndices={setCorrectChoiceIndices}
                             />
                         )}
                         {type === "mtf" && (
@@ -182,22 +222,32 @@ export function QuestionModal({ isOpen, editingQuestion, onClose, onSave }: Ques
                         )}
                         {(type === "saq" || type === "spot") && (
                             <SAQFields
-                                correctAnswer={correctAnswer} alternateAnswers={alternateAnswers}
-                                setCorrectAnswer={setCorrectAnswer} setAlternateAnswers={setAlternateAnswers}
+                                correctAnswer={correctAnswer}
+                                alternateAnswers={alternateAnswers}
+                                setCorrectAnswer={setCorrectAnswer}
+                                setAlternateAnswers={setAlternateAnswers}
                             />
                         )}
                     </div>
                 </form>
 
-                <div className="p-8 border-t border-surface-border bg-surface-bg/50 flex gap-4">
-                    <button type="button" onClick={onClose}
-                        className="flex-1 py-5 bg-surface-bg hover:bg-surface-bg/80 text-foreground border border-surface-border rounded-3xl font-black uppercase text-[12px] tracking-widest transition-all">
+                <div className="flex gap-4 border-t border-white/8 bg-white/[0.04] p-6 md:p-8">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 rounded-full border border-white/10 bg-white/[0.04] py-4 font-atsanee text-xl font-black uppercase italic text-white/85 transition-all hover:text-white"
+                    >
                         Cancel
                     </button>
-                    <button onClick={() => handleSubmit()} disabled={saving}
-                        className="flex-[2] py-5 bg-accent-blue hover:bg-accent-blue/80 rounded-3xl font-black uppercase text-[12px] tracking-[0.2em] text-white transition-all flex items-center justify-center gap-3 shadow-2xl shadow-accent-blue/20 active:scale-95">
-                        {saving ? <Loader2 className="w-6 h-6 animate-spin text-white/50" /> : <Check className="w-6 h-6" />}
-                        Confirm
+                    <button
+                        onClick={() => handleSubmit()}
+                        disabled={saving}
+                        className="flex-[2] rounded-full bg-shiny px-[1px] py-[1px] disabled:opacity-60"
+                    >
+                        <span className="flex items-center justify-center gap-3 rounded-full bg-[#04112d] py-4 font-atsanee text-xl font-black uppercase italic text-gold">
+                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+                            Confirm
+                        </span>
                     </button>
                 </div>
             </motion.div>

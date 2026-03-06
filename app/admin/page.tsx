@@ -3,21 +3,22 @@
 import { useState } from "react";
 import { useAdminDashboard } from "@/lib/admin/hooks/useAdminDashboard";
 import {
-    Activity, Bot, Users, FileQuestion, CheckCircle, Flag,
-    RefreshCw, Shuffle, RotateCcw, Layers, AlertTriangle, Zap,
-    Play, Eye, ArrowRight, Crown
+    Activity, Bot, Users, FileQuestion, Flag,
+    RefreshCw, RotateCcw, Layers, AlertTriangle, Zap,
+    Play, Eye, ArrowRight, Crown, ShieldCheck
 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { ActionButton } from "@/components/admin/ActionButton";
 import { RoundControl } from "@/components/admin/RoundControl";
 import { QuestionManager } from "@/components/admin/QuestionManager";
 import { EliminationPanel } from "@/components/admin/EliminationPanel";
+import { AdminBadge, AdminPageHeader, AdminPanel } from "@/components/admin/AdminPrimitives";
 import { api } from "@/lib/api";
 
 export default function AdminDashboardOverview() {
     const {
-        teams, rounds, questions, allAnswers, challenges,
-        activeTeamsCount, botCount, humanCount, pendingChallengesCount, activeRound
+        teams, rounds, questions, allAnswers,
+        activeTeamsCount, botCount, humanCount, pendingChallengesCount, activeRound,
     } = useAdminDashboard();
 
     const [selectedRound, setSelectedRound] = useState<string | null>(null);
@@ -96,9 +97,8 @@ export default function AdminDashboardOverview() {
         if (!activeRound) return;
         if (!confirm("Are you sure you want to REVEAL RESULTS? This cannot be undone.")) return;
 
-        // Trigger bot simulation for this turn
         const roundQuestions = questions
-            .filter(q => q.roundId === activeRound.id)
+            .filter((q) => q.roundId === activeRound.id)
             .sort((a, b) => a.order - b.order);
         const currentQ = roundQuestions[activeRound.currentQuestionIndex || 0];
         const difficulty = currentQ?.difficulty || "easy";
@@ -111,7 +111,7 @@ export default function AdminDashboardOverview() {
         if (!confirm("Are you sure you want to proceed to the NEXT QUESTION?")) return;
 
         const roundQuestions = questions
-            .filter(q => q.roundId === activeRound.id)
+            .filter((q) => q.roundId === activeRound.id)
             .sort((a, b) => a.order - b.order);
 
         const currentIndex = activeRound.currentQuestionIndex || 0;
@@ -129,49 +129,56 @@ export default function AdminDashboardOverview() {
         await api.gameAction("runElimination", { roundNum });
     };
 
+    const currentAnswerCount = activeRound && !activeRound.showResults
+        ? allAnswers.filter((a) => {
+            const roundQuestions = questions
+                .filter((q) => q.roundId === activeRound.id)
+                .sort((x, y) => x.order - y.order);
+            const currentQ = roundQuestions[activeRound.currentQuestionIndex || 0];
+            return currentQ && a.questionId === currentQ.id;
+        }).length
+        : 0;
+
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-accent-blue bg-clip-text text-transparent">Overview</h1>
-                    <p className="text-muted mt-1">Live session status and control hub</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                    {activeRound && (
-                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-full">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <span className="text-green-400 text-xs font-bold uppercase tracking-widest">Active: {activeRound.id}</span>
-                        </div>
-                    )}
-                    {activeRound && !activeRound.showResults && (
-                        <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-full">
-                            <Users className="w-3 h-3 text-blue-400" />
-                            <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">
-                                Answers: {allAnswers.filter(a => {
-                                    const roundQuestions = questions.filter(q => q.roundId === activeRound.id).sort((x, y) => x.order - y.order);
-                                    const currentQ = roundQuestions[activeRound.currentQuestionIndex || 0];
-                                    return currentQ && a.questionId === currentQ.id;
-                                }).length} / {teams.filter(t => t.status === 'active').length}
-                            </span>
-                        </div>
-                    )}
-                </div>
+        <div className="space-y-8 pb-10">
+            <AdminPageHeader
+                eyebrow="Arena Command"
+                title="Overview"
+                description="Live session status, round orchestration, and system diagnostics in a single operator console."
+                status={
+                    <div className="flex flex-col items-stretch gap-3 sm:items-end">
+                        {activeRound ? (
+                            <AdminBadge tone="success">Active Round {activeRound.id}</AdminBadge>
+                        ) : (
+                            <AdminBadge>No Active Round</AdminBadge>
+                        )}
+                        {activeRound && !activeRound.showResults && (
+                            <AdminBadge tone="accent">
+                                Answers {currentAnswerCount} / {teams.filter((t) => t.status === "active").length}
+                            </AdminBadge>
+                        )}
+                    </div>
+                }
+            />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard icon={Users} value={teams.length} label="Total Teams" color="bg-[radial-gradient(circle_at_top_right,rgba(124,232,239,0.10),transparent_34%)]" />
+                <StatCard icon={Activity} value={activeTeamsCount} label="Active Teams" color="bg-[radial-gradient(circle_at_top_right,rgba(109,240,169,0.10),transparent_34%)]" />
+                <StatCard icon={FileQuestion} value={questions.length} label="Questions" color="bg-[radial-gradient(circle_at_top_right,rgba(255,241,211,0.10),transparent_34%)]" />
+                <StatCard icon={Flag} value={pendingChallengesCount} label="Challenges" color="bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.10),transparent_34%)]" />
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon={Users} value={teams.length} label="Total Teams" color="from-blue-500/10 to-blue-600/5" />
-                <StatCard icon={Activity} value={activeTeamsCount} label="Active Teams" color="from-green-500/10 to-green-600/5" />
-                <StatCard icon={FileQuestion} value={questions.length} label="Questions" color="from-cyan-500/10 to-cyan-600/5" />
-                <StatCard icon={Flag} value={pendingChallengesCount} label="Challenges" color="from-pink-500/10 to-pink-600/5" />
-            </div>
-
-            <div className="grid grid-cols-12 gap-8">
-                <div className="col-span-12 lg:col-span-12 space-y-6">
-                    <div className="bg-surface-bg border border-surface-border rounded-3xl p-6 space-y-6">
-                        <div className="flex items-center gap-2 text-muted text-xs uppercase font-bold tracking-widest"><Zap className="w-3 h-3" /> Control Panel</div>
-                        <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-12 gap-6">
+                <div className="col-span-12 xl:col-span-8 space-y-6">
+                    <AdminPanel
+                        title="Primary Controls"
+                        description="High-impact game actions grouped by urgency and operator frequency."
+                        icon={Zap}
+                        tone="accent"
+                    >
+                        <div className="flex flex-wrap gap-3">
                             <ActionButton onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
-                            <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${30 - teams.length})`} loading={actionLoading === "fillbots"} />
+                            <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${Math.max(0, 30 - teams.length)})`} loading={actionLoading === "fillbots"} />
                             <ActionButton onClick={removeBots} icon={Bot} label="Remove Bots" variant="danger" loading={actionLoading === "removebots"} />
                             <ActionButton onClick={resetScoresForTurn3} icon={RotateCcw} label="Reset Score" variant="warning" loading={actionLoading === "resetScores"} />
                             <ActionButton onClick={rearrangeDivisions} icon={Layers} label="Rearrange" variant="primary" loading={actionLoading === "rearrange"} />
@@ -199,7 +206,7 @@ export default function AdminDashboardOverview() {
                                 <ActionButton onClick={nextQuestion} icon={ArrowRight} label="Next Question" variant="success" />
                             )}
                             {activeRound && !activeRound.pausedAt && (
-                                <ActionButton onClick={pauseRound} icon={Activity} label="Force Pause/Sync" variant="warning" />
+                                <ActionButton onClick={pauseRound} icon={Activity} label="Force Pause" variant="warning" />
                             )}
                             {activeRound?.pausedAt && (
                                 <ActionButton onClick={resumeRound} icon={Play} label="Resume Hub" variant="success" />
@@ -215,34 +222,82 @@ export default function AdminDashboardOverview() {
                                 loading={actionLoading === "declareWinners"}
                             />
                         </div>
+                    </AdminPanel>
+
+                    <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+                        <RoundControl
+                            rounds={rounds}
+                            onSchedule={scheduleRound}
+                            onActivate={activateRound}
+                            onEnd={endRound}
+                            onSelect={setSelectedRound}
+                            selectedRoundId={selectedRound}
+                        />
+                        {selectedRound ? (
+                            <QuestionManager selectedRoundId={selectedRound} questions={questions} onSetQuestion={setQuestion} />
+                        ) : (
+                            <AdminPanel
+                                title="Question Rail"
+                                description="Select a round to inspect and push questions."
+                                icon={FileQuestion}
+                            >
+                                <div className="rounded-[1.75rem] border border-dashed border-white/10 px-6 py-14 text-center">
+                                    <p className="font-atsanee text-3xl font-black uppercase italic text-gold/75">
+                                        Select A Round
+                                    </p>
+                                    <p className="mt-3 text-sm font-medium text-admin-muted">
+                                        The question rail appears here after a round is selected.
+                                    </p>
+                                </div>
+                            </AdminPanel>
+                        )}
                     </div>
                 </div>
 
-                <div className="col-span-12 lg:col-span-4 space-y-6">
-                    <RoundControl rounds={rounds} onSchedule={scheduleRound} onActivate={activateRound} onEnd={endRound} onSelect={setSelectedRound} selectedRoundId={selectedRound} />
-                    {selectedRound && <QuestionManager selectedRoundId={selectedRound} questions={questions} onSetQuestion={setQuestion} />}
-                </div>
-
-                <div className="col-span-12 lg:col-span-4 space-y-6">
-                    <EliminationPanel onRunElimination={runElimination} />
-                </div>
-
-                <div className="col-span-12 lg:col-span-4 space-y-6">
-                    <div className="bg-surface-bg border border-surface-border rounded-3xl p-6 space-y-4">
-                        <div className="flex items-center gap-2 text-muted text-xs uppercase font-bold tracking-widest"><AlertTriangle className="w-3 h-3" /> System Diagnostics</div>
+                <div className="col-span-12 xl:col-span-4 space-y-6">
+                    <AdminPanel
+                        title="System Diagnostics"
+                        description="Read-only operational telemetry to support quick decisions."
+                        icon={ShieldCheck}
+                    >
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-surface-bg/50 rounded-xl border border-surface-border">
-                                <span className="text-sm text-muted">Human Teams</span>
-                                <span className="font-bold text-foreground">{humanCount}</span>
+                            <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                                <span className="text-sm font-semibold text-admin-muted">Human Teams</span>
+                                <span className="font-atsanee text-2xl font-black italic text-gold">{humanCount}</span>
                             </div>
-                            <div className="flex justify-between items-center p-3 bg-surface-bg/50 rounded-xl border border-surface-border">
-                                <span className="text-sm text-muted">Bot Teams</span>
-                                <span className="font-bold text-foreground">{botCount}</span>
+                            <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                                <span className="text-sm font-semibold text-admin-muted">Bot Teams</span>
+                                <span className="font-atsanee text-2xl font-black italic text-gold">{botCount}</span>
                             </div>
-                            <button onClick={checkTies} className="w-full py-3 bg-surface-bg/80 hover:bg-surface-bg border border-surface-border rounded-xl text-sm font-semibold transition-all text-foreground">Check for Ties</button>
-                            <button onClick={simulateBotScores} className="w-full py-3 bg-surface-bg/80 hover:bg-surface-bg border border-surface-border rounded-xl text-sm font-semibold transition-all text-foreground">Simulate Bot Progress</button>
+                            <button
+                                onClick={checkTies}
+                                className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black uppercase tracking-[0.2em] text-white/85 transition-all hover:border-admin-cyan/20 hover:bg-white/[0.06]"
+                            >
+                                Check for Ties
+                            </button>
+                            <button
+                                onClick={simulateBotScores}
+                                className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black uppercase tracking-[0.2em] text-white/85 transition-all hover:border-admin-cyan/20 hover:bg-white/[0.06]"
+                            >
+                                Simulate Bot Progress
+                            </button>
                         </div>
-                    </div>
+                    </AdminPanel>
+
+                    <EliminationPanel onRunElimination={runElimination} />
+
+                    <AdminPanel
+                        title="Operator Guidance"
+                        description="Quick reminders for the current control workflow."
+                        icon={AlertTriangle}
+                        tone="warning"
+                    >
+                        <div className="space-y-4 text-sm font-medium leading-relaxed text-admin-muted">
+                            <p>Reveal results only after answer collection and grading synchronization are complete.</p>
+                            <p>Use force pause when a round clock requires immediate intervention before grading.</p>
+                            <p>Declare winners only as the final control action for the active teams.</p>
+                        </div>
+                    </AdminPanel>
                 </div>
             </div>
         </div>

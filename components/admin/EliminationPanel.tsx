@@ -1,5 +1,6 @@
 import { Skull, AlertTriangle, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { AdminPanel } from "./AdminPrimitives";
 
 interface EliminationPanelProps {
     onRunElimination: (round: number) => void;
@@ -7,64 +8,48 @@ interface EliminationPanelProps {
 
 export function EliminationPanel({ onRunElimination }: EliminationPanelProps) {
     return (
-        <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
-                <div className="p-2 bg-red-500/20 rounded-lg">
-                    <Skull className="w-4 h-4 text-red-500" />
-                </div>
-                Elimination
-            </h2>
-
-            <div className="space-y-3">
-                {/* Round 3 Elimination */}
-                <motion.div
-                    className="bg-red-500/5 dark:bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
-                    whileHover={{ scale: 1.01 }}
-                >
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
-                        <div className="min-w-0">
-                            <span className="font-bold text-red-600 dark:text-red-300 whitespace-nowrap">End of Round 3</span>
-                            <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-0.5 break-words">Eliminate 3 per division (15 total)</p>
+        <AdminPanel
+            title="Elimination"
+            description="Execute division eliminations at the correct phase without changing any underlying game rules."
+            icon={Skull}
+            tone="danger"
+        >
+            <div className="space-y-4">
+                {[3, 5].map((round) => (
+                    <motion.div
+                        key={round}
+                        className="rounded-[1.5rem] border border-rose-300/18 bg-rose-300/10 p-4"
+                        whileHover={{ scale: 1.01 }}
+                    >
+                        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="min-w-0">
+                                <p className="font-atsanee text-2xl font-black uppercase italic text-rose-100">
+                                    End of Round {round}
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-rose-100/75">
+                                    {round === 3 ? "Eliminate 3 per division (15 total)." : "Eliminate 2 per division (10 total)."}
+                                </p>
+                            </div>
+                            <motion.button
+                                onClick={() => onRunElimination(round)}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200/25 bg-rose-200/10 px-5 py-3 font-atsanee text-lg font-black uppercase italic text-rose-100"
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                            >
+                                <AlertTriangle className="h-4 w-4" />
+                                Execute
+                            </motion.button>
                         </div>
-                        <motion.button
-                            onClick={() => onRunElimination(3)}
-                            className="w-full xl:w-auto justify-center bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2 whitespace-nowrap"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            <AlertTriangle className="w-4 h-4" /> Execute
-                        </motion.button>
-                    </div>
-                </motion.div>
-
-                {/* Round 5 Elimination */}
-                <motion.div
-                    className="bg-red-500/5 dark:bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
-                    whileHover={{ scale: 1.01 }}
-                >
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
-                        <div className="min-w-0">
-                            <span className="font-bold text-red-600 dark:text-red-300 whitespace-nowrap">End of Round 5</span>
-                            <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-0.5 break-words">Eliminate 2 per division (10 total)</p>
-                        </div>
-                        <motion.button
-                            onClick={() => onRunElimination(5)}
-                            className="w-full xl:w-auto justify-center bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/20 flex items-center gap-2 whitespace-nowrap"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            <AlertTriangle className="w-4 h-4" /> Execute
-                        </motion.button>
-                    </div>
-                </motion.div>
+                    </motion.div>
+                ))}
             </div>
 
-            <div className="mt-4 p-3 bg-surface-bg border border-surface-border rounded-lg">
-                <div className="flex items-center gap-2 text-muted text-xs">
-                    <Zap className="w-3 h-3 text-accent-blue" />
-                    <span>After Round 5: 5 winners (1 per division) proceed to Final</span>
+            <div className="mt-5 rounded-[1.5rem] border border-gold/12 bg-gold/6 px-4 py-4">
+                <div className="flex items-center gap-3 text-sm font-semibold text-admin-muted">
+                    <Zap className="h-4 w-4 text-gold" />
+                    After Round 5, one winner per division proceeds to the final.
                 </div>
             </div>
-        </div>
+        </AdminPanel>
     );
 }

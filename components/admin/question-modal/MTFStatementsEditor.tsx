@@ -19,14 +19,14 @@ export function MTFStatementsEditor({ statements, setStatements }: MTFStatements
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Binary Propositions ({statements.length}/8)</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Binary Propositions ({statements.length}/8)</label>
                 <button
                     type="button"
                     onClick={addStatement}
                     disabled={statements.length >= 8}
                     className={cn(
-                        "flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic",
-                        statements.length >= 8 ? "bg-surface-bg/50 text-muted cursor-not-allowed" : "bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 border border-accent-cyan/20"
+                        "flex items-center gap-1 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                        statements.length >= 8 ? "bg-white/[0.04] text-admin-muted cursor-not-allowed" : "border border-admin-cyan/20 bg-admin-cyan/10 text-admin-cyan hover:bg-admin-cyan/20"
                     )}
                 >
                     <Plus className="w-3 h-3" /> Add
@@ -42,14 +42,14 @@ export function MTFStatementsEditor({ statements, setStatements }: MTFStatements
                             setStatements(newS);
                         }}
                         className={cn(
-                            "w-28 text-[10px] font-black uppercase rounded-2xl border transition-all shrink-0 h-16 italic tracking-widest",
-                            s.isTrue ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400" : "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+                            "h-16 w-28 shrink-0 rounded-[1.25rem] border text-[10px] font-black uppercase tracking-widest transition-all",
+                            s.isTrue ? "border-emerald-300/20 bg-emerald-300/12 text-emerald-100" : "border-rose-300/20 bg-rose-300/12 text-rose-100"
                         )}
                     >
                         {s.isTrue ? "TRUE" : "FALSE"}
                     </button>
                     <div className="relative flex-1">
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-bg border border-surface-border flex items-center justify-center font-black italic text-muted transition-colors">
+                        <div className="absolute left-6 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] font-black text-admin-muted transition-colors">
                             {idx + 1}
                         </div>
                         <input
@@ -61,14 +61,14 @@ export function MTFStatementsEditor({ statements, setStatements }: MTFStatements
                                 setStatements(newS);
                             }}
                             placeholder={`Clinical Statement ${idx + 1}`}
-                            className="w-full h-16 bg-surface-bg/50 border border-surface-border rounded-2xl pl-16 pr-6 focus:outline-none focus:border-accent-blue/30 font-bold text-lg text-foreground transition-colors"
+                            className="admin-input h-16 w-full rounded-[1.25rem] pl-16 pr-6 text-lg font-bold"
                         />
                     </div>
                     {statements.length > 2 && (
                         <button
                             type="button"
                             onClick={() => removeStatement(idx)}
-                            className="w-12 h-16 flex items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                            className="flex h-16 w-12 shrink-0 items-center justify-center rounded-[1.25rem] border border-rose-300/20 bg-rose-300/10 text-rose-100 hover:bg-rose-300/20 transition-all"
                         >
                             <Trash2 className="w-5 h-5" />
                         </button>

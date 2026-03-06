@@ -32,7 +32,7 @@ export function ImageUploader({ imageUrl, uploading, setImageUrl, setUploading }
 
     return (
         <div className="space-y-4">
-            <label className="text-[10px] uppercase tracking-[0.3em] text-muted font-black italic">Visual Documentation</label>
+            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-admin-muted">Visual Documentation</label>
             <div className="flex gap-4">
                 <div className="relative flex-1 group">
                     <input
@@ -40,28 +40,29 @@ export function ImageUploader({ imageUrl, uploading, setImageUrl, setUploading }
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
                         placeholder="External Image Endpoint (Direct Link)..."
-                        className="w-full bg-surface-bg/50 border border-surface-border rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:border-accent-blue/30 text-sm italic font-medium text-foreground transition-colors placeholder:text-muted/30"
+                        className="admin-input w-full rounded-[1.5rem] pl-12 pr-4 py-4 text-sm font-medium placeholder:text-admin-muted/45"
                     />
-                    <ImageIcon className="absolute left-4 top-4.5 w-4 h-4 text-muted/30 group-focus-within:text-accent-blue transition-colors" />
+                    <ImageIcon className="absolute left-4 top-4.5 w-4 h-4 text-admin-muted/45 group-focus-within:text-admin-cyan transition-colors" />
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" accept="image/*" />
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="px-6 bg-accent-blue/10 hover:bg-accent-blue/20 text-accent-blue border border-accent-blue/20 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
+                    className="flex items-center gap-2 rounded-full border border-admin-cyan/20 bg-admin-cyan/10 px-6 text-[10px] font-black uppercase tracking-widest text-admin-cyan transition-all active:scale-95 hover:bg-admin-cyan/20"
                 >
                     {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     Upload
                 </button>
             </div>
             {imageUrl && (
-                <div className="relative aspect-video rounded-3xl overflow-hidden border border-surface-border bg-surface-bg/80 group">
+                <div className="group relative aspect-video overflow-hidden rounded-[2rem] border border-white/8 bg-white/[0.04]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={imageUrl} alt="Preview" className="w-full h-full object-contain" />
                     <button
                         type="button"
                         onClick={() => setImageUrl("")}
-                        className="absolute top-4 right-4 p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all shadow-xl"
+                        className="absolute right-4 top-4 rounded-xl bg-rose-400 p-2 text-white opacity-0 shadow-xl transition-all group-hover:opacity-100"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
