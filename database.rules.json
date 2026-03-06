@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": false,
+    "presence": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'",
+      "$teamId": {
+        "sessions": {
+          "$sessionId": {
+            ".read": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'",
+            ".write": "auth != null && newData.child('uid').val() === auth.uid && newData.child('teamId').val() === $teamId",
+            ".validate": "newData.hasChildren(['uid', 'teamId', 'connected', 'lastHeartbeatAt', 'lastEventAt', 'route', 'screen', 'answerState', 'visibilityState', 'windowFocused', 'networkOnline', 'userAgent', 'platform', 'locationPermission'])"
+          }
+        }
+      }
+    }
+  }
+}

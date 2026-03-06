@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, query, collection, orderBy, onSnapshot, where, limit, setDoc } from "firebase/firestore";
+import { doc, getDoc, query, collection, orderBy, onSnapshot, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Team, Round, Question, DEFAULT_QUESTION_TIMER } from "@/lib/types";
 import { GameState, SubmissionResult, ANSWER_REVEAL_DURATION } from "@/lib/game/types/game";
 import { api } from "@/lib/api";
 import { useServerTime } from "@/lib/hooks/useServerTime";
+import { useContestantTracking } from "@/lib/tracking/useContestantTracking";
 
 export function useGameRoom() {
     const router = useRouter();
@@ -40,10 +41,17 @@ export function useGameRoom() {
     const [submitting, setSubmitting] = useState(false);
     const [lastResult, setLastResult] = useState<SubmissionResult | null>(null);
 
-    const isInGame = useCallback(() => {
-        if (typeof window === "undefined") return false;
-        return localStorage.getItem("ingame") === "true";
-    }, []);
+    const { disconnectTracking } = useContestantTracking({
+        loading,
+        teamId: team?.id,
+        teamStatus: team?.status,
+        inSuddenDeath: team?.inSuddenDeath,
+        gameState,
+        submitted,
+        mcqAnswer,
+        mtfAnswers,
+        textAnswer,
+    });
 
     const setInGame = useCallback((value: boolean) => {
         if (typeof window !== "undefined") {
@@ -266,7 +274,8 @@ export function useGameRoom() {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await disconnectTracking();
         localStorage.removeItem("medical_quiz_team_id");
         localStorage.removeItem("medical_quiz_team_name");
         localStorage.removeItem("medical_quiz_team_group");
@@ -327,7 +336,7 @@ export function useGameRoom() {
             );
         });
         return () => unsub();
-    }, [syncRound?.id]);
+    }, [syncRound]);
 
     // 4. Main State Processor
     useEffect(() => {
@@ -443,32 +452,6 @@ export function useGameRoom() {
             return () => clearInterval(interval);
         }
     }, [gameState, submitted, now]);
-
-    // --- HEARTBEAT / LOGIN TRACKING ---
-    useEffect(() => {
-        const teamId = localStorage.getItem("medical_quiz_team_id");
-        if (!teamId) return;
-
-        const reportPresence = async () => {
-            try {
-                await setDoc(doc(db, "presence", teamId), {
-                    lastSeen: Date.now(),
-                    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
-                    connected: true,
-                    teamId: teamId // redundant but helpful
-                }, { merge: true });
-            } catch (e) {
-                console.error("Heartbeat fail", e);
-            }
-        };
-
-        // Report immediately
-        reportPresence();
-
-        // Then every 30s
-        const interval = setInterval(reportPresence, 30000);
-        return () => clearInterval(interval);
-    }, [team?.id]); // Re-run if team changes ID (e.g. login)
 
     return {
         loading, team, setTeam, currentRound, currentQuestion, roundQuestions, allTeams,

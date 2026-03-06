@@ -115,6 +115,62 @@ export type SubmissionResult = {
     questionText?: string;
 };
 
+export type TrackingStatus = "online" | "idle" | "offline";
+export type TrackingRoute = "/" | "/game";
+export type TrackingScreen =
+    | "loading"
+    | "lobby"
+    | "countdown"
+    | "playing"
+    | "submitted"
+    | "answer_reveal"
+    | "waiting_grading"
+    | "eliminated"
+    | "winner"
+    | "sudden_death";
+export type LocationPermissionState = "prompt" | "granted" | "denied" | "unavailable";
+export type AnswerActivityState = "idle" | "answering" | "submitted" | "waiting_result";
+
+export type TrackingCoordsRounded = {
+    lat: number;
+    lng: number;
+};
+
+export type TrackingSession = {
+    sessionId: string;
+    uid: string | null;
+    teamId: string;
+    connected: boolean;
+    connectedAt: number | null;
+    lastHeartbeatAt: number;
+    lastEventAt: number;
+    route: TrackingRoute;
+    screen: TrackingScreen;
+    gameState: GameState | null;
+    answerState: AnswerActivityState;
+    visibilityState: "visible" | "hidden";
+    windowFocused: boolean;
+    networkOnline: boolean;
+    userAgent: string;
+    platform: string;
+    locationPermission: LocationPermissionState;
+    coordsRounded: TrackingCoordsRounded | null;
+    accuracyMeters: number | null;
+    locationUpdatedAt: number | null;
+};
+
+export type TrackingTeamSnapshot = {
+    teamId: string;
+    status: TrackingStatus;
+    activeSessionCount: number;
+    hasDuplicateSessions: boolean;
+    missingLocationWarning: boolean;
+    freshestHeartbeatAt: number | null;
+    primarySession: TrackingSession | null;
+    activeSessions: TrackingSession[];
+    allSessions: TrackingSession[];
+};
+
 // Firestore document reference type (used in API routes)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DocumentRef = any; // Firestore DocumentReference - kept as any for flexibility
