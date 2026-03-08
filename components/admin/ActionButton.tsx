@@ -9,6 +9,7 @@ interface ActionButtonProps {
     variant?: "default" | "danger" | "success" | "warning" | "primary";
     disabled?: boolean;
     loading?: boolean;
+    className?: string;
 }
 
 export const ActionButton = ({
@@ -18,6 +19,7 @@ export const ActionButton = ({
     variant = "default",
     disabled = false,
     loading = false,
+    className,
 }: ActionButtonProps) => {
     const variants = {
         default: "border-white/10 bg-white/[0.05] text-white/90 hover:border-white/20 hover:bg-white/[0.08]",
@@ -34,6 +36,7 @@ export const ActionButton = ({
             className={cn(
                 "group relative inline-flex min-h-14 items-center gap-3 overflow-hidden rounded-full border px-5 py-3 text-left font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50",
                 variants[variant],
+                className,
             )}
             whileHover={{ scale: disabled ? 1 : 1.015 }}
             whileTap={{ scale: disabled ? 1 : 0.985 }}

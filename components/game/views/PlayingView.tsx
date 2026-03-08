@@ -1,10 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
-import { Question, QuestionType } from "@/lib/types";
+import { Loader2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Question } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DIFFICULTY_LABELS } from "@/lib/game/types/game";
-import { useState } from "react";
-import { X } from "lucide-react";
 
 interface PlayingViewProps {
 	question: Question | null;
@@ -35,6 +34,25 @@ export const PlayingView = ({
 	submitting,
 	onSubmit,
 }: PlayingViewProps) => {
+	const questionId = question?.id ?? null;
+	const [isImageOpen, setIsImageOpen] = useState(false);
+	const [displayTimeLeft, setDisplayTimeLeft] = useState<number | null>(timeLeft);
+	const lastQuestionIdRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (questionId !== lastQuestionIdRef.current) {
+			lastQuestionIdRef.current = questionId;
+			setDisplayTimeLeft(timeLeft);
+			return;
+		}
+
+		setDisplayTimeLeft((prev) => {
+			if (timeLeft == null) return prev;
+			if (prev == null) return timeLeft;
+			return timeLeft <= prev ? timeLeft : prev;
+		});
+	}, [questionId, timeLeft]);
+
 	if (!question) return null;
 
 	const difficultyKey = (
@@ -42,8 +60,6 @@ export const PlayingView = ({
 	).toLowerCase() as keyof typeof DIFFICULTY_LABELS;
 	const difficulty = DIFFICULTY_LABELS[difficultyKey] || DIFFICULTY_LABELS.easy;
 	const [, , turnNum, questionNum] = question.id.split("-");
-
-	const [isImageOpen, setIsImageOpen] = useState(false);
 	return (
 		<div className="w-[90vw] pt-6">
 			<h1 className="font-atsanee text-8xl italic font-black bg-shiny bg-clip-text text-transparent uppercase tracking-widerfont-black text-center mb-6">
@@ -63,7 +79,7 @@ export const PlayingView = ({
 						<div className="text-white text-3xl md:text-2xl font-bold">
 							Time Left:{" "}
 							<span className="text-3xl md:text-4xl font-black">
-								{timeLeft}s
+								{displayTimeLeft ?? timeLeft}s
 							</span>
 						</div>
 					</div>

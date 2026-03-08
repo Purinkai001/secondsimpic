@@ -103,7 +103,7 @@ export default function GradingPage() {
                                                 <User className="h-7 w-7" />
                                             </div>
                                             <div>
-                                                <h3 className="font-atsanee text-4xl font-black uppercase italic text-gold">
+                                                <h3 className="font-atsanee text-4xl font-black uppercase text-gold">
                                                     {group.team?.name || "Unknown Team"}
                                                 </h3>
                                                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -127,7 +127,7 @@ export default function GradingPage() {
                                                         #{aIdx + 1}
                                                     </span>
                                                     <BookOpen className="h-4 w-4 text-gold/65" />
-                                                    <p className="text-base font-medium italic leading-relaxed text-white/72 md:text-lg">
+                                                    <p className="text-base font-medium leading-relaxed text-white/72 md:text-lg">
                                                         {answer.question?.text}
                                                     </p>
                                                     {view === "history" && (
@@ -158,7 +158,7 @@ export default function GradingPage() {
                                                                     Reference Key
                                                                 </span>
                                                             </div>
-                                                            <p className="text-2xl font-black italic leading-tight text-emerald-200/85 md:text-3xl">
+                                                            <p className="text-2xl font-black leading-tight text-emerald-200/85 md:text-3xl">
                                                                 {answer.question.correctAnswer}
                                                             </p>
                                                         </div>

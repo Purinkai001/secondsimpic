@@ -176,13 +176,14 @@ export default function AdminDashboardOverview() {
                         icon={Zap}
                         tone="accent"
                     >
-                        <div className="flex flex-wrap gap-3">
-                            <ActionButton onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
-                            <ActionButton onClick={fillBots} icon={Bot} label={`Fill Bots (${Math.max(0, 30 - teams.length)})`} loading={actionLoading === "fillbots"} />
-                            <ActionButton onClick={removeBots} icon={Bot} label="Remove Bots" variant="danger" loading={actionLoading === "removebots"} />
-                            <ActionButton onClick={resetScoresForTurn3} icon={RotateCcw} label="Reset Score" variant="warning" loading={actionLoading === "resetScores"} />
-                            <ActionButton onClick={rearrangeDivisions} icon={Layers} label="Rearrange" variant="primary" loading={actionLoading === "rearrange"} />
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                            <ActionButton className="w-full md:col-span-2" onClick={initGame} icon={RefreshCw} label="Init Game" variant="danger" loading={actionLoading === "init"} />
+                            <ActionButton className="w-full md:col-span-2" onClick={fillBots} icon={Bot} label={`Fill Bots (${Math.max(0, 30 - teams.length)})`} loading={actionLoading === "fillbots"} />
+                            <ActionButton className="w-full md:col-span-2" onClick={removeBots} icon={Bot} label="Remove Bots" variant="danger" loading={actionLoading === "removebots"} />
+                            <ActionButton className="w-full md:col-span-2" onClick={resetScoresForTurn3} icon={RotateCcw} label="Reset Score" variant="warning" loading={actionLoading === "resetScores"} />
+                            <ActionButton className="w-full md:col-span-2" onClick={rearrangeDivisions} icon={Layers} label="Rearrange" variant="primary" loading={actionLoading === "rearrange"} />
                             <ActionButton
+                                className="w-full md:col-span-2"
                                 onClick={() => handleAction("suddenDeathAlert", async () => {
                                     const data = await api.gameAction("triggerSuddenDeathAlert");
                                     alert(data.message);
@@ -193,6 +194,7 @@ export default function AdminDashboardOverview() {
                                 loading={actionLoading === "suddenDeathAlert"}
                             />
                             <ActionButton
+                                className="w-full md:col-span-2"
                                 onClick={() => handleAction("clearSuddenDeath", () => api.gameAction("clearSuddenDeathAlert"))}
                                 icon={RefreshCw}
                                 label="Clear Sudden Death"
@@ -200,18 +202,19 @@ export default function AdminDashboardOverview() {
                                 loading={actionLoading === "clearSuddenDeath"}
                             />
                             {activeRound && !activeRound.showResults && (
-                                <ActionButton onClick={revealResults} icon={Eye} label="Reveal Result" variant="primary" />
+                                <ActionButton className="w-full md:col-span-2" onClick={revealResults} icon={Eye} label="Reveal Result" variant="primary" />
                             )}
                             {activeRound && (
-                                <ActionButton onClick={nextQuestion} icon={ArrowRight} label="Next Question" variant="success" />
+                                <ActionButton className="w-full md:col-span-2" onClick={nextQuestion} icon={ArrowRight} label="Next Question" variant="success" />
                             )}
                             {activeRound && !activeRound.pausedAt && (
-                                <ActionButton onClick={pauseRound} icon={Activity} label="Force Pause" variant="warning" />
+                                <ActionButton className="w-full md:col-span-2" onClick={pauseRound} icon={Activity} label="Force Pause" variant="warning" />
                             )}
                             {activeRound?.pausedAt && (
-                                <ActionButton onClick={resumeRound} icon={Play} label="Resume Hub" variant="success" />
+                                <ActionButton className="w-full md:col-span-2" onClick={resumeRound} icon={Play} label="Resume Hub" variant="success" />
                             )}
                             <ActionButton
+                                className="w-full md:col-span-2"
                                 onClick={() => handleAction("declareWinners", async () => {
                                     if (!confirm("DECLARE WINNERS? This ends the game for active teams.")) return;
                                     return api.gameAction("declareWinners");

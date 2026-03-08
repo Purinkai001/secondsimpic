@@ -45,7 +45,7 @@ export default function ChallengesPage() {
                                             <User className="h-7 w-7" />
                                         </div>
                                         <div>
-                                            <h3 className="font-atsanee text-4xl font-black uppercase italic text-gold">
+                                            <h3 className="font-atsanee text-4xl font-black uppercase text-gold">
                                                 {challenge.teamName}
                                             </h3>
                                             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -59,7 +59,7 @@ export default function ChallengesPage() {
                                     </div>
                                     <button
                                         onClick={() => handleDismiss(challenge.id)}
-                                        className="inline-flex items-center justify-center rounded-full border border-rose-300/20 bg-rose-300/10 px-6 py-3 font-atsanee text-xl font-black uppercase italic text-rose-100 transition-all hover:bg-rose-300/18"
+                                        className="inline-flex items-center justify-center rounded-full border border-rose-300/20 bg-rose-300/10 px-6 py-3 font-atsanee text-xl font-black uppercase text-rose-100 transition-all hover:bg-rose-300/18"
                                     >
                                         Dismiss Alert
                                     </button>
@@ -72,7 +72,7 @@ export default function ChallengesPage() {
                                         <BookOpen className="h-4 w-4 text-gold/70" />
                                         <span className="text-[10px] font-black uppercase tracking-[0.24em]">Contested Question</span>
                                     </div>
-                                    <p className="rounded-[2rem] border border-white/8 bg-white/[0.04] p-6 text-2xl font-medium italic leading-relaxed text-white/85">
+                                    <p className="rounded-[2rem] border border-white/8 bg-white/[0.04] p-6 text-2xl font-medium leading-relaxed text-white/85">
                                         &quot;{challenge.questionText}&quot;
                                     </p>
                                 </div>
